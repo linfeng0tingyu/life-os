@@ -22,7 +22,7 @@ def test_health_endpoint_and_log_are_runtime_local(tmp_path: Path) -> None:
     assert set(tmp_path.iterdir()) == {runtime_home}
 
 
-def test_database_engine_points_inside_runtime_without_creating_database(
+def test_database_engine_points_inside_runtime_and_initializes_database(
     tmp_path: Path,
 ) -> None:
     runtime_home = tmp_path / "runtime"
@@ -30,7 +30,7 @@ def test_database_engine_points_inside_runtime_without_creating_database(
     database_url = app.config["SQLALCHEMY_DATABASE_URI"]
 
     assert Path(database_url.database) == runtime_home / "database" / "life.db"
-    assert not (runtime_home / "database" / "life.db").exists()
+    assert (runtime_home / "database" / "life.db").is_file()
 
 
 def test_api_404_uses_json_contract(tmp_path: Path) -> None:

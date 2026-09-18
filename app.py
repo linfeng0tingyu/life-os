@@ -11,6 +11,10 @@ from pathlib import Path
 sys.dont_write_bytecode = True
 
 from life_os import create_app
+from life_os.database import (
+    DatabaseInitializationError,
+    checkpoint_database,
+)
 from life_os.instance_lock import InstanceLockError
 from life_os.network import PortUnavailableError, ensure_port_available
 from life_os.runtime import RuntimeSetupError
@@ -37,6 +41,7 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
+    app = None
     if args.home is not None:
         expanded_home = args.home.expanduser()
         if not expanded_home.is_absolute():
@@ -72,9 +77,16 @@ def main() -> int:
         SettingsError,
         InstanceLockError,
         PortUnavailableError,
+        DatabaseInitializationError,
     ) as exc:
         print(f"Life OS 启动失败：{exc}", file=sys.stderr)
         return 1
+    finally:
+        if app is not None:
+            try:
+                checkpoint_database(app)
+            except DatabaseInitializationError as exc:
+                print(f"Life OS 关闭警告：{exc}", file=sys.stderr)
 
 
 if __name__ == "__main__":

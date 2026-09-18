@@ -7,6 +7,7 @@ from flask import Flask, jsonify, request
 from sqlalchemy import URL
 from werkzeug.exceptions import HTTPException
 
+from .database import initialize_database
 from .extensions import db
 from .instance_lock import InstanceLock
 from .logging_setup import configure_logging
@@ -47,12 +48,17 @@ def create_app(
             "sqlite+pysqlite", database=str(paths.database_file)
         ),
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
+        SQLALCHEMY_ENGINE_OPTIONS={
+            "connect_args": {"timeout": 5.0},
+            "pool_pre_ping": True,
+        },
     )
     app.extensions["life_os_runtime"] = paths
     app.extensions["life_os_settings"] = settings
 
     configure_logging(app, paths, settings)
     db.init_app(app)
+    initialize_database(app)
     _register_error_handlers(app)
 
     from .routes.system import blueprint as system_blueprint

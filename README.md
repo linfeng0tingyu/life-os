@@ -2,7 +2,7 @@
 title: "Life OS 工程说明"
 type: project-readme
 created: 2026-09-18T14:30:00+08:00
-updated: 2026-09-18T14:45:56+08:00
+updated: 2026-09-18T15:04:44+08:00
 status: draft
 related:
   - "[[项目说明]]"
@@ -12,7 +12,7 @@ related:
 
 # Life OS
 
-Life OS 是一个本地优先、以日期为中心的个人生活管理系统。当前完成 M1 工程基础：Flask 应用骨架、统一运行时目录、指向运行时数据库路径的 Flask-SQLAlchemy 基础配置、配置校验、日志轮转、单实例保护、端口检查、Windows 启动入口和基础自动化测试。业务数据库表和生活管理功能将在后续里程碑实现。
+Life OS 是一个本地优先、以日期为中心的个人生活管理系统。当前已完成 M1–M2：具备 Flask 工程与可移植运行时、自动初始化的 SQLite 数据库、版本与完整性检查，以及日期标记、习惯、任务、健康、睡眠和日记领域服务。HTTP 业务 API 与正式界面将在后续里程碑实现。
 
 ## 环境要求
 
@@ -57,7 +57,7 @@ start.bat
 ```text
 life-os-data/
 ├── config/settings.json
-├── database/
+├── database/life.db
 ├── backups/
 ├── exports/
 ├── cache/
@@ -95,6 +95,12 @@ GET http://127.0.0.1:5000/api/system/health
 
 测试使用临时 `LIFE_OS_HOME`，不会向默认 `life-os-data/` 写入测试状态。
 
+## 数据库基础
+
+首次启动会自动创建 `LIFE_OS_HOME/database/life.db`，不需要手工执行 SQL。当前 schema 版本为 `1`，包含 `schema_meta`、`calendar_days`、`habits`、`habit_logs`、`tasks`、`daily_health` 和 `journals`。
+
+每个连接启用 SQLite 外键约束、5 秒 busy timeout、WAL 与 NORMAL synchronous；启动后执行完整性检查，正常关闭时执行 WAL checkpoint。日期服务默认把周一至周五解析为工作日、周六与周日解析为休息日，显式记录可以覆盖该推断并保存节假日名称与自定义标签。
+
 ## 当前边界
 
-M1 不创建业务数据库和 SQLAlchemy 模型，也不提供任务、习惯、健康或日记接口。当前页面仅用于确认本地服务和运行时基础可用；后续实现顺序以 [[里程碑计划]] 为准。
+M2 已创建业务模型和领域服务，但不提供任务、习惯、日期标记、健康或日记 HTTP 接口。当前页面仅用于确认本地服务、运行时和数据库基础可用；后续实现顺序以 [[里程碑计划]] 为准。
