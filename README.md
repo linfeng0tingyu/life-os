@@ -2,7 +2,7 @@
 title: "Life OS 工程说明"
 type: project-readme
 created: 2026-09-18T14:30:00+08:00
-updated: 2026-09-18T15:04:44+08:00
+updated: 2026-09-18T15:19:32+08:00
 status: draft
 related:
   - "[[项目说明]]"
@@ -12,7 +12,7 @@ related:
 
 # Life OS
 
-Life OS 是一个本地优先、以日期为中心的个人生活管理系统。当前已完成 M1–M2：具备 Flask 工程与可移植运行时、自动初始化的 SQLite 数据库、版本与完整性检查，以及日期标记、习惯、任务、健康、睡眠和日记领域服务。HTTP 业务 API 与正式界面将在后续里程碑实现。
+Life OS 是一个本地优先、以日期为中心的个人生活管理系统。当前已完成 M1–M3：具备 Flask 工程与可移植运行时、SQLite 数据库与领域服务，以及统一 JSON 合同下的日期聚合、日历、习惯、任务、健康和日记 API。正式业务界面将在后续里程碑实现。
 
 ## 环境要求
 
@@ -84,6 +84,19 @@ life-os-data/
 GET http://127.0.0.1:5000/api/system/health
 ```
 
+## 核心 API
+
+M3 提供以下路径，成功响应统一使用 `{"success": true, "data": ...}`，失败响应统一使用 `{"success": false, "error": ...}`：
+
+- `GET /api/day/{date}`：聚合指定日期的日历标记、习惯日志、计划/到期/逾期任务、健康和日记。
+- `GET /api/calendar/month/{year-month}` 与 `PUT|DELETE /api/calendar/days/{date}`：查询月历并设置或清除工作日、休息日、节假日和自定义标记。
+- `/api/habits` 与 `/api/habits/{id}/log/{date}`：管理习惯及每日记录。
+- `/api/tasks`：创建、查询、编辑和归档任务，支持日期、状态和归档筛选。
+- `/api/health/{date}` 与 `/api/journal/{date}`：按日期读写健康/睡眠数据和 Markdown 日记。
+- `GET /api/system/info`：返回应用版本、schema 版本和可移植运行时状态，不暴露本机绝对路径。
+
+详细字段、状态码与验收行为见 [[接口验收清单]]。
+
 ## 开发与测试
 
 开发依赖与测试命令：
@@ -103,4 +116,4 @@ GET http://127.0.0.1:5000/api/system/health
 
 ## 当前边界
 
-M2 已创建业务模型和领域服务，但不提供任务、习惯、日期标记、健康或日记 HTTP 接口。当前页面仅用于确认本地服务、运行时和数据库基础可用；后续实现顺序以 [[里程碑计划]] 为准。
+M3 已完成核心 HTTP API，但尚未实现 Today Dashboard、月历交互与各领域表单。备份、导出与跨路径迁移演练按计划在 M7 完成；后续实现顺序以 [[里程碑计划]] 为准。

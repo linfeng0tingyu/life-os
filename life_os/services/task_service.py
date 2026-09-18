@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import date
 
-from sqlalchemy import select
+from sqlalchemy import and_, or_, select
 
 from life_os.extensions import db
 from life_os.models import Task
@@ -26,10 +26,31 @@ TASK_PRIORITIES = {"low", "normal", "high", "urgent"}
 
 class TaskService:
     @staticmethod
-    def list_tasks(*, include_archived: bool = False) -> list[Task]:
+    def list_tasks(
+        *,
+        include_archived: bool = False,
+        status: str | None = None,
+        value_date: date | str | None = None,
+    ) -> list[Task]:
         statement = select(Task)
         if not include_archived:
             statement = statement.where(Task.archived_at.is_(None))
+        if status is not None:
+            statement = statement.where(
+                Task.status == choice(status, "status", TASK_STATUSES)
+            )
+        if value_date is not None:
+            target = parse_life_date(value_date)
+            statement = statement.where(
+                or_(
+                    Task.scheduled_date == target,
+                    Task.due_date == target,
+                    and_(
+                        Task.due_date < target,
+                        Task.status.not_in({"done", "cancelled"}),
+                    ),
+                )
+            )
         return list(
             db.session.scalars(statement.order_by(Task.sort_order, Task.id))
         )

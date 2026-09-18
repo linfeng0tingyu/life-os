@@ -4,6 +4,8 @@ from datetime import datetime
 
 from flask import Blueprint, current_app, jsonify, render_template
 
+from life_os.api import success_response
+
 
 blueprint = Blueprint("system", __name__)
 
@@ -30,3 +32,25 @@ def health():
         }
     )
 
+
+@blueprint.get("/api/system/info")
+def info():
+    from life_os import __version__
+
+    paths = current_app.extensions["life_os_runtime"]
+    return success_response(
+        {
+            "version": __version__,
+            "schema_version": current_app.extensions["life_os_schema_version"],
+            "runtime": {
+                "ready": paths.home.is_dir(),
+                "portable": True,
+                "database": "database/life.db",
+            },
+            "capabilities": {
+                "backup": False,
+                "export": False,
+                "backup_export_milestone": "M7",
+            },
+        }
+    )

@@ -2,17 +2,20 @@ from __future__ import annotations
 
 import atexit
 from pathlib import Path
+from uuid import uuid4
 
-from flask import Flask, jsonify, request
+from flask import Flask, g, request
 from sqlalchemy import URL
-from werkzeug.exceptions import HTTPException
+from werkzeug.exceptions import BadRequest, HTTPException
 
+from .api import error_response
 from .database import initialize_database
 from .extensions import db
 from .instance_lock import InstanceLock
 from .logging_setup import configure_logging
 from .runtime import RuntimePaths, initialize_runtime, resolve_runtime_paths
 from .settings import load_settings
+from .services.common import ConflictError, DomainError, NotFoundError, ValidationError
 
 
 __version__ = "0.1.0-dev"
@@ -61,9 +64,10 @@ def create_app(
     initialize_database(app)
     _register_error_handlers(app)
 
-    from .routes.system import blueprint as system_blueprint
+    from .routes import BLUEPRINTS
 
-    app.register_blueprint(system_blueprint)
+    for blueprint in BLUEPRINTS:
+        app.register_blueprint(blueprint)
 
     if acquire_lock:
         instance_lock = InstanceLock(paths.lock_file)
@@ -80,37 +84,59 @@ def create_app(
 
 
 def _register_error_handlers(app: Flask) -> None:
+    @app.before_request
+    def assign_request_id() -> None:
+        g.request_id = uuid4().hex[:12]
+
+    @app.after_request
+    def attach_request_id(response):
+        response.headers["X-Request-ID"] = g.get("request_id", "")
+        return response
+
+    @app.errorhandler(DomainError)
+    def handle_domain_error(error: DomainError):
+        status, code = {
+            ValidationError: (400, "validation_error"),
+            NotFoundError: (404, "not_found"),
+            ConflictError: (409, "conflict"),
+        }.get(type(error), (400, "domain_error"))
+        app.logger.warning(
+            "API domain error request_id=%s method=%s path=%s code=%s",
+            g.get("request_id", ""),
+            request.method,
+            request.path,
+            code,
+        )
+        return error_response(
+            code, str(error), status=status, details=error.details
+        )
+
     @app.errorhandler(HTTPException)
     def handle_http_error(error: HTTPException):
         if request.path.startswith("/api/"):
-            return (
-                jsonify(
-                    {
-                        "success": False,
-                        "error": {
-                            "code": error.name.lower().replace(" ", "_"),
-                            "message": error.description,
-                            "details": {},
-                        },
-                    }
-                ),
-                error.code,
+            code = (
+                "invalid_json"
+                if isinstance(error, BadRequest)
+                else error.name.lower().replace(" ", "_")
+            )
+            return error_response(
+                code,
+                error.description,
+                status=error.code or 500,
             )
         return error
 
     @app.errorhandler(Exception)
     def handle_unexpected_error(error: Exception):
-        app.logger.exception("Unhandled application error", exc_info=error)
-        return (
-            jsonify(
-                {
-                    "success": False,
-                    "error": {
-                        "code": "internal_error",
-                        "message": "服务器发生内部错误。",
-                        "details": {},
-                    },
-                }
-            ),
-            500,
+        db.session.rollback()
+        app.logger.error(
+            "Unhandled application error request_id=%s method=%s path=%s "
+            "error_type=%s",
+            g.get("request_id", ""),
+            request.method,
+            request.path,
+            type(error).__name__,
+        )
+        return error_response(
+            "internal_error", "服务器发生内部错误。", status=500
         )

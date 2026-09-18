@@ -30,6 +30,15 @@ class HabitService:
         )
 
     @staticmethod
+    def get_log(habit_id: int, value_date: date | str) -> HabitLog | None:
+        target = parse_life_date(value_date)
+        return db.session.scalar(
+            select(HabitLog).where(
+                HabitLog.habit_id == habit_id, HabitLog.date == target
+            )
+        )
+
+    @staticmethod
     @transactional
     def create(
         name: str,

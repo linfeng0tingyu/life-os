@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 from flask import Flask
+from flask.testing import FlaskClient
 
 from life_os import create_app
 
@@ -18,3 +19,8 @@ def app(tmp_path: Path) -> Flask:
 def app_context(app: Flask) -> Iterator[None]:
     with app.app_context():
         yield
+
+
+@pytest.fixture
+def client(app: Flask) -> FlaskClient:
+    return app.test_client()

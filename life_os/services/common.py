@@ -19,6 +19,10 @@ DATE_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 class DomainError(RuntimeError):
     """Base exception for domain-level failures."""
 
+    def __init__(self, message: str, *, details: dict[str, object] | None = None):
+        super().__init__(message)
+        self.details = details or {}
+
 
 class ValidationError(DomainError):
     """Raised when input violates a domain rule."""
