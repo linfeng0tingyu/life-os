@@ -12,7 +12,9 @@ blueprint = Blueprint("system", __name__)
 
 @blueprint.get("/")
 def index():
-    return render_template("index.html")
+    from life_os import __version__
+
+    return render_template("index.html", app_version=__version__)
 
 
 @blueprint.get("/api/system/health")

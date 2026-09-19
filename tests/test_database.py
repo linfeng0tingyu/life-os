@@ -19,6 +19,8 @@ from life_os.services import HabitService, JournalService
 EXPECTED_TABLES = {
     "calendar_days",
     "daily_health",
+    "finance_accounts",
+    "finance_transactions",
     "habit_logs",
     "habits",
     "journals",
@@ -71,6 +73,27 @@ def test_incompatible_schema_version_stops_startup(tmp_path: Path) -> None:
 
     with pytest.raises(DatabaseVersionError, match="不兼容"):
         create_app(runtime_home=runtime_home, testing=True)
+
+
+def test_schema_v1_is_migrated_to_v2_without_losing_data(tmp_path: Path) -> None:
+    runtime_home = tmp_path / "runtime"
+    first_app = create_app(runtime_home=runtime_home, testing=True)
+    with first_app.app_context():
+        JournalService.upsert("2026-09-18", "keep me")
+        db.session.execute(text("DROP TABLE finance_transactions"))
+        db.session.execute(text("DROP TABLE finance_accounts"))
+        db.session.execute(
+            text("UPDATE schema_meta SET value = '1' WHERE key = 'schema_version'")
+        )
+        db.session.commit()
+    checkpoint_database(first_app)
+
+    migrated_app = create_app(runtime_home=runtime_home, testing=True)
+    with migrated_app.app_context():
+        tables = set(inspect(db.engine).get_table_names())
+        assert {"finance_accounts", "finance_transactions"} <= tables
+        assert db.session.get(SchemaMeta, "schema_version").value == "2"
+        assert JournalService.get("2026-09-18").content == "keep me"
 
 
 def test_existing_unversioned_database_stops_startup(tmp_path: Path) -> None:

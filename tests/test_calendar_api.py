@@ -11,6 +11,8 @@ def test_month_returns_every_day_with_weekday_inference(client: FlaskClient) -> 
     assert [day["date"] for day in days] == sorted(day["date"] for day in days)
     assert days[0]["day_type"] == "workday"
     assert days[0]["explicit"] is False
+    assert days[0]["has_data"] is False
+    assert days[0]["habit_summary"] == {"completed": 0, "total": 0}
     assert next(day for day in days if day["date"] == "2026-09-05")[
         "day_type"
     ] == "rest_day"
@@ -52,6 +54,28 @@ def test_calendar_override_update_and_clear(client: FlaskClient) -> None:
     assert inferred["explicit"] is False
     assert inferred["day_type"] == "rest_day"
     assert client.delete("/api/calendar/days/2026-09-05").status_code == 404
+
+
+def test_month_includes_data_and_habit_summary(client: FlaskClient) -> None:
+    habit = client.post("/api/habits", json={"name": "拉伸"}).get_json()["data"]
+    client.put(
+        f"/api/habits/{habit['id']}/log/2026-09-18",
+        json={"status": True},
+    )
+    client.post(
+        "/api/tasks", json={"title": "规划", "scheduled_date": "2026-09-19"}
+    )
+
+    days = client.get("/api/calendar/month/2026-09").get_json()["data"]["days"]
+    day_18 = next(day for day in days if day["date"] == "2026-09-18")
+    day_19 = next(day for day in days if day["date"] == "2026-09-19")
+    day_20 = next(day for day in days if day["date"] == "2026-09-20")
+
+    assert day_18["has_data"] is True
+    assert day_18["habit_summary"] == {"completed": 1, "total": 1}
+    assert day_19["has_data"] is True
+    assert day_19["habit_summary"] == {"completed": 0, "total": 1}
+    assert day_20["has_data"] is False
 
 
 def test_calendar_validates_month_and_payload(client: FlaskClient) -> None:

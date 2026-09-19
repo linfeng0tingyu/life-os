@@ -1,6 +1,7 @@
 from .calendar_service import CalendarService, ResolvedCalendarDay
 from .common import ConflictError, DomainError, NotFoundError, ValidationError
 from .day_service import DayService
+from .finance_service import FinanceService
 from .habit_service import HabitService
 from .health_service import HealthService
 from .journal_service import JournalService
@@ -11,6 +12,7 @@ __all__ = [
     "ConflictError",
     "DomainError",
     "DayService",
+    "FinanceService",
     "HabitService",
     "HealthService",
     "JournalService",

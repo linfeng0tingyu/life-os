@@ -14,12 +14,20 @@ def test_empty_day_has_stable_shape(client: FlaskClient) -> None:
         "tasks",
         "health",
         "journal",
+        "finance",
     }
     assert data["date"] == "2026-09-18"
     assert data["habits"] == []
     assert data["tasks"] == {"scheduled": [], "due": [], "overdue": []}
     assert data["health"] is None
     assert data["journal"] is None
+    assert data["finance"] == {
+        "currency": "CNY",
+        "income": "0.00",
+        "expense": "0.00",
+        "net_cashflow": "0.00",
+        "transactions": [],
+    }
 
 
 def test_day_aggregates_only_target_date(client: FlaskClient) -> None:

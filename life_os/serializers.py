@@ -2,8 +2,18 @@ from __future__ import annotations
 
 from typing import Any
 
-from .models import CalendarDay, DailyHealth, Habit, HabitLog, Journal, Task
+from .models import (
+    CalendarDay,
+    DailyHealth,
+    FinanceAccount,
+    FinanceTransaction,
+    Habit,
+    HabitLog,
+    Journal,
+    Task,
+)
 from .services.calendar_service import ResolvedCalendarDay
+from .services.finance_service import minor_to_money
 
 
 def calendar_day_data(day: ResolvedCalendarDay | CalendarDay) -> dict[str, Any]:
@@ -106,4 +116,74 @@ def journal_data(journal: Journal) -> dict[str, Any]:
         "content": journal.content,
         "created_at": journal.created_at,
         "updated_at": journal.updated_at,
+    }
+
+
+def finance_account_data(
+    account: FinanceAccount, *, balance_minor: int | None = None
+) -> dict[str, Any]:
+    data = {
+        "id": account.id,
+        "name": account.name,
+        "kind": account.kind,
+        "account_type": account.account_type,
+        "currency": account.currency,
+        "opening_balance": minor_to_money(account.opening_balance_minor),
+        "active": account.active,
+        "sort_order": account.sort_order,
+        "created_at": account.created_at,
+        "updated_at": account.updated_at,
+    }
+    if balance_minor is not None:
+        data["balance"] = minor_to_money(balance_minor)
+    return data
+
+
+def finance_transaction_data(transaction: FinanceTransaction) -> dict[str, Any]:
+    return {
+        "id": transaction.id,
+        "date": transaction.date.isoformat(),
+        "type": transaction.transaction_type,
+        "amount": minor_to_money(transaction.amount_minor),
+        "currency": "CNY",
+        "from_account_id": transaction.from_account_id,
+        "to_account_id": transaction.to_account_id,
+        "category": transaction.category,
+        "description": transaction.description,
+        "note": transaction.note,
+        "archived_at": transaction.archived_at,
+        "created_at": transaction.created_at,
+        "updated_at": transaction.updated_at,
+    }
+
+
+def finance_day_data(day: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "currency": "CNY",
+        "income": minor_to_money(day["income_minor"]),
+        "expense": minor_to_money(day["expense_minor"]),
+        "net_cashflow": minor_to_money(day["net_cashflow_minor"]),
+        "transactions": [
+            finance_transaction_data(item) for item in day["transactions"]
+        ],
+    }
+
+
+def finance_summary_data(summary: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "currency": "CNY",
+        "date_from": (
+            summary["date_from"].isoformat() if summary["date_from"] else None
+        ),
+        "date_to": summary["date_to"].isoformat() if summary["date_to"] else None,
+        "income": minor_to_money(summary["income_minor"]),
+        "expense": minor_to_money(summary["expense_minor"]),
+        "net_cashflow": minor_to_money(summary["net_cashflow_minor"]),
+        "total_assets": minor_to_money(summary["total_assets_minor"]),
+        "total_liabilities": minor_to_money(summary["total_liabilities_minor"]),
+        "net_worth": minor_to_money(summary["net_worth_minor"]),
+        "accounts": [
+            finance_account_data(account, balance_minor=balance)
+            for account, balance in summary["accounts"]
+        ],
     }

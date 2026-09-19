@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="life-os-version" content="{{ app_version }}">
+    <meta name="theme-color" content="#f5f3ed">
+    <title>{% block title %}Life OS{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css', v=app_version) }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css', v=app_version) }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/layout.css', v=app_version) }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css', v=app_version) }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/today.css', v=app_version) }}">
+    {% block head %}{% endblock %}
+  </head>
+  <body>
+    {% block body %}{% endblock %}
+    {% block scripts %}{% endblock %}
+  </body>
+</html>

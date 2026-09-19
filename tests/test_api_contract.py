@@ -4,6 +4,7 @@ from pathlib import Path
 
 from flask.testing import FlaskClient
 
+from life_os.database import SCHEMA_VERSION
 from life_os.services.common import ConflictError
 
 
@@ -58,7 +59,7 @@ def test_system_info_has_versions_and_no_absolute_runtime_path(
     assert payload["success"] is True
     data = payload["data"]
     assert data["version"]
-    assert data["schema_version"] == 1
+    assert data["schema_version"] == SCHEMA_VERSION
     assert data["runtime"]["portable"] is True
     assert data["runtime"]["database"] == "database/life.db"
     assert data["capabilities"]["backup"] is False

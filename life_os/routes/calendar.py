@@ -8,6 +8,7 @@ from life_os.api import json_object, success_response
 from life_os.serializers import calendar_day_data
 from life_os.services.calendar_service import CalendarService
 from life_os.services.common import ValidationError
+from life_os.services.day_service import DayService
 
 
 blueprint = Blueprint("calendar", __name__)
@@ -21,9 +22,19 @@ def get_month(year_month: str):
     if match is None:
         raise ValidationError("month 必须使用 YYYY-MM 格式。")
     year, month = (int(part) for part in match.groups())
-    days = CalendarService.list_month(year, month)
+    days = DayService.month_overview(year, month)
     return success_response(
-        {"month": year_month, "days": [calendar_day_data(day) for day in days]}
+        {
+            "month": year_month,
+            "days": [
+                {
+                    **item["calendar_day"],
+                    "has_data": item["has_data"],
+                    "habit_summary": item["habit_summary"],
+                }
+                for item in days
+            ],
+        }
     )
 
 

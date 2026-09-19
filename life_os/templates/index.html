@@ -1,21 +1,195 @@
-<!doctype html>
-<html lang="zh-CN">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Life OS</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
-  </head>
-  <body>
-    <main class="shell">
-      <p class="eyebrow">Life OS v0.1</p>
-      <h1>本地生活数据基座已就绪</h1>
-      <p>
-        M1 已建立应用骨架、可移植运行时目录、配置、日志与单实例保护。
-        业务数据库和生活管理模块将在后续里程碑实现。
-      </p>
-      <p class="status" role="status">服务仅监听本机地址。</p>
-    </main>
-  </body>
-</html>
+{% extends "base.html" %}
 
+{% block title %}今日 · Life OS{% endblock %}
+
+{% block body %}
+  <div class="app-shell" data-app-root>
+    <aside class="sidebar" aria-label="主导航">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">生</span>
+        <div>
+          <strong>Life OS</strong>
+          <span>个人生活工作台</span>
+        </div>
+      </div>
+      <nav class="primary-nav" aria-label="核心模块">
+        <a class="nav-link is-active" href="/" aria-current="page">
+          <span aria-hidden="true">⌂</span><span>今日</span>
+        </a>
+        <a class="nav-link" href="#calendar-panel">
+          <span aria-hidden="true">□</span><span>日历</span>
+        </a>
+        <a class="nav-link" href="#tasks-panel">
+          <span aria-hidden="true">✓</span><span>任务</span>
+        </a>
+        <a class="nav-link" href="#habits-panel">
+          <span aria-hidden="true">○</span><span>习惯</span>
+        </a>
+        <a class="nav-link" href="#journal-panel">
+          <span aria-hidden="true">⌁</span><span>记录</span>
+        </a>
+      </nav>
+      <div class="sidebar-foot">
+        <span class="privacy-dot" aria-hidden="true"></span>
+        数据仅保存在本机运行目录
+      </div>
+    </aside>
+
+    <main class="main-content" id="main-content">
+      <div class="topbar">
+        <div>
+          <p class="eyebrow" data-greeting>今天，也照顾好自己的节奏</p>
+          <h1 data-date-heading>正在读取日期…</h1>
+          <p class="date-subtitle" data-date-subtitle></p>
+        </div>
+        <button class="button button-primary" type="button" data-action="go-today">
+          返回今天
+        </button>
+      </div>
+
+      <div class="notice is-hidden" role="alert" data-global-error>
+        <div>
+          <strong>暂时无法读取数据</strong>
+          <p data-global-error-message></p>
+        </div>
+        <button class="button button-secondary" type="button" data-action="retry-day">重试</button>
+      </div>
+
+      <section class="dashboard-grid" aria-label="今日生活概览">
+        <div class="dashboard-main">
+          <section class="module module-status" aria-labelledby="status-title" data-day-panel>
+            <div class="module-heading">
+              <div>
+                <p class="section-kicker">今日状态</p>
+                <h2 id="status-title">一天的轮廓</h2>
+              </div>
+              <span class="state-label" role="status" aria-live="polite" data-day-state>加载中</span>
+            </div>
+            <div class="day-overview" data-day-overview aria-busy="true">
+              <div class="skeleton skeleton-wide"></div>
+              <div class="metric-row">
+                <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="module module-focus" id="tasks-panel" aria-labelledby="tasks-title">
+            <div class="module-heading">
+              <div>
+                <p class="section-kicker">需要关注</p>
+                <h2 id="tasks-title">今日重要事项</h2>
+              </div>
+              <span class="module-note">完整操作将在 M5 开放</span>
+            </div>
+            <div data-task-summary></div>
+          </section>
+
+          <section class="module module-rhythm" aria-labelledby="rhythm-title">
+            <div class="module-heading">
+              <div>
+                <p class="section-kicker">身体与节律</p>
+                <h2 id="rhythm-title">生活节律</h2>
+              </div>
+              <span class="module-note">按所选日期聚合</span>
+            </div>
+            <div class="rhythm-grid" data-rhythm-summary></div>
+          </section>
+
+          <section class="module module-habits" id="habits-panel" aria-labelledby="habits-title">
+            <div class="module-heading">
+              <div>
+                <p class="section-kicker">轻量坚持</p>
+                <h2 id="habits-title">习惯</h2>
+              </div>
+              <span class="module-note">完整操作将在 M5 开放</span>
+            </div>
+            <div data-habit-summary></div>
+          </section>
+
+          <div class="paired-modules">
+            <section class="module module-notes" id="journal-panel" aria-labelledby="journal-title">
+              <div class="module-heading">
+                <div>
+                  <p class="section-kicker">最近记录</p>
+                  <h2 id="journal-title">日记</h2>
+                </div>
+              </div>
+              <div data-journal-summary></div>
+            </section>
+
+            <section class="module module-finance" aria-labelledby="finance-title">
+              <div class="module-heading">
+                <div>
+                  <p class="section-kicker">今日收支</p>
+                  <h2 id="finance-title">财务</h2>
+                </div>
+                <span class="module-note">记账入口将在 M6 开放</span>
+              </div>
+              <div data-finance-summary></div>
+            </section>
+          </div>
+        </div>
+
+        <aside class="dashboard-side">
+          <section class="module calendar-module" id="calendar-panel" aria-labelledby="calendar-title">
+            <div class="calendar-toolbar">
+              <button class="icon-button" type="button" data-action="previous-month" aria-label="上个月">‹</button>
+              <h2 id="calendar-title" data-month-heading>正在加载</h2>
+              <button class="icon-button" type="button" data-action="next-month" aria-label="下个月">›</button>
+            </div>
+            <div class="calendar-weekdays" aria-hidden="true">
+              <span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span>
+            </div>
+            <div class="calendar-grid" role="grid" aria-labelledby="calendar-title" data-calendar-grid aria-busy="true"></div>
+            <div class="calendar-legend" aria-label="日历图例">
+              <span><i class="legend-dot has-data"></i>有记录</span>
+              <span><i class="legend-dot rest-day"></i>休息日</span>
+              <span><i class="legend-dot selected"></i>已选择</span>
+            </div>
+            <div class="inline-error is-hidden" role="alert" data-calendar-error>
+              <span data-calendar-error-message></span>
+              <button type="button" class="text-button" data-action="retry-month">重试</button>
+            </div>
+          </section>
+
+          <section class="module day-marker-module" aria-labelledby="marker-title">
+            <div class="module-heading compact">
+              <div>
+                <p class="section-kicker">日期属性</p>
+                <h2 id="marker-title">工作与休息标记</h2>
+              </div>
+              <span class="save-state" role="status" aria-live="polite" data-save-state>未修改</span>
+            </div>
+            <form data-day-marker-form>
+              <fieldset class="segmented-control">
+                <legend>日期类型</legend>
+                <label><input type="radio" name="day_type" value="workday">工作日</label>
+                <label><input type="radio" name="day_type" value="rest_day">休息日</label>
+              </fieldset>
+              <label class="field">
+                <span>节假日名称</span>
+                <input type="text" name="holiday_name" maxlength="120" placeholder="例如：国庆节">
+              </label>
+              <label class="field">
+                <span>自定义标记</span>
+                <input type="text" name="custom_label" maxlength="120" placeholder="例如：家庭日">
+              </label>
+              <label class="field">
+                <span>备注</span>
+                <textarea name="note" maxlength="1000" rows="3" placeholder="记录这一天的特殊安排"></textarea>
+              </label>
+              <div class="form-actions">
+                <button class="button button-primary" type="submit">保存标记</button>
+                <button class="button button-quiet is-hidden" type="button" data-action="clear-marker">恢复默认</button>
+              </div>
+            </form>
+          </section>
+        </aside>
+      </section>
+    </main>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+  <script type="module" src="{{ url_for('static', filename='js/app.js', v=app_version) }}"></script>
+{% endblock %}

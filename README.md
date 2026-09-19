@@ -2,7 +2,7 @@
 title: "Life OS 工程说明"
 type: project-readme
 created: 2026-09-18T14:30:00+08:00
-updated: 2026-09-18T15:19:32+08:00
+updated: 2026-09-19T21:31:25+08:00
 status: draft
 related:
   - "[[项目说明]]"
@@ -12,7 +12,7 @@ related:
 
 # Life OS
 
-Life OS 是一个本地优先、以日期为中心的个人生活管理系统。当前已完成 M1–M3：具备 Flask 工程与可移植运行时、SQLite 数据库与领域服务，以及统一 JSON 合同下的日期聚合、日历、习惯、任务、健康和日记 API。正式业务界面将在后续里程碑实现。
+Life OS 是一个本地优先、以日期为中心的个人生活管理系统。当前已完成 M1–M3：具备 Flask 工程与可移植运行时、SQLite 数据库与领域服务，以及统一 JSON 合同下的日期聚合、日历、习惯、任务、健康、日记和个人财务 API。正式业务界面将在后续里程碑实现。
 
 ## 环境要求
 
@@ -88,11 +88,12 @@ GET http://127.0.0.1:5000/api/system/health
 
 M3 提供以下路径，成功响应统一使用 `{"success": true, "data": ...}`，失败响应统一使用 `{"success": false, "error": ...}`：
 
-- `GET /api/day/{date}`：聚合指定日期的日历标记、习惯日志、计划/到期/逾期任务、健康和日记。
-- `GET /api/calendar/month/{year-month}` 与 `PUT|DELETE /api/calendar/days/{date}`：查询月历并设置或清除工作日、休息日、节假日和自定义标记。
+- `GET /api/day/{date}`：聚合指定日期的日历标记、习惯日志、计划/到期/逾期任务、健康、日记和当日财务流水。
+- `GET /api/calendar/month/{year-month}` 与 `PUT|DELETE /api/calendar/days/{date}`：查询月历及轻量数据/习惯摘要，并设置或清除工作日、休息日、节假日和自定义标记。
 - `/api/habits` 与 `/api/habits/{id}/log/{date}`：管理习惯及每日记录。
 - `/api/tasks`：创建、查询、编辑和归档任务，支持日期、状态和归档筛选。
 - `/api/health/{date}` 与 `/api/journal/{date}`：按日期读写健康/睡眠数据和 Markdown 日记。
+- `/api/finance/accounts`、`/api/finance/transactions` 与 `/api/finance/summary`：管理 CNY 资产/负债账户、收入/支出/转账流水和总体财务摘要。
 - `GET /api/system/info`：返回应用版本、schema 版本和可移植运行时状态，不暴露本机绝对路径。
 
 详细字段、状态码与验收行为见 [[接口验收清单]]。
@@ -110,10 +111,10 @@ M3 提供以下路径，成功响应统一使用 `{"success": true, "data": ...}
 
 ## 数据库基础
 
-首次启动会自动创建 `LIFE_OS_HOME/database/life.db`，不需要手工执行 SQL。当前 schema 版本为 `1`，包含 `schema_meta`、`calendar_days`、`habits`、`habit_logs`、`tasks`、`daily_health` 和 `journals`。
+首次启动会自动创建 `LIFE_OS_HOME/database/life.db`，不需要手工执行 SQL。当前 schema 版本为 `2`，在既有生活数据表外包含 `finance_accounts` 和 `finance_transactions`。现有 schema v1 会在启动时原地升级为 v2，不删除既有数据。
 
 每个连接启用 SQLite 外键约束、5 秒 busy timeout、WAL 与 NORMAL synchronous；启动后执行完整性检查，正常关闭时执行 WAL checkpoint。日期服务默认把周一至周五解析为工作日、周六与周日解析为休息日，显式记录可以覆盖该推断并保存节假日名称与自定义标签。
 
 ## 当前边界
 
-M3 已完成核心 HTTP API，但尚未实现 Today Dashboard、月历交互与各领域表单。备份、导出与跨路径迁移演练按计划在 M7 完成；后续实现顺序以 [[里程碑计划]] 为准。
+M4 已完成 Today Dashboard、月历与日期导航、工作/休息日标记、统一 API Client 和前端状态框架。任务与习惯当前只读展示聚合结果，完整交互在 M5；健康、日记和财务当前只读展示或保留稳定容器，完整交互在 M6。复杂预算、账单导入、多币种和投资分析不在 v0.1 范围内。备份、导出与跨路径迁移演练按计划在 M7 完成。

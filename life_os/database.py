@@ -11,7 +11,8 @@ from .extensions import db
 from .models import SchemaMeta
 
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
+MINIMUM_MIGRATABLE_VERSION = 1
 
 
 class DatabaseInitializationError(RuntimeError):
@@ -46,6 +47,7 @@ def initialize_database(app: Flask) -> None:
                 raise DatabaseVersionError(
                     "现有数据库缺少 schema_meta，无法确认兼容性，已停止写入。"
                 )
+            stored_version_number: int | None = None
             if has_schema_meta:
                 stored_version = db.session.execute(
                     text(
@@ -57,7 +59,13 @@ def initialize_database(app: Flask) -> None:
                     raise DatabaseVersionError(
                         "数据库缺少 schema_version，已停止写入。"
                     )
-                if stored_version != str(SCHEMA_VERSION):
+                try:
+                    stored_version_number = int(stored_version)
+                except ValueError as exc:
+                    raise DatabaseVersionError(
+                        "数据库 schema_version 不是有效整数，已停止写入。"
+                    ) from exc
+                if not MINIMUM_MIGRATABLE_VERSION <= stored_version_number <= SCHEMA_VERSION:
                     raise DatabaseVersionError(
                         "数据库 schema 版本不兼容："
                         f"磁盘版本 {stored_version}，程序版本 {SCHEMA_VERSION}。"
@@ -68,6 +76,14 @@ def initialize_database(app: Flask) -> None:
                 db.session.add(
                     SchemaMeta(key="schema_version", value=str(SCHEMA_VERSION))
                 )
+                db.session.commit()
+            elif stored_version_number is not None and stored_version_number < SCHEMA_VERSION:
+                version_record = db.session.get(SchemaMeta, "schema_version")
+                if version_record is None:
+                    raise DatabaseVersionError(
+                        "数据库缺少 schema_version，已停止写入。"
+                    )
+                version_record.value = str(SCHEMA_VERSION)
                 db.session.commit()
 
             integrity_result = db.session.execute(

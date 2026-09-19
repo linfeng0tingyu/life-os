@@ -51,6 +51,7 @@ def create_app(
             "sqlite+pysqlite", database=str(paths.database_file)
         ),
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
+        SEND_FILE_MAX_AGE_DEFAULT=0,
         SQLALCHEMY_ENGINE_OPTIONS={
             "connect_args": {"timeout": 5.0},
             "pool_pre_ping": True,
@@ -91,6 +92,8 @@ def _register_error_handlers(app: Flask) -> None:
     @app.after_request
     def attach_request_id(response):
         response.headers["X-Request-ID"] = g.get("request_id", "")
+        if response.mimetype == "text/html":
+            response.headers["Cache-Control"] = "no-cache"
         return response
 
     @app.errorhandler(DomainError)
