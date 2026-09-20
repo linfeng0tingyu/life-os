@@ -1,0 +1,1284 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="created" content="2026-09-20T16:44:09+08:00">
+    <meta name="updated" content="2026-09-20T16:44:09+08:00">
+    <meta name="description" content="Life OS 藏青主配色静态视觉 Demo">
+    <title>Life OS · 今日 · 藏青</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --background: color-mix(in srgb, var(--primary) 5%, #f7f4ed);
+        --surface: color-mix(in srgb, var(--primary) 2%, #fffdf8);
+        --surface-muted: color-mix(in srgb, var(--primary) 8%, #eeece6);
+        --text-primary: color-mix(in srgb, var(--primary) 14%, #202523);
+        --text-secondary: color-mix(in srgb, var(--primary) 16%, #68706d);
+        --text-muted: color-mix(in srgb, var(--primary) 12%, #949b97);
+        --border: color-mix(in srgb, var(--primary) 11%, #dedfd9);
+        --border-strong: color-mix(in srgb, var(--primary) 18%, #c9cdc8);
+        --primary: #2e4e7e;
+        --primary-hover: color-mix(in srgb, var(--primary) 82%, #172b26);
+        --primary-light: color-mix(in srgb, var(--primary) 18%, #f7faf7);
+        --cyan: color-mix(in srgb, var(--primary) 68%, #5f9fb1);
+        --jade: color-mix(in srgb, var(--primary) 72%, #5b8a72);
+        --vermillion: color-mix(in srgb, var(--primary) 18%, #b85a4d);
+        --gold: color-mix(in srgb, var(--primary) 22%, #a98850);
+        --sidebar: color-mix(in srgb, var(--primary) 7%, #efede7);
+        --focus: color-mix(in srgb, var(--primary) 82%, #173f3a);
+        --module-status: color-mix(in srgb, var(--primary) 10%, #f5f6f1);
+        --module-focus: color-mix(in srgb, var(--gold) 9%, var(--background));
+        --module-habits: color-mix(in srgb, var(--jade) 10%, var(--background));
+        --module-rhythm: color-mix(in srgb, var(--cyan) 10%, var(--background));
+        --module-notes: color-mix(in srgb, var(--note-accent) 9%, var(--background));
+        --font-sans: "Times New Roman", "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+        --font-serif: "Times New Roman", "Songti SC", "STSong", "Noto Serif CJK SC", serif;
+
+        --primary-foreground: #fffdf8;
+        --surface-hover: color-mix(in srgb, var(--primary) 4%, #fffefa);
+        --nav-hover: color-mix(in srgb, var(--primary) 6%, transparent);
+        --button-shadow: color-mix(in srgb, var(--primary) 24%, transparent);
+        --button-shadow-hover: color-mix(in srgb, var(--primary) 29%, transparent);
+        --button-shadow-active: color-mix(in srgb, var(--primary) 20%, transparent);
+        --primary-shadow: color-mix(in srgb, var(--gold) 82%, #75633f);
+        --focus-ring: color-mix(in srgb, var(--focus) 26%, transparent);
+        --status-border: color-mix(in srgb, var(--primary) 26%, #dfe4dd);
+        --note-accent: color-mix(in srgb, var(--primary) 44%, #927389);
+        --module-divider: color-mix(in srgb, var(--text-primary) 18%, transparent);
+        --rhythm-panel: color-mix(in srgb, var(--surface) 78%, transparent);
+        --rhythm-border: color-mix(in srgb, var(--cyan) 36%, transparent);
+        --panel-shadow: color-mix(in srgb, var(--text-primary) 15%, transparent);
+        --backdrop: color-mix(in srgb, var(--text-primary) 34%, transparent);
+        --content-width: 1180px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        min-width: 320px;
+        min-height: 100vh;
+        color: var(--text-primary);
+        background: var(--background);
+        font-family: var(--font-sans);
+        font-size: 15px;
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      button,
+      textarea {
+        font: inherit;
+      }
+
+      button {
+        color: inherit;
+      }
+
+      button:focus-visible,
+      a:focus-visible,
+      textarea:focus-visible {
+        outline: 3px solid var(--focus-ring);
+        outline-offset: 2px;
+      }
+
+      .icon {
+        width: 18px;
+        height: 18px;
+        flex: 0 0 auto;
+        fill: none;
+        stroke: currentColor;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-width: 1.7;
+      }
+
+      .app-shell {
+        display: grid;
+        grid-template-columns: 232px minmax(0, 1fr);
+        min-height: 100vh;
+      }
+
+      .sidebar {
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        padding: 30px 22px 24px;
+        background: var(--sidebar);
+        border-right: 1px solid var(--border);
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        padding: 0 10px 30px;
+      }
+
+      .brand-mark {
+        position: relative;
+        width: 30px;
+        height: 30px;
+        border: 1px solid var(--primary);
+        border-radius: 50%;
+      }
+
+      .brand-mark::before,
+      .brand-mark::after {
+        position: absolute;
+        content: "";
+        border-radius: 50%;
+      }
+
+      .brand-mark::before {
+        inset: 6px;
+        border: 1px solid var(--cyan);
+      }
+
+      .brand-mark::after {
+        right: 4px;
+        bottom: 4px;
+        width: 5px;
+        height: 5px;
+        background: var(--vermillion);
+      }
+
+      .brand-name {
+        font-family: var(--font-serif);
+        font-size: 19px;
+        letter-spacing: 0.04em;
+      }
+
+      .brand-subtitle {
+        display: block;
+        margin-top: -2px;
+        color: var(--text-muted);
+        font-family: var(--font-sans);
+        font-size: 11px;
+        letter-spacing: 0.08em;
+      }
+
+      .primary-nav {
+        display: grid;
+        gap: 4px;
+      }
+
+      .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        min-height: 42px;
+        padding: 0 11px;
+        color: var(--text-secondary);
+        text-decoration: none;
+        border-radius: 7px;
+        transition: color 180ms ease, background-color 180ms ease;
+      }
+
+      .nav-item:hover {
+        color: var(--text-primary);
+        background: var(--nav-hover);
+      }
+
+      .nav-item[aria-current="page"] {
+        color: var(--primary-hover);
+        background: var(--primary-light);
+        font-weight: 600;
+        box-shadow: inset 3px 0 0 var(--primary);
+      }
+
+      .sidebar-footer {
+        margin-top: auto;
+        padding: 18px 10px 0;
+        color: var(--text-muted);
+        border-top: 1px solid var(--border);
+        font-size: 12px;
+      }
+
+      .demo-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        margin-bottom: 8px;
+        color: var(--text-secondary);
+      }
+
+      .demo-label::before {
+        width: 6px;
+        height: 6px;
+        content: "";
+        background: var(--gold);
+        border-radius: 50%;
+      }
+
+      .main {
+        min-width: 0;
+      }
+
+      .content {
+        width: min(100%, var(--content-width));
+        margin: 0 auto;
+        padding: 46px 52px 64px;
+      }
+
+      .page-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 28px;
+        padding-bottom: 34px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .date-kicker {
+        margin: 0 0 7px;
+        color: var(--primary);
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin-top: 0;
+      }
+
+      h1 {
+        margin-bottom: 9px;
+        font-family: var(--font-serif);
+        font-size: clamp(29px, 3.2vw, 39px);
+        font-weight: 500;
+        line-height: 1.25;
+        letter-spacing: 0.02em;
+      }
+
+      .lead {
+        max-width: 620px;
+        margin-bottom: 0;
+        color: var(--text-secondary);
+      }
+
+      .actions {
+        display: flex;
+        gap: 10px;
+        padding-top: 6px;
+      }
+
+      .button {
+        min-height: 40px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 0 15px;
+        border: 1px solid var(--border-strong);
+        border-radius: 7px;
+        background: var(--surface);
+        box-shadow: 2px 2px 0 var(--button-shadow);
+        cursor: pointer;
+        transition: color 180ms ease, background-color 180ms ease, border-color 180ms ease, transform 180ms ease, box-shadow 180ms ease;
+      }
+
+      .button:hover {
+        background: var(--surface-hover);
+        border-color: var(--border-strong);
+        box-shadow: 3px 4px 0 var(--button-shadow-hover);
+        transform: translate(-1px, -1px);
+      }
+
+      .button:active {
+        box-shadow: 1px 1px 0 var(--button-shadow-active);
+        transform: translate(1px, 1px);
+      }
+
+      .button .icon {
+        transition: transform 180ms ease;
+      }
+
+      .button:hover .icon {
+        transform: rotate(-7deg);
+      }
+
+      .button-primary {
+        color: var(--primary-foreground);
+        background: var(--primary);
+        border-color: var(--primary);
+        box-shadow: 3px 3px 0 var(--primary-shadow);
+      }
+
+      .button-primary:hover {
+        color: var(--primary-foreground);
+        background: var(--primary-hover);
+        border-color: var(--primary-hover);
+        box-shadow: 4px 5px 0 var(--primary-shadow);
+      }
+
+      .status-strip {
+        display: grid;
+        grid-template-columns: minmax(0, 1.45fr) repeat(3, minmax(100px, 0.55fr));
+        gap: 0;
+        margin-top: 28px;
+        padding: 26px;
+        background: var(--module-status);
+        border: 1px solid var(--status-border);
+        border-left: 5px solid var(--primary);
+        border-radius: 10px;
+      }
+
+      .status-summary {
+        padding-right: 36px;
+      }
+
+      .section-kicker {
+        margin-bottom: 9px;
+        color: var(--text-muted);
+        font-size: 12px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+
+      .section-kicker::before {
+        display: inline-block;
+        width: 18px;
+        height: 2px;
+        margin: 0 7px 3px 0;
+        content: "";
+        background: var(--vermillion);
+      }
+
+      .status-summary strong {
+        display: block;
+        margin-bottom: 5px;
+        font-size: 20px;
+        font-weight: 600;
+      }
+
+      .status-summary p {
+        max-width: 450px;
+        margin-bottom: 0;
+        color: var(--text-secondary);
+      }
+
+      .metric {
+        padding: 3px 22px;
+        border-left: 1px solid var(--border);
+      }
+
+      .metric-label {
+        color: var(--text-muted);
+        font-size: 12px;
+      }
+
+      .metric-value {
+        display: block;
+        margin: 3px 0 1px;
+        font-family: var(--font-serif);
+        font-size: 29px;
+        line-height: 1.2;
+      }
+
+      .metric-value small {
+        margin-left: 2px;
+        color: var(--text-secondary);
+        font-family: var(--font-sans);
+        font-size: 13px;
+      }
+
+      .metric-note {
+        color: var(--text-secondary);
+        font-size: 12px;
+      }
+
+      .dashboard-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.04fr) minmax(360px, 0.96fr);
+        gap: 28px;
+        padding-top: 38px;
+      }
+
+      .column {
+        min-width: 0;
+      }
+
+      .section + .section {
+        margin-top: 28px;
+      }
+
+      .module {
+        --module-accent: var(--primary);
+        padding: 24px;
+        border: 1px solid var(--border-strong);
+        border-top: 4px solid var(--module-accent);
+        border-radius: 10px;
+      }
+
+      .module-focus {
+        --module-accent: var(--gold);
+        background: var(--module-focus);
+      }
+
+      .module-habits {
+        --module-accent: var(--jade);
+        background: var(--module-habits);
+      }
+
+      .module-rhythm {
+        --module-accent: var(--cyan);
+        background: var(--module-rhythm);
+      }
+
+      .module-notes {
+        --module-accent: var(--note-accent);
+        background: var(--module-notes);
+      }
+
+      .section-header {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 20px;
+        margin-bottom: 8px;
+        padding-bottom: 14px;
+        border-bottom: 1px solid var(--module-divider);
+      }
+
+      h2 {
+        margin-bottom: 0;
+        font-size: 18px;
+        font-weight: 650;
+        letter-spacing: 0.01em;
+      }
+
+      .text-link {
+        color: var(--primary);
+        background: none;
+        border: 0;
+        padding: 3px 0;
+        cursor: pointer;
+        font-size: 13px;
+      }
+
+      .text-link:hover {
+        color: var(--primary-hover);
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+
+      .focus-list,
+      .habit-list,
+      .note-list {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        border-top: 0;
+      }
+
+      .focus-item {
+        display: grid;
+        grid-template-columns: 10px minmax(0, 1fr) auto;
+        gap: 13px;
+        align-items: start;
+        padding: 17px 0;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .priority-dot {
+        width: 7px;
+        height: 7px;
+        margin-top: 8px;
+        border-radius: 50%;
+        background: var(--cyan);
+      }
+
+      .priority-dot.important {
+        background: var(--vermillion);
+      }
+
+      .focus-title {
+        display: block;
+        margin-bottom: 2px;
+        font-weight: 600;
+      }
+
+      .focus-meta,
+      .time {
+        color: var(--text-muted);
+        font-size: 12px;
+      }
+
+      .time {
+        padding-top: 2px;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .rhythm-panel {
+        padding: 21px 22px 17px;
+        background: var(--rhythm-panel);
+        border: 1px solid var(--rhythm-border);
+        border-radius: 9px;
+      }
+
+      .rhythm-summary {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 15px;
+      }
+
+      .rhythm-value {
+        font-family: var(--font-serif);
+        font-size: 31px;
+        line-height: 1;
+      }
+
+      .rhythm-value span {
+        margin-left: 6px;
+        color: var(--text-muted);
+        font-family: var(--font-sans);
+        font-size: 12px;
+      }
+
+      .trend-up {
+        color: var(--jade);
+        font-size: 12px;
+      }
+
+      .chart {
+        display: block;
+        width: 100%;
+        height: auto;
+        overflow: visible;
+      }
+
+      .chart-grid {
+        stroke: var(--border);
+        stroke-width: 1;
+      }
+
+      .chart-area {
+        fill: var(--primary-light);
+      }
+
+      .chart-line {
+        fill: none;
+        stroke: var(--primary);
+        stroke-width: 2.4;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .chart-point {
+        fill: var(--surface);
+        stroke: var(--primary);
+        stroke-width: 2;
+      }
+
+      .chart-labels {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        margin-top: 3px;
+        color: var(--text-muted);
+        font-size: 11px;
+        text-align: center;
+      }
+
+      .habit-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-height: 55px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .habit-check {
+        width: 22px;
+        height: 22px;
+        display: grid;
+        place-items: center;
+        padding: 0;
+        color: transparent;
+        background: transparent;
+        border: 1px solid var(--border-strong);
+        border-radius: 6px;
+        cursor: pointer;
+        transition: color 180ms ease, background-color 180ms ease, border-color 180ms ease;
+      }
+
+      .habit-check .icon {
+        width: 14px;
+        height: 14px;
+      }
+
+      .habit-item[data-complete="true"] .habit-check {
+        color: var(--primary-foreground);
+        background: var(--primary);
+        border-color: var(--primary);
+      }
+
+      .habit-item[data-complete="true"] .habit-name {
+        color: var(--text-muted);
+        text-decoration: line-through;
+        text-decoration-color: var(--border-strong);
+      }
+
+      .habit-copy {
+        min-width: 0;
+        flex: 1;
+      }
+
+      .habit-name {
+        transition: color 180ms ease;
+      }
+
+      .habit-streak {
+        color: var(--text-muted);
+        font-size: 12px;
+      }
+
+      .habit-progress {
+        color: var(--text-secondary);
+        font-size: 12px;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .note-item {
+        display: grid;
+        grid-template-columns: 48px minmax(0, 1fr);
+        gap: 15px;
+        padding: 16px 0;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .note-date {
+        color: var(--text-muted);
+        font-family: var(--font-serif);
+        font-size: 13px;
+      }
+
+      .note-title {
+        display: block;
+        margin-bottom: 2px;
+        font-weight: 600;
+      }
+
+      .note-excerpt {
+        margin-bottom: 0;
+        color: var(--text-secondary);
+        font-size: 13px;
+      }
+
+      dialog {
+        width: min(520px, calc(100% - 32px));
+        padding: 0;
+        color: var(--text-primary);
+        background: var(--surface);
+        border: 1px solid var(--border-strong);
+        border-radius: 11px;
+        box-shadow: 0 24px 80px var(--panel-shadow);
+      }
+
+      dialog::backdrop {
+        background: var(--backdrop);
+      }
+
+      .dialog-inner {
+        padding: 26px;
+      }
+
+      .dialog-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 20px;
+        margin-bottom: 20px;
+      }
+
+      .dialog-head h2 {
+        font-family: var(--font-serif);
+        font-size: 23px;
+        font-weight: 500;
+      }
+
+      .dialog-head p {
+        margin: 4px 0 0;
+        color: var(--text-secondary);
+        font-size: 13px;
+      }
+
+      .icon-button {
+        width: 36px;
+        height: 36px;
+        display: grid;
+        place-items: center;
+        padding: 0;
+        background: transparent;
+        border: 1px solid var(--border);
+        border-radius: 7px;
+        cursor: pointer;
+      }
+
+      .mood-fieldset {
+        margin: 0 0 18px;
+        padding: 0;
+        border: 0;
+      }
+
+      .mood-fieldset legend,
+      .note-label {
+        margin-bottom: 9px;
+        font-size: 13px;
+        font-weight: 600;
+      }
+
+      .mood-options {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+      }
+
+      .mood-option input {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .mood-option span {
+        min-height: 39px;
+        display: grid;
+        place-items: center;
+        color: var(--text-secondary);
+        background: transparent;
+        border: 1px solid var(--border);
+        border-radius: 7px;
+        cursor: pointer;
+      }
+
+      .mood-option input:focus-visible + span {
+        outline: 3px solid var(--focus-ring);
+        outline-offset: 2px;
+      }
+
+      .mood-option input:checked + span {
+        color: var(--primary-hover);
+        background: var(--primary-light);
+        border-color: var(--cyan);
+        font-weight: 600;
+      }
+
+      .note-label {
+        display: block;
+      }
+
+      textarea {
+        width: 100%;
+        min-height: 112px;
+        resize: vertical;
+        padding: 12px 13px;
+        color: var(--text-primary);
+        background: var(--background);
+        border: 1px solid var(--border-strong);
+        border-radius: 7px;
+        line-height: 1.6;
+      }
+
+      .dialog-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 20px;
+      }
+
+      .toast {
+        position: fixed;
+        right: 24px;
+        bottom: 24px;
+        max-width: min(360px, calc(100% - 48px));
+        padding: 11px 15px;
+        color: var(--primary-foreground);
+        background: var(--primary-hover);
+        border-radius: 7px;
+        box-shadow: 0 12px 35px var(--panel-shadow);
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(8px);
+        transition: opacity 180ms ease, transform 180ms ease;
+      }
+
+      .toast.is-visible {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      @media (max-width: 960px) {
+        .app-shell {
+          grid-template-columns: 190px minmax(0, 1fr);
+        }
+
+        .sidebar {
+          padding-inline: 15px;
+        }
+
+        .content {
+          padding: 38px 32px 52px;
+        }
+
+        .status-strip {
+          grid-template-columns: 1fr repeat(3, minmax(80px, 0.42fr));
+        }
+
+        .status-summary {
+          padding-right: 22px;
+        }
+
+        .metric {
+          padding-inline: 14px;
+        }
+
+        .dashboard-grid {
+          grid-template-columns: 1fr;
+          gap: 42px;
+        }
+      }
+
+      @media (max-width: 720px) {
+        .app-shell {
+          display: block;
+        }
+
+        .sidebar {
+          position: static;
+          height: auto;
+          display: block;
+          padding: 17px 18px 11px;
+          border-right: 0;
+          border-bottom: 1px solid var(--border);
+        }
+
+        .brand {
+          padding: 0 0 14px;
+        }
+
+        .brand-mark {
+          width: 27px;
+          height: 27px;
+        }
+
+        .primary-nav {
+          display: flex;
+          gap: 5px;
+          overflow-x: auto;
+          padding-bottom: 3px;
+          scrollbar-width: thin;
+        }
+
+        .nav-item {
+          min-height: 37px;
+          flex: 0 0 auto;
+          padding: 0 10px;
+        }
+
+        .nav-item .icon {
+          width: 16px;
+          height: 16px;
+        }
+
+        .sidebar-footer {
+          display: none;
+        }
+
+        .content {
+          padding: 30px 20px 44px;
+        }
+
+        .page-head {
+          display: block;
+          padding-bottom: 27px;
+        }
+
+        .actions {
+          margin-top: 20px;
+        }
+
+        .status-strip {
+          grid-template-columns: repeat(3, 1fr);
+          row-gap: 24px;
+          padding: 22px;
+        }
+
+        .status-summary {
+          grid-column: 1 / -1;
+          padding-right: 0;
+        }
+
+        .metric:first-of-type {
+          padding-left: 0;
+          border-left: 0;
+        }
+
+        .metric-value {
+          font-size: 25px;
+        }
+
+        .dashboard-grid {
+          padding-top: 31px;
+        }
+
+        .module {
+          padding: 20px;
+        }
+      }
+
+      @media (max-width: 430px) {
+        .button .button-label-optional {
+          display: none;
+        }
+
+        .status-strip {
+          grid-template-columns: 1fr 1fr;
+          padding: 19px;
+        }
+
+        .metric {
+          border-left: 0;
+          padding: 0;
+        }
+
+        .metric:last-child {
+          grid-column: 1 / -1;
+          padding-top: 17px;
+          border-top: 1px solid var(--border);
+        }
+
+        .mood-options {
+          grid-template-columns: 1fr 1fr;
+        }
+
+        .module {
+          padding: 18px;
+        }
+
+        .section-header {
+          align-items: flex-start;
+          flex-wrap: wrap;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        html {
+          scroll-behavior: auto;
+        }
+
+        *,
+        *::before,
+        *::after {
+          scroll-behavior: auto !important;
+          transition-duration: 0.01ms !important;
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="主导航">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true"></span>
+          <span class="brand-name">Life OS<span class="brand-subtitle">个人生活系统</span></span>
+        </div>
+
+        <nav class="primary-nav">
+          <a class="nav-item" href="#today" aria-current="page">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.8 12 3l9 7.8"></path><path d="M5.5 9.5V21h13V9.5"></path><path d="M9 21v-6h6v6"></path></svg>
+            今日
+          </a>
+          <a class="nav-item" href="#records">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5z"></path><path d="M8 8h8M8 12h8M8 16h5"></path></svg>
+            记录
+          </a>
+          <a class="nav-item" href="#rhythm">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 14c2.5-5 5-5 7.5 0s5 5 8.5-2"></path><path d="M4 19h16M4 5v14"></path></svg>
+            健康
+          </a>
+          <a class="nav-item" href="#habits">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="m8 12 2.5 2.5L16 9"></path></svg>
+            习惯
+          </a>
+          <a class="nav-item" href="#learning">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A3.5 3.5 0 0 1 7.5 2H11v17H7.5A3.5 3.5 0 0 0 4 22z"></path><path d="M20 5.5A3.5 3.5 0 0 0 16.5 2H13v17h3.5A3.5 3.5 0 0 1 20 22z"></path></svg>
+            学习
+          </a>
+        </nav>
+
+        <div class="sidebar-footer">
+          <div class="demo-label">视觉样稿 · 静态示例</div>
+          <div>未连接真实数据</div>
+        </div>
+      </aside>
+
+      <main class="main" id="today">
+        <div class="content">
+          <header class="page-head">
+            <div>
+              <p class="date-kicker">九月十八日 · 星期五</p>
+              <h1>晚好，今天过得怎么样？</h1>
+              <p class="lead">今天的节奏总体平稳。还有一项重要事项需要收尾，晚间适合留一点时间给散步和阅读。</p>
+            </div>
+            <div class="actions">
+              <button class="button" type="button" id="monthButton">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3v3M19 3v3M4 8h16M5 5h14a1 1 0 0 1 1 1v14H4V6a1 1 0 0 1 1-1Z"></path></svg>
+                <span class="button-label-optional">本月回顾</span>
+              </button>
+              <button class="button button-primary" type="button" id="openRecord">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+                快速记录
+              </button>
+            </div>
+          </header>
+
+          <section class="status-strip" aria-labelledby="status-title">
+            <div class="status-summary">
+              <p class="section-kicker" id="status-title">今日状态</p>
+              <strong>平稳，有一点疲惫</strong>
+              <p>睡眠略低于近期平均，但专注度不错。完成最重要的工作后，不必继续填满今晚。</p>
+            </div>
+            <div class="metric">
+              <span class="metric-label">睡眠</span>
+              <span class="metric-value">6.8<small>h</small></span>
+              <span class="metric-note">近七日 −0.4h</span>
+            </div>
+            <div class="metric">
+              <span class="metric-label">精力</span>
+              <span class="metric-value">7.2</span>
+              <span class="metric-note">状态稳定</span>
+            </div>
+            <div class="metric">
+              <span class="metric-label">今日习惯</span>
+              <span class="metric-value">3/4</span>
+              <span class="metric-note">还差晚间阅读</span>
+            </div>
+          </section>
+
+          <div class="dashboard-grid">
+            <div class="column">
+              <section class="section module module-focus" aria-labelledby="focus-title">
+                <div class="section-header">
+                  <h2 id="focus-title">今日重要事项</h2>
+                  <button class="text-link" type="button" id="addTask">添加事项</button>
+                </div>
+                <ul class="focus-list">
+                  <li class="focus-item">
+                    <span class="priority-dot important" aria-label="重要"></span>
+                    <div>
+                      <span class="focus-title">完成产品方案的最后一轮整理</span>
+                      <span class="focus-meta">项目 · Life OS</span>
+                    </div>
+                    <span class="time">18:30</span>
+                  </li>
+                  <li class="focus-item">
+                    <span class="priority-dot" aria-label="普通"></span>
+                    <div>
+                      <span class="focus-title">晚饭后散步三十分钟</span>
+                      <span class="focus-meta">健康 · 轻量活动</span>
+                    </div>
+                    <span class="time">20:10</span>
+                  </li>
+                  <li class="focus-item">
+                    <span class="priority-dot" aria-label="普通"></span>
+                    <div>
+                      <span class="focus-title">整理本周阅读笔记</span>
+                      <span class="focus-meta">学习 · 周回顾</span>
+                    </div>
+                    <span class="time">21:00</span>
+                  </li>
+                </ul>
+              </section>
+
+              <section class="section module module-habits" id="habits" aria-labelledby="habit-title">
+                <div class="section-header">
+                  <h2 id="habit-title">今日习惯</h2>
+                  <span class="focus-meta">连续保持 12 天</span>
+                </div>
+                <ul class="habit-list">
+                  <li class="habit-item" data-complete="true">
+                    <button class="habit-check" type="button" aria-label="将晨间拉伸标记为未完成" aria-pressed="true">
+                      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"></path></svg>
+                    </button>
+                    <div class="habit-copy"><span class="habit-name">晨间拉伸</span><div class="habit-streak">连续 18 天</div></div>
+                    <span class="habit-progress">15 min</span>
+                  </li>
+                  <li class="habit-item" data-complete="true">
+                    <button class="habit-check" type="button" aria-label="将补充水分标记为未完成" aria-pressed="true">
+                      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"></path></svg>
+                    </button>
+                    <div class="habit-copy"><span class="habit-name">补充水分</span><div class="habit-streak">今日目标 1.8 L</div></div>
+                    <span class="habit-progress">1.6 L</span>
+                  </li>
+                  <li class="habit-item" data-complete="true">
+                    <button class="habit-check" type="button" aria-label="将深度工作标记为未完成" aria-pressed="true">
+                      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"></path></svg>
+                    </button>
+                    <div class="habit-copy"><span class="habit-name">深度工作</span><div class="habit-streak">专注完成两个时段</div></div>
+                    <span class="habit-progress">102 min</span>
+                  </li>
+                  <li class="habit-item" data-complete="false">
+                    <button class="habit-check" type="button" aria-label="将晚间阅读标记为完成" aria-pressed="false">
+                      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"></path></svg>
+                    </button>
+                    <div class="habit-copy"><span class="habit-name">晚间阅读</span><div class="habit-streak">本周已完成 4 次</div></div>
+                    <span class="habit-progress">30 min</span>
+                  </li>
+                </ul>
+              </section>
+            </div>
+
+            <div class="column">
+              <section class="section module module-rhythm" id="rhythm" aria-labelledby="rhythm-title">
+                <div class="section-header">
+                  <h2 id="rhythm-title">近七日生活节律</h2>
+                  <button class="text-link" type="button" id="trendButton">查看趋势</button>
+                </div>
+                <div class="rhythm-panel">
+                  <div class="rhythm-summary">
+                    <div class="rhythm-value">7.4<span>综合状态</span></div>
+                    <div class="trend-up">较上周平稳上升</div>
+                  </div>
+                  <svg class="chart" viewBox="0 0 460 170" role="img" aria-label="近七日综合状态折线图，总体平稳上升，中间有一次下降">
+                    <path class="chart-grid" d="M8 34H452M8 84H452M8 134H452"></path>
+                    <path class="chart-area" d="M10 120 C45 115 65 90 84 93 S133 111 158 84 S210 63 232 72 S275 94 306 66 S365 38 392 51 S430 42 450 29 L450 145 L10 145Z"></path>
+                    <path class="chart-line" d="M10 120 C45 115 65 90 84 93 S133 111 158 84 S210 63 232 72 S275 94 306 66 S365 38 392 51 S430 42 450 29"></path>
+                    <circle class="chart-point" cx="10" cy="120" r="4"></circle>
+                    <circle class="chart-point" cx="84" cy="93" r="4"></circle>
+                    <circle class="chart-point" cx="158" cy="84" r="4"></circle>
+                    <circle class="chart-point" cx="232" cy="72" r="4"></circle>
+                    <circle class="chart-point" cx="306" cy="66" r="4"></circle>
+                    <circle class="chart-point" cx="392" cy="51" r="4"></circle>
+                    <circle class="chart-point" cx="450" cy="29" r="4"></circle>
+                  </svg>
+                  <div class="chart-labels" aria-hidden="true"><span>六</span><span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span></div>
+                </div>
+              </section>
+
+              <section class="section module module-notes" id="records" aria-labelledby="records-title">
+                <div class="section-header">
+                  <h2 id="records-title">最近记录</h2>
+                  <button class="text-link" type="button" id="allRecords">全部记录</button>
+                </div>
+                <ul class="note-list">
+                  <li class="note-item">
+                    <time class="note-date" datetime="2026-09-17">09 / 17</time>
+                    <div><span class="note-title">关于节奏感的一点体会</span><p class="note-excerpt">真正有效的安排，不是把时间填满，而是知道今天最重要的是什么。</p></div>
+                  </li>
+                  <li class="note-item">
+                    <time class="note-date" datetime="2026-09-15">09 / 15</time>
+                    <div><span class="note-title">本周阅读摘记</span><p class="note-excerpt">记录三个仍值得继续追问的问题，留到周末集中整理。</p></div>
+                  </li>
+                  <li class="note-item" id="learning">
+                    <time class="note-date" datetime="2026-09-12">09 / 12</time>
+                    <div><span class="note-title">九月第二周回顾</span><p class="note-excerpt">睡眠改善比预期慢，但运动频率正在稳定下来。</p></div>
+                  </li>
+                </ul>
+              </section>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <dialog id="recordDialog" aria-labelledby="dialogTitle">
+      <form class="dialog-inner" method="dialog" id="recordForm">
+        <div class="dialog-head">
+          <div>
+            <h2 id="dialogTitle">记下此刻</h2>
+            <p>这是视觉交互示例，内容不会保存。</p>
+          </div>
+          <button class="icon-button" type="button" id="closeRecord" aria-label="关闭">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"></path></svg>
+          </button>
+        </div>
+
+        <fieldset class="mood-fieldset">
+          <legend>现在的状态</legend>
+          <div class="mood-options">
+            <label class="mood-option"><input type="radio" name="mood" value="平静" checked><span>平静</span></label>
+            <label class="mood-option"><input type="radio" name="mood" value="专注"><span>专注</span></label>
+            <label class="mood-option"><input type="radio" name="mood" value="轻快"><span>轻快</span></label>
+            <label class="mood-option"><input type="radio" name="mood" value="疲惫"><span>疲惫</span></label>
+          </div>
+        </fieldset>
+
+        <label class="note-label" for="quickNote">想记下什么？</label>
+        <textarea id="quickNote" placeholder="一句话也可以……"></textarea>
+
+        <div class="dialog-actions">
+          <button class="button" type="button" id="cancelRecord">取消</button>
+          <button class="button button-primary" type="submit" value="save">完成</button>
+        </div>
+      </form>
+    </dialog>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <script>
+      const dialog = document.querySelector("#recordDialog");
+      const toast = document.querySelector("#toast");
+      let toastTimer;
+
+      function showToast(message) {
+        window.clearTimeout(toastTimer);
+        toast.textContent = message;
+        toast.classList.add("is-visible");
+        toastTimer = window.setTimeout(() => toast.classList.remove("is-visible"), 2200);
+      }
+
+      document.querySelector("#openRecord").addEventListener("click", () => dialog.showModal());
+      document.querySelector("#closeRecord").addEventListener("click", () => dialog.close());
+      document.querySelector("#cancelRecord").addEventListener("click", () => dialog.close());
+
+      document.querySelector("#recordForm").addEventListener("submit", (event) => {
+        event.preventDefault();
+        dialog.close();
+        showToast("示例记录已完成；静态 Demo 不会保存内容。");
+      });
+
+      document.querySelectorAll(".habit-check").forEach((button) => {
+        button.addEventListener("click", () => {
+          const item = button.closest(".habit-item");
+          const isComplete = item.dataset.complete === "true";
+          item.dataset.complete = String(!isComplete);
+          button.setAttribute("aria-pressed", String(!isComplete));
+          const habitName = item.querySelector(".habit-name").textContent;
+          button.setAttribute("aria-label", `将${habitName}标记为${isComplete ? "完成" : "未完成"}`);
+        });
+      });
+
+      [
+        ["#monthButton", "本月回顾为视觉占位，未连接数据。"],
+        ["#addTask", "添加事项为视觉占位，未连接数据。"],
+        ["#trendButton", "趋势详情为视觉占位，未连接数据。"],
+        ["#allRecords", "全部记录为视觉占位，未连接数据。"]
+      ].forEach(([selector, message]) => {
+        document.querySelector(selector).addEventListener("click", () => showToast(message));
+      });
+
+      document.querySelectorAll(".nav-item").forEach((item) => {
+        item.addEventListener("click", () => {
+          document.querySelectorAll(".nav-item").forEach((navItem) => navItem.removeAttribute("aria-current"));
+          item.setAttribute("aria-current", "page");
+        });
+      });
+    </script>
+  </body>
+</html>
