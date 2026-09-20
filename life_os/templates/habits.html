@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title %}习惯 · Life OS{% endblock %}
+
+{% block body %}
+  <div class="app-shell" data-app-root data-page="habits">
+    {% include "partials/sidebar.html" %}
+    <main class="main-content management-content" id="main-content">
+      <header class="topbar page-head">
+        <div>
+          <p class="eyebrow">让重复成为看得见的积累</p>
+          <h1>习惯</h1>
+          <p class="date-subtitle">维护习惯清单、调整顺序，并即时记录今天或过往日期的完成状态。</p>
+        </div>
+        <button class="button button-primary" type="button" data-action="new-habit">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+          新建习惯
+        </button>
+      </header>
+
+      <div class="notice is-hidden" role="alert" data-global-error>
+        <div><strong>习惯操作未完成</strong><p data-global-error-message></p></div>
+        <button class="button button-secondary" type="button" data-action="retry-habits">重试读取</button>
+      </div>
+
+      <section class="management-layout" aria-label="习惯管理工作区">
+        <aside class="module management-editor" aria-labelledby="habit-form-title">
+          <div class="module-heading compact">
+            <div><p class="section-kicker">习惯资料</p><h2 id="habit-form-title" data-habit-form-title>新建习惯</h2></div>
+            <span class="save-state" role="status" aria-live="polite" data-habit-form-state>可编辑</span>
+          </div>
+          <form data-habit-form>
+            <input type="hidden" name="habit_id">
+            <label class="field"><span>名称</span><input type="text" name="name" maxlength="200" required placeholder="例如：晨间拉伸"></label>
+            <label class="field"><span>说明</span><textarea name="description" maxlength="2000" rows="3" placeholder="说明目标、频率或完成标准"></textarea></label>
+            <label class="field"><span>分类</span><input type="text" name="category" maxlength="100" placeholder="例如：健康、学习"></label>
+            <label class="field"><span>图标类型</span><select name="icon"><option value="">通用</option><option value="book">阅读</option><option value="exercise">运动</option><option value="water">饮水</option><option value="sleep">睡眠</option><option value="health">健康</option></select></label>
+            <div class="form-actions">
+              <button class="button button-primary" type="submit">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h12l2 2v14H5z"></path><path d="M8 4v6h8V4M8 20v-6h8v6"></path></svg>
+                保存习惯
+              </button>
+              <button class="button button-quiet is-hidden" type="button" data-action="cancel-habit-edit">取消编辑</button>
+            </div>
+          </form>
+        </aside>
+
+        <div class="management-stack">
+          <section class="module module-habits" aria-labelledby="habit-check-title">
+            <div class="module-heading">
+              <div><p class="section-kicker">每日确认</p><h2 id="habit-check-title">完成状态</h2></div>
+              <label class="compact-date"><span>记录日期</span><input type="date" data-habit-date></label>
+            </div>
+            <p class="management-help">点击完成按钮后立即保存；同一习惯同一天始终只保留一条记录。</p>
+            <div data-habit-check-list aria-busy="true"><p class="empty-state">正在读取习惯…</p></div>
+          </section>
+
+          <section class="module management-list" aria-labelledby="habit-list-title">
+            <div class="module-heading">
+              <div><p class="section-kicker">清单设置</p><h2 id="habit-list-title">全部习惯</h2></div>
+              <span class="state-label" role="status" aria-live="polite" data-habit-list-state>加载中</span>
+            </div>
+            <div class="filter-bar habit-filters">
+              <label class="field"><span>搜索</span><input type="search" data-habit-search placeholder="搜索名称、分类或说明"></label>
+              <label class="check-field filter-check"><input type="checkbox" data-habit-show-inactive>显示已停用</label>
+            </div>
+            <div data-habit-list aria-busy="true"><p class="empty-state">正在读取习惯…</p></div>
+          </section>
+        </div>
+      </section>
+    </main>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+  <script type="module" src="{{ url_for('static', filename='js/app.js', v=app_version) }}"></script>
+{% endblock %}

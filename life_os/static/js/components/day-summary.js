@@ -38,7 +38,29 @@ function renderOverview(day, nodes) {
   nodes.overview.setAttribute("aria-busy", "false");
 }
 
-function renderTasks(day, container) {
+function quickAction(label, handler, { pressed } = {}) {
+  const button = element("button", {
+    className: "button button-quiet",
+    text: label,
+    attrs: { type: "button", ...(pressed === undefined ? {} : { "aria-pressed": pressed }) },
+  });
+  button.addEventListener("click", async () => {
+    if (button.disabled) return;
+    button.disabled = true;
+    const original = button.textContent;
+    button.textContent = "保存中";
+    try {
+      await handler();
+    } catch (_error) {
+      if (button.isConnected) button.disabled = false;
+    } finally {
+      if (button.isConnected) button.textContent = original;
+    }
+  });
+  return button;
+}
+
+function renderTasks(day, container, onStatusChange) {
   const groups = [
     ["逾期", day.tasks.overdue],
     ["当日到期", day.tasks.due],
@@ -50,12 +72,18 @@ function renderTasks(day, container) {
     for (const task of tasks) {
       if (seen.has(task.id)) continue;
       seen.add(task.id);
+      const statusLabel = task.status === "done" ? "已完成" : task.status === "cancelled" ? "已取消" : label;
+      const actions = [element("span", { className: `tag status-${task.status}`, text: statusLabel })];
+      if (onStatusChange) {
+        const nextStatus = task.status === "done" || task.status === "cancelled" ? "todo" : "done";
+        actions.push(quickAction(nextStatus === "done" ? "完成" : "恢复", () => onStatusChange(task, nextStatus)));
+      }
       rows.push(element("li", { className: "item-row", attrs: { "data-id": task.id } }, [
         element("div", {}, [
           element("p", { text: task.title }),
           element("small", { text: task.category || "未分类" }),
         ]),
-        element("span", { className: "tag", text: label }),
+        element("div", { className: "item-row-actions" }, actions),
       ]));
     }
   }
@@ -79,21 +107,27 @@ function renderRhythm(day, container) {
   ])));
 }
 
-function renderHabits(day, container) {
+function renderHabits(day, container, onStatusChange, canEditDate) {
   if (!day.habits.length) {
     replace(container, emptyMessage("还没有启用的习惯；可在 M5 中创建和管理。"));
     return;
   }
-  const rows = day.habits.map(({ habit, log }) => element("li", {
-    className: "item-row",
-    attrs: { "data-id": habit.id },
-  }, [
-    element("div", {}, [
-      element("p", { text: habit.name }),
-      element("small", { text: habit.category || habit.description || "日常习惯" }),
-    ]),
-    element("span", { className: "tag", text: log.status ? "已完成" : "待完成" }),
-  ]));
+  const rows = day.habits.map(({ habit, log }) => {
+    const actions = [element("span", { className: `tag status-${log.status ? "done" : "todo"}`, text: log.status ? "已完成" : "待完成" })];
+    if (onStatusChange && canEditDate(day.date)) {
+      actions.push(quickAction(log.status ? "撤销" : "完成", () => onStatusChange(habit, log), { pressed: String(Boolean(log.status)) }));
+    }
+    return element("li", {
+      className: "item-row",
+      attrs: { "data-id": habit.id },
+    }, [
+      element("div", {}, [
+        element("p", { text: habit.name }),
+        element("small", { text: habit.category || habit.description || "日常习惯" }),
+      ]),
+      element("div", { className: "item-row-actions" }, actions),
+    ]);
+  });
   replace(container, element("ul", { className: "item-list" }, rows));
 }
 
@@ -137,7 +171,10 @@ function renderFinance(day, container) {
 }
 
 export class DaySummary {
-  constructor(root) {
+  constructor(root, { onTaskStatusChange = null, onHabitStatusChange = null, canEditDate = () => true } = {}) {
+    this.onTaskStatusChange = onTaskStatusChange;
+    this.onHabitStatusChange = onHabitStatusChange;
+    this.canEditDate = canEditDate;
     this.nodes = {
       panel: root.querySelector("[data-day-panel]"),
       state: root.querySelector("[data-day-state]"),
@@ -163,9 +200,9 @@ export class DaySummary {
     this.nodes.state.textContent = "已载入";
     this.nodes.panel.dataset.state = "ready";
     renderOverview(day, this.nodes);
-    renderTasks(day, this.nodes.tasks);
+    renderTasks(day, this.nodes.tasks, this.onTaskStatusChange);
     renderRhythm(day, this.nodes.rhythm);
-    renderHabits(day, this.nodes.habits);
+    renderHabits(day, this.nodes.habits, this.onHabitStatusChange, this.canEditDate);
     renderJournal(day, this.nodes.journal);
     renderFinance(day, this.nodes.finance);
   }

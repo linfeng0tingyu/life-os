@@ -1,4 +1,6 @@
 import { CalendarPage } from "./pages/calendar.js";
+import { HabitsPage } from "./pages/habits.js";
+import { TasksPage } from "./pages/tasks.js";
 import { TodayPage } from "./pages/today.js";
 
 function showStartupError(root) {
@@ -13,7 +15,14 @@ document.addEventListener("DOMContentLoaded", () => {
   const root = document.querySelector("[data-app-root]");
   if (!root) return;
   try {
-    const page = root.dataset.page === "calendar" ? new CalendarPage(root) : new TodayPage(root);
+    const pages = {
+      calendar: CalendarPage,
+      habits: HabitsPage,
+      tasks: TasksPage,
+      today: TodayPage,
+    };
+    const Page = pages[root.dataset.page] || TodayPage;
+    const page = new Page(root);
     page.start();
   } catch (_error) {
     showStartupError(root);

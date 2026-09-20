@@ -30,6 +30,14 @@ def test_task_crud_status_and_archive(client: FlaskClient) -> None:
     assert len(client.get("/api/tasks?include_archived=true").get_json()["data"]) == 1
     assert client.put(f"/api/tasks/{task['id']}", json={"title": "No"}).status_code == 400
 
+    restored = client.post(f"/api/tasks/{task['id']}/restore")
+    assert restored.status_code == 200
+    assert restored.get_json()["data"]["archived_at"] is None
+    assert client.post(f"/api/tasks/{task['id']}/restore").status_code == 200
+    assert [item["id"] for item in client.get("/api/tasks").get_json()["data"]] == [
+        task["id"]
+    ]
+
 
 def test_task_filters_keep_date_relationships_distinguishable(
     client: FlaskClient,
@@ -82,3 +90,4 @@ def test_task_api_validation_and_not_found(client: FlaskClient) -> None:
     assert client.get("/api/tasks?date=2026-02-30").status_code == 400
     assert client.put("/api/tasks/999", json={"title": "Missing"}).status_code == 404
     assert client.delete("/api/tasks/999").status_code == 404
+    assert client.post("/api/tasks/999/restore").status_code == 404

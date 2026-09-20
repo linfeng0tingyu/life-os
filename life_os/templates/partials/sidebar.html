@@ -10,10 +10,10 @@
     <a class="nav-link{% if active_page == 'calendar' %} is-active{% endif %}" href="{{ url_for('system.calendar_page') }}"{% if active_page == 'calendar' %} aria-current="page"{% endif %}>
       <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3v3M19 3v3M4 8h16M5 5h14a1 1 0 0 1 1 1v14H4V6a1 1 0 0 1 1-1Z"></path></svg><span>日历</span>
     </a>
-    <a class="nav-link" href="{{ url_for('system.index') }}#tasks-panel">
+    <a class="nav-link{% if active_page == 'tasks' %} is-active{% endif %}" href="{{ url_for('system.tasks_page') }}"{% if active_page == 'tasks' %} aria-current="page"{% endif %}>
       <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5z"></path><path d="m8 12 2.2 2.2L16 8.5"></path></svg><span>任务</span>
     </a>
-    <a class="nav-link" href="{{ url_for('system.index') }}#habits-panel">
+    <a class="nav-link{% if active_page == 'habits' %} is-active{% endif %}" href="{{ url_for('system.habits_page') }}"{% if active_page == 'habits' %} aria-current="page"{% endif %}>
       <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="m8 12 2.5 2.5L16 9"></path></svg><span>习惯</span>
     </a>
     <a class="nav-link" href="{{ url_for('system.index') }}#journal-panel">

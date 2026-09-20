@@ -94,6 +94,56 @@ def test_calendar_page_owns_history_and_day_markers(tmp_path: Path) -> None:
     assert "https://" not in html
 
 
+def test_m5_task_and_habit_pages_expose_complete_management_controls(
+    tmp_path: Path,
+) -> None:
+    app = create_app(runtime_home=tmp_path / "runtime", testing=True)
+    client = app.test_client()
+
+    tasks = client.get("/tasks")
+    habits = client.get("/habits")
+    task_html = tasks.get_data(as_text=True)
+    habit_html = habits.get_data(as_text=True)
+
+    assert tasks.status_code == habits.status_code == 200
+    assert 'data-page="tasks"' in task_html
+    assert 'data-task-form' in task_html
+    assert 'data-task-list' in task_html
+    assert 'name="scheduled_date"' in task_html
+    assert 'name="due_date"' in task_html
+    assert 'name="parent_id"' in task_html
+    assert 'href="/tasks" aria-current="page"' in task_html
+    assert 'data-page="habits"' in habit_html
+    assert 'data-habit-form' in habit_html
+    assert 'data-habit-check-list' in habit_html
+    assert 'data-habit-list' in habit_html
+    assert 'data-habit-date' in habit_html
+    assert 'href="/habits" aria-current="page"' in habit_html
+    assert "/static/css/pages/management.css?v=0.1.0-dev" in task_html
+    assert "http://" not in task_html + habit_html
+    assert "https://" not in task_html + habit_html
+
+
+def test_m5_frontend_guards_repeated_actions_and_uses_existing_apis(
+    tmp_path: Path,
+) -> None:
+    app = create_app(runtime_home=tmp_path / "runtime", testing=True)
+    client = app.test_client()
+    tasks_script = client.get("/static/js/pages/tasks.js").get_data(as_text=True)
+    habits_script = client.get("/static/js/pages/habits.js").get_data(as_text=True)
+    summary_script = client.get(
+        "/static/js/components/day-summary.js"
+    ).get_data(as_text=True)
+
+    assert "this.pending = new Set()" in tasks_script
+    assert "this.pending = new Set()" in habits_script
+    assert 'api.post(`/api/tasks/${task.id}/restore`, {})' in tasks_script
+    assert 'api.put(`/api/habits/${habit.id}/log/${this.selectedDate}`' in habits_script
+    assert "value: log.value" in habits_script
+    assert "onTaskStatusChange" in summary_script
+    assert "onHabitStatusChange" in summary_script
+
+
 def test_theme_switcher_lists_all_visual_variants_without_business_calls(
     tmp_path: Path,
 ) -> None:
@@ -171,6 +221,7 @@ def test_future_date_plan_is_visible_in_day_aggregation(tmp_path: Path) -> None:
         "css/components.css",
         "css/pages/today.css",
         "css/pages/calendar.css",
+        "css/pages/management.css",
         "css/themes.css",
         "images/life-os-logo.png",
         "js/app.js",
@@ -180,6 +231,8 @@ def test_future_date_plan_is_visible_in_day_aggregation(tmp_path: Path) -> None:
         "js/components/day-summary.js",
         "js/features/calendar.js",
         "js/pages/calendar.js",
+        "js/pages/habits.js",
+        "js/pages/tasks.js",
         "js/pages/today.js",
         "js/utils/date.js",
     ],

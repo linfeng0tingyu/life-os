@@ -28,6 +28,24 @@ def calendar_page():
     )
 
 
+@blueprint.get("/tasks")
+def tasks_page():
+    from life_os import __version__
+
+    return render_template(
+        "tasks.html", app_version=__version__, active_page="tasks"
+    )
+
+
+@blueprint.get("/habits")
+def habits_page():
+    from life_os import __version__
+
+    return render_template(
+        "habits.html", app_version=__version__, active_page="habits"
+    )
+
+
 @blueprint.get("/api/system/health")
 def health():
     from life_os import __version__

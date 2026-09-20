@@ -13,7 +13,11 @@ export class CalendarPage {
     this.root = root;
     this.globalError = root.querySelector("[data-global-error]");
     this.globalErrorMessage = root.querySelector("[data-global-error-message]");
-    this.summary = new DaySummary(root);
+    this.summary = new DaySummary(root, {
+      onTaskStatusChange: (task, status) => this.updateTaskStatus(task, status),
+      onHabitStatusChange: (habit, log) => this.updateHabitStatus(habit, log),
+      canEditDate: (value) => value <= toLocalDateString(),
+    });
     this.subtitle = root.querySelector("[data-calendar-subtitle]");
     this.detailKicker = root.querySelector("[data-detail-kicker]");
     this.detailHeading = root.querySelector("[data-detail-heading]");
@@ -140,6 +144,36 @@ export class CalendarPage {
     } finally {
       this.setPlannerDisabled(false);
     }
+  }
+
+  async updateTaskStatus(task, status) {
+    try {
+      await api.put(`/api/tasks/${task.id}`, { status });
+      await Promise.all([this.loadDay({ preserveEditor: true }), this.calendar.loadMonth()]);
+    } catch (error) {
+      this.showMutationError(error);
+      throw error;
+    }
+  }
+
+  async updateHabitStatus(habit, log) {
+    try {
+      await api.put(`/api/habits/${habit.id}/log/${this.selectedDate}`, {
+        status: !log.status,
+        value: log.value,
+        value_unit: log.value_unit,
+        note: log.note,
+      });
+      await Promise.all([this.loadDay({ preserveEditor: true }), this.calendar.loadMonth()]);
+    } catch (error) {
+      this.showMutationError(error);
+      throw error;
+    }
+  }
+
+  showMutationError(error) {
+    this.globalErrorMessage.textContent = errorText(error);
+    this.globalError.classList.remove("is-hidden");
   }
 
   setPlannerDisabled(disabled) {

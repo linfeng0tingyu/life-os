@@ -53,3 +53,9 @@ def put_task(task_id: int):
 def delete_task(task_id: int):
     task = TaskService.archive(task_id)
     return success_response(task_data(task))
+
+
+@blueprint.post("/api/tasks/<int:task_id>/restore")
+def restore_task(task_id: int):
+    task = TaskService.restore(task_id)
+    return success_response(task_data(task))

@@ -14,7 +14,10 @@ export class TodayPage {
     this.subtitle = root.querySelector("[data-date-subtitle]");
     this.globalError = root.querySelector("[data-global-error]");
     this.globalErrorMessage = root.querySelector("[data-global-error-message]");
-    this.summary = new DaySummary(root);
+    this.summary = new DaySummary(root, {
+      onTaskStatusChange: (task, status) => this.updateTaskStatus(task, status),
+      onHabitStatusChange: (habit, log) => this.updateHabitStatus(habit, log),
+    });
     this.today = toLocalDateString();
     this.dayRequest = null;
   }
@@ -44,5 +47,35 @@ export class TodayPage {
       this.globalErrorMessage.textContent = errorText(error);
       this.globalError.classList.remove("is-hidden");
     }
+  }
+
+  async updateTaskStatus(task, status) {
+    try {
+      await api.put(`/api/tasks/${task.id}`, { status });
+      await this.loadDay();
+    } catch (error) {
+      this.showMutationError(error);
+      throw error;
+    }
+  }
+
+  async updateHabitStatus(habit, log) {
+    try {
+      await api.put(`/api/habits/${habit.id}/log/${this.today}`, {
+        status: !log.status,
+        value: log.value,
+        value_unit: log.value_unit,
+        note: log.note,
+      });
+      await this.loadDay();
+    } catch (error) {
+      this.showMutationError(error);
+      throw error;
+    }
+  }
+
+  showMutationError(error) {
+    this.globalErrorMessage.textContent = errorText(error);
+    this.globalError.classList.remove("is-hidden");
   }
 }

@@ -13,7 +13,7 @@
   <section class="module module-focus" id="tasks-panel" aria-labelledby="tasks-title">
     <div class="module-heading">
       <div><p class="section-kicker">需要关注</p><h2 id="tasks-title">当日重要事项</h2></div>
-      <span class="module-note">完整操作将在 M5 开放</span>
+      <a class="module-note module-link" href="{{ url_for('system.tasks_page') }}">管理全部任务</a>
     </div>
     <div data-task-summary></div>
   </section>
@@ -29,7 +29,7 @@
   <section class="module module-habits" id="habits-panel" aria-labelledby="habits-title">
     <div class="module-heading">
       <div><p class="section-kicker">轻量坚持</p><h2 id="habits-title">习惯</h2></div>
-      <span class="module-note">完整操作将在 M5 开放</span>
+      <a class="module-note module-link" href="{{ url_for('system.habits_page') }}">管理全部习惯</a>
     </div>
     <div data-habit-summary></div>
   </section>
