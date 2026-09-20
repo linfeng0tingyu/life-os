@@ -2,22 +2,37 @@
 title: "Life OS 工程说明"
 type: project-readme
 created: 2026-09-18T14:30:00+08:00
-updated: 2026-09-20T10:17:02+08:00
+updated: 2026-09-20T14:51:41+08:00
 status: draft
 related:
   - "[[项目说明]]"
   - "[[里程碑计划]]"
   - "[[部署与迁移指南]]"
   - "[[桌面封装架构与改造工作量评估]]"
+  - "[[M4.5桌面封装建设记录]]"
 ---
 
 # Life OS
 
-Life OS 是一个本地优先、以日期为中心的个人生活管理系统。当前已完成 M1–M4：具备可移植运行时、SQLite 数据库与领域服务、统一核心 API，以及彼此独立的 Today Dashboard 和支持过去回顾、未来规划的日历界面。
+Life OS 是一个本地优先、以日期为中心的个人生活管理系统。当前已完成 M1–M4.5：具备可移植运行时、SQLite 数据库与领域服务、统一核心 API、日期界面，以及可直接打开的 Windows 独立桌面窗口和 `onedir` 便携发行基础。
 
 ## 当前状态与目标运行方式
 
-当前版本仍使用 `start.bat` 启动本地服务并打开浏览器，需要 Python 环境且终端必须保持运行。已经确定的 M4.5 目标是以 Waitress + pywebview + PyInstaller `onedir` 封装为 `LifeOS.exe`：普通用户双击后只看到独立窗口，不打开外部浏览器，也不需要安装 Python。该封装尚未实施，任务拆分与工作量见 [[桌面封装架构与改造工作量评估]]。
+普通用户入口现为 PyInstaller `onedir` 包中的 `LifeOS.exe`。双击后由 Waitress 在随机回环端口承载现有 Flask 应用，并由 pywebview/WebView2 显示独立窗口；不显示终端、不打开外部浏览器，也不要求安装 Python。`start.bat` 与 `app.py` 继续作为源码开发和故障诊断入口。
+
+## 桌面版快速启动
+
+1. 保持 `dist/LifeOS/` 整个目录结构不变，不能只复制 `LifeOS.exe`。
+2. 双击 `dist/LifeOS/LifeOS.exe`。首次启动会在可执行文件旁创建 `life-os-data/`。
+3. 正常关闭窗口后再复制或迁移 `life-os-data/`。
+
+目标设备需要 64 位 Windows 10/11 和兼容的 Microsoft Edge WebView2 Runtime；不需要 Python、pip、Node.js、SQLite 服务或外部浏览器。要使用另一个绝对数据目录，可执行：
+
+```bat
+LifeOS.exe --home "D:\LifeOSData"
+```
+
+完整环境要求、迁移方法和故障处理见 [[部署与迁移指南]]。
 
 ## 当前源码运行环境要求
 
@@ -28,7 +43,7 @@ Life OS 是一个本地优先、以日期为中心的个人生活管理系统。
 - 普通用户权限即可，不需要 Docker、Node.js、单独安装 SQLite 或数据库服务。
 - 默认使用 `127.0.0.1:5000`，该端口必须空闲。
 
-正式桌面发行的目标设备只需要 Windows 10/11、普通用户权限和兼容的 Microsoft Edge WebView2 Runtime，不需要 Python、Node.js 或独立数据库服务。当前与目标两种运行方式的完整要求、目录复制步骤和配置格式见 [[部署与迁移指南]]。
+桌面发行与源码诊断两种运行方式的完整要求、目录复制步骤和配置格式见 [[部署与迁移指南]]。
 
 ## 当前源码快速启动
 
@@ -66,7 +81,7 @@ life-os-data/
 ├── backups/
 ├── exports/
 ├── cache/
-│   └── webview/                # M4.5 桌面模式的 WebView 缓存与存储
+│   └── webview/                # 桌面模式的 WebView 缓存与存储
 ├── logs/app.log
 ├── temp/life-os.lock
 └── metadata.json
@@ -90,7 +105,7 @@ life-os-data/
 GET http://127.0.0.1:5000/api/system/health
 ```
 
-上述固定端口和外部浏览器只属于源码诊断模式。正式桌面模式将使用进程内协商的随机 `127.0.0.1` 端口，并由窗口生命周期统一启动和关闭服务。
+上述固定端口和外部浏览器只属于源码诊断模式。正式桌面模式使用进程内协商的随机 `127.0.0.1` 端口，并由窗口生命周期统一启动和关闭服务。
 
 ## 核心 API
 
@@ -117,6 +132,14 @@ M3 提供以下路径，成功响应统一使用 `{"success": true, "data": ...}
 
 测试使用临时 `LIFE_OS_HOME`，不会向默认 `life-os-data/` 写入测试状态。
 
+构建桌面便携包：
+
+```bat
+build_desktop.bat
+```
+
+脚本会安装 `requirements-build.txt`、生成应用图标，并通过 `LifeOS.spec` 重建 `dist/LifeOS/`。该目录已被 Git 忽略，发布时应整体复制；构建要求 64 位 Python 3.12+，本轮已在 Python 3.14.6 上验证。
+
 ## 数据库基础
 
 首次启动会自动创建 `LIFE_OS_HOME/database/life.db`，不需要手工执行 SQL。当前 schema 版本为 `2`，在既有生活数据表外包含 `finance_accounts` 和 `finance_transactions`。现有 schema v1 会在启动时原地升级为 v2，不删除既有数据。
@@ -127,4 +150,4 @@ M3 提供以下路径，成功响应统一使用 `{"success": true, "data": ...}
 
 M4 已完成 Today Dashboard、独立日历页、任意日期访问、未来任务快速规划、工作/休息日标记、统一 API Client 和前端状态框架。“今日”只呈现设备本地当天数据；过去与未来月份、完整日期聚合和节假日/自定义标记统一在 `/calendar` 中处理。日历详情与 Today 使用相同的任务、习惯、生活节律、日记和财务布局，其中生活节律概览只显示睡眠时长、体重、运动和身体健康；未来日期可以新增安排到当天的任务。主内容随视口自适应填满可用空间，超宽屏自动分栏、窄屏保持单列。
 
-M4.5 的桌面封装处于“方案已确定、尚未实现”状态；完成后普通用户入口将从 `start.bat` 变为 `LifeOS.exe`。任务与习惯的完整交互在 M5；健康、日记和财务的完整交互在 M6。
+M4.5 已完成桌面入口、Waitress 生命周期、动态回环端口、WebView 缓存归位、冻结资源定位、图标/版本资源和 `onedir` 构建脚本。当前构建包约 35.2 MiB，已通过无 Python PATH、中文数据路径、独立窗口与关闭退出验证；最终发布前仍需在 M8 的全新 Windows 设备上完成完整迁移和恢复验收。任务与习惯的完整交互在 M5；健康、日记和财务的完整交互在 M6。

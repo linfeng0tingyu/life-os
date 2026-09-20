@@ -25,6 +25,7 @@ def test_custom_home_initializes_only_inside_runtime(tmp_path: Path) -> None:
     }
     assert paths.settings_file.is_file()
     assert paths.metadata_file.is_file()
+    assert paths.webview_cache_dir.is_dir()
     assert set(tmp_path.iterdir()) == {home}
 
     settings = json.loads(paths.settings_file.read_text(encoding="utf-8"))
@@ -62,4 +63,3 @@ def test_invalid_existing_metadata_stops_startup(tmp_path: Path) -> None:
 
     with pytest.raises(RuntimeSetupError, match="不兼容"):
         initialize_runtime(paths, "test-version")
-

@@ -6,6 +6,8 @@ requires-python = ">=3.12"
 dependencies = [
     "Flask>=3.1,<4.0",
     "Flask-SQLAlchemy>=3.1,<4.0",
+    "waitress>=3.0.2,<4.0",
+    "pywebview>=6.2.1,<7.0",
 ]
 
 [tool.pytest.ini_options]

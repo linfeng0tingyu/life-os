@@ -22,7 +22,7 @@ def main() -> int:
 
     dependencies_present = all(
         importlib.util.find_spec(name) is not None
-        for name in ("flask", "flask_sqlalchemy")
+        for name in ("flask", "flask_sqlalchemy", "waitress", "webview")
     )
     marker_matches = marker.exists() and marker.read_text(
         encoding="utf-8"
@@ -53,4 +53,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

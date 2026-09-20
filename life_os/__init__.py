@@ -27,11 +27,10 @@ def create_app(
     acquire_lock: bool = False,
     testing: bool = False,
 ) -> Flask:
-    project_root = Path(__file__).resolve().parents[1]
     paths = (
         RuntimePaths.from_home(runtime_home)
         if runtime_home is not None
-        else resolve_runtime_paths(project_root=project_root)
+        else resolve_runtime_paths()
     )
     paths.assert_contained()
     initialize_runtime(paths, __version__)

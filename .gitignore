@@ -4,5 +4,7 @@
 /.pytest_cache/
 /.coverage
 /htmlcov/
+/build/
+/dist/
+/packaging/generated/
 *.py[cod]
-

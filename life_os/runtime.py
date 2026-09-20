@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 import tempfile
 from dataclasses import dataclass
 from datetime import datetime
@@ -33,6 +34,7 @@ class RuntimePaths:
     backups_dir: Path
     exports_dir: Path
     cache_dir: Path
+    webview_cache_dir: Path
     logs_dir: Path
     temp_dir: Path
     settings_file: Path
@@ -51,6 +53,7 @@ class RuntimePaths:
             backups_dir=resolved_home / "backups",
             exports_dir=resolved_home / "exports",
             cache_dir=resolved_home / "cache",
+            webview_cache_dir=resolved_home / "cache" / "webview",
             logs_dir=resolved_home / "logs",
             temp_dir=resolved_home / "temp",
             settings_file=resolved_home / "config" / "settings.json",
@@ -68,6 +71,7 @@ class RuntimePaths:
             self.backups_dir,
             self.exports_dir,
             self.cache_dir,
+            self.webview_cache_dir,
             self.logs_dir,
             self.temp_dir,
         )
@@ -108,13 +112,20 @@ def resolve_runtime_paths(
         root = (
             project_root.resolve(strict=False)
             if project_root is not None
-            else Path(__file__).resolve().parents[1]
+            else resolve_program_root()
         )
         home = root / "life-os-data"
 
     paths = RuntimePaths.from_home(home)
     paths.assert_contained()
     return paths
+
+
+def resolve_program_root() -> Path:
+    """Return the source root or the directory containing a frozen executable."""
+    if getattr(sys, "frozen", False):
+        return Path(sys.executable).resolve(strict=False).parent
+    return Path(__file__).resolve().parents[1]
 
 
 def initialize_runtime(paths: RuntimePaths, app_version: str) -> RuntimePaths:
