@@ -55,12 +55,16 @@ def test_frontend_shell_supports_versioned_local_assets(tmp_path: Path) -> None:
     assert "/static/css/components.css?v=0.1.0-dev" in html
     assert "/static/css/pages/today.css?v=0.1.0-dev" in html
     assert "/static/css/pages/calendar.css?v=0.1.0-dev" in html
+    assert "/static/css/themes.css?v=0.1.0-dev" in html
+    assert "/static/js/theme.js?v=0.1.0-dev" in html
     assert 'type="module" src="/static/js/app.js?v=0.1.0-dev"' in html
     assert 'data-page="today"' in html
     assert 'href="/calendar"' in html
     assert "data-calendar-grid" not in html
     assert "data-day-marker-form" not in html
     assert '<svg class="icon"' in html
+    assert 'data-theme-select' in html
+    assert 'images/life-os-logo.png?v=0.1.0-dev' in html
     assert "http://" not in html
     assert "https://" not in html
 
@@ -88,6 +92,47 @@ def test_calendar_page_owns_history_and_day_markers(tmp_path: Path) -> None:
     assert 'href="/calendar" aria-current="page"' in html
     assert "http://" not in html
     assert "https://" not in html
+
+
+def test_theme_switcher_lists_all_visual_variants_without_business_calls(
+    tmp_path: Path,
+) -> None:
+    app = create_app(runtime_home=tmp_path / "runtime", testing=True)
+    client = app.test_client()
+    html = client.get("/").get_data(as_text=True)
+    theme_script = client.get("/static/js/theme.js").get_data(as_text=True)
+    theme_styles = client.get("/static/css/themes.css").get_data(as_text=True)
+
+    expected_themes = {
+        "default": "默认",
+        "bamboo": "古风竹青",
+        "indigo": "古风藏青",
+        "water": "古风水色",
+        "neumorphism": "新拟物派",
+        "macos-glass": "macOS 毛玻璃",
+        "ghibli": "吉卜力风格",
+    }
+    for value, label in expected_themes.items():
+        assert f'<option value="{value}">{label}</option>' in html
+        if value != "default":
+            assert f'html[data-theme="{value}"]' in theme_styles
+
+    assert 'const STORAGE_KEY = "life-os.theme"' in theme_script
+    assert "window.localStorage" in theme_script
+    assert "document.cookie" in theme_script
+    assert "SameSite=Strict" in theme_script
+    assert "fetch(" not in theme_script
+    assert "/api/" not in theme_script
+    assert "只改变外观，不改变数据" in html
+
+
+def test_selected_logo_is_served_as_local_png(tmp_path: Path) -> None:
+    app = create_app(runtime_home=tmp_path / "runtime", testing=True)
+    response = app.test_client().get("/static/images/life-os-logo.png")
+
+    assert response.status_code == 200
+    assert response.content_type == "image/png"
+    assert response.data.startswith(b"\x89PNG\r\n\x1a\n")
 
 
 def test_future_date_plan_is_visible_in_day_aggregation(tmp_path: Path) -> None:
@@ -126,7 +171,10 @@ def test_future_date_plan_is_visible_in_day_aggregation(tmp_path: Path) -> None:
         "css/components.css",
         "css/pages/today.css",
         "css/pages/calendar.css",
+        "css/themes.css",
+        "images/life-os-logo.png",
         "js/app.js",
+        "js/theme.js",
         "js/api/client.js",
         "js/components/dom.js",
         "js/components/day-summary.js",

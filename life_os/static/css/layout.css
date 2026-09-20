@@ -24,33 +24,11 @@
   text-decoration: none;
 }
 
-.brand-mark {
-  position: relative;
-  width: 1.9rem;
-  height: 1.9rem;
+.brand-logo {
+  width: 2.6rem;
+  height: 2.6rem;
   flex: 0 0 auto;
-  border: 1px solid var(--primary);
-  border-radius: 50%;
-}
-
-.brand-mark::before,
-.brand-mark::after {
-  position: absolute;
-  content: "";
-  border-radius: 50%;
-}
-
-.brand-mark::before {
-  inset: 0.38rem;
-  border: 1px solid var(--cyan);
-}
-
-.brand-mark::after {
-  right: 0.2rem;
-  bottom: 0.2rem;
-  width: 0.32rem;
-  height: 0.32rem;
-  background: var(--vermillion);
+  object-fit: contain;
 }
 
 .brand-copy,
@@ -105,9 +83,41 @@
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  margin-top: auto;
+  margin-top: var(--space-4);
   color: var(--text-muted);
   font-size: 0.75rem;
+}
+
+.theme-control {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: auto;
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--border);
+}
+
+.theme-control label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.theme-control select {
+  width: 100%;
+  min-height: 2.35rem;
+  padding: 0.4rem 2rem 0.4rem 0.65rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+}
+
+.theme-hint {
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  line-height: 1.35;
 }
 
 .privacy-dot {
@@ -184,9 +194,9 @@
     margin-bottom: var(--space-3);
   }
 
-  .brand-mark {
-    width: 2rem;
-    height: 2rem;
+  .brand-logo {
+    width: 2.4rem;
+    height: 2.4rem;
   }
 
   .primary-nav {
@@ -209,6 +219,13 @@
 
   .sidebar-foot {
     display: none;
+  }
+
+  .theme-control {
+    grid-template-columns: auto minmax(10rem, 14rem) minmax(12rem, 1fr);
+    align-items: center;
+    margin-top: var(--space-3);
+    padding-top: var(--space-3);
   }
 
   .main-content {
@@ -235,6 +252,15 @@
   }
 
   .brand-copy > span {
+    display: none;
+  }
+
+  .theme-control {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .theme-hint {
     display: none;
   }
 

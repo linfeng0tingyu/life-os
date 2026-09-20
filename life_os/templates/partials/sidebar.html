@@ -1,6 +1,6 @@
 <aside class="sidebar" aria-label="主导航">
   <a class="brand" href="{{ url_for('system.index') }}" aria-label="Life OS 今日">
-    <span class="brand-mark" aria-hidden="true"></span>
+    <img class="brand-logo" src="{{ url_for('static', filename='images/life-os-logo.png', v=app_version) }}" alt="" aria-hidden="true">
     <span class="brand-copy"><strong>Life OS</strong><span>个人生活系统</span></span>
   </a>
   <nav class="primary-nav" aria-label="核心模块">
@@ -20,5 +20,21 @@
       <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5z"></path><path d="M8 8h8M8 12h8M8 16h5"></path></svg><span>记录</span>
     </a>
   </nav>
+  <div class="theme-control">
+    <label for="theme-select">
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18h1.2a2.3 2.3 0 0 0 0-4.6h-1.1a1.7 1.7 0 0 1 0-3.4H15A6 6 0 0 0 15 3Z"></path><circle cx="7.4" cy="10" r=".7"></circle><circle cx="9" cy="6.8" r=".7"></circle><circle cx="13" cy="5.8" r=".7"></circle></svg>
+      <span>界面风格</span>
+    </label>
+    <select id="theme-select" data-theme-select aria-describedby="theme-hint">
+      <option value="default">默认</option>
+      <option value="bamboo">古风竹青</option>
+      <option value="indigo">古风藏青</option>
+      <option value="water">古风水色</option>
+      <option value="neumorphism">新拟物派</option>
+      <option value="macos-glass">macOS 毛玻璃</option>
+      <option value="ghibli">吉卜力风格</option>
+    </select>
+    <span class="theme-hint" id="theme-hint" data-theme-status aria-live="polite">只改变外观，不改变数据</span>
+  </div>
   <div class="sidebar-foot"><span class="privacy-dot" aria-hidden="true"></span>数据仅保存在本机运行目录</div>
 </aside>

@@ -6,12 +6,14 @@
     <meta name="life-os-version" content="{{ app_version }}">
     <meta name="theme-color" content="#f5f3ed">
     <title>{% block title %}Life OS{% endblock %}</title>
+    <script src="{{ url_for('static', filename='js/theme.js', v=app_version) }}"></script>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css', v=app_version) }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css', v=app_version) }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/layout.css', v=app_version) }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css', v=app_version) }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/today.css', v=app_version) }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/calendar.css', v=app_version) }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/themes.css', v=app_version) }}">
     {% block head %}{% endblock %}
   </head>
   <body>

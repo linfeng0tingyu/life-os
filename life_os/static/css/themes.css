@@ -1,0 +1,299 @@
+/* Theme variants only replace presentation tokens and component decoration.
+   They do not alter layout semantics, data attributes, API calls, or content. */
+
+html[data-theme="bamboo"] {
+  --background: #eef1e5;
+  --surface: #f8f6ec;
+  --surface-muted: #e2e8d7;
+  --text-primary: #25372d;
+  --text-secondary: #667263;
+  --text-muted: #8b9486;
+  --border: #cbd4bf;
+  --border-strong: #a8b69d;
+  --primary: #486957;
+  --primary-hover: #365443;
+  --primary-light: #dbe6d5;
+  --cyan: #78958a;
+  --jade: #58775e;
+  --vermillion: #a95143;
+  --gold: #9b7a46;
+  --sidebar: #e7ebdc;
+  --module-status: #e8eee1;
+  --module-focus: #f5eddb;
+  --module-rhythm: #e5efea;
+  --module-habits: #e4ecdc;
+  --module-notes: #f2eee4;
+  --module-finance: #f4ead9;
+  --radius-control: 0.22rem;
+  --radius-module: 0.28rem;
+  --shadow-panel: 0 0.6rem 1.8rem rgb(52 71 56 / 6%);
+  --font-ui: "Songti SC", "STSong", "Microsoft YaHei", serif;
+  --font-title: "FangSong", "STFangsong", "Songti SC", serif;
+}
+
+html[data-theme="indigo"] {
+  --background: #e9edf2;
+  --surface: #f7f8fa;
+  --surface-muted: #dfe5ed;
+  --text-primary: #18283b;
+  --text-secondary: #59697a;
+  --text-muted: #84909c;
+  --border: #cbd4df;
+  --border-strong: #a8b7c8;
+  --primary: #2e4e7e;
+  --primary-hover: #203d63;
+  --primary-light: #d9e3ef;
+  --cyan: #698ba5;
+  --jade: #496b69;
+  --vermillion: #a94f4c;
+  --gold: #9c7b49;
+  --sidebar: #e1e7ee;
+  --focus: #244d7c;
+  --module-status: #e4eaf0;
+  --module-focus: #f5eee2;
+  --module-rhythm: #e3edf1;
+  --module-habits: #e8eee7;
+  --module-notes: #eceaf0;
+  --module-finance: #f2ebdf;
+  --radius-control: 0.22rem;
+  --radius-module: 0.28rem;
+  --shadow-panel: 0 0.6rem 1.8rem rgb(24 40 59 / 7%);
+  --font-ui: "Songti SC", "STSong", "Microsoft YaHei", serif;
+  --font-title: "FangSong", "STFangsong", "Songti SC", serif;
+}
+
+html[data-theme="water"] {
+  --background: #eaf4f2;
+  --surface: #f7fbfa;
+  --surface-muted: #dcebe8;
+  --text-primary: #233936;
+  --text-secondary: #607773;
+  --text-muted: #879b97;
+  --border: #c5dcd7;
+  --border-strong: #9fbfb8;
+  --primary: #527f78;
+  --primary-hover: #3e6964;
+  --primary-light: #d5e9e5;
+  --cyan: #88ada6;
+  --jade: #638b79;
+  --vermillion: #b35e51;
+  --gold: #a78b58;
+  --sidebar: #e2efec;
+  --module-status: #e0eeeb;
+  --module-focus: #f7f1e4;
+  --module-rhythm: #dcecea;
+  --module-habits: #e5eee5;
+  --module-notes: #efedf0;
+  --module-finance: #f5eddf;
+  --radius-control: 0.35rem;
+  --radius-module: 0.42rem;
+  --shadow-panel: 0 0.7rem 2rem rgb(55 93 87 / 7%);
+  --font-ui: "Songti SC", "STSong", "Microsoft YaHei", serif;
+  --font-title: "FangSong", "STFangsong", "Songti SC", serif;
+}
+
+html[data-theme="bamboo"] body,
+html[data-theme="indigo"] body,
+html[data-theme="water"] body {
+  background-image:
+    linear-gradient(90deg, transparent 49.8%, color-mix(in srgb, var(--primary) 5%, transparent) 50%, transparent 50.2%),
+    radial-gradient(circle at 18% 12%, rgb(255 255 255 / 58%), transparent 30%);
+  background-size: 3.5rem 100%, 100% 100%;
+}
+
+html[data-theme="bamboo"] .module,
+html[data-theme="indigo"] .module,
+html[data-theme="water"] .module {
+  position: relative;
+  border-inline-start: 3px solid color-mix(in srgb, var(--primary) 52%, var(--border));
+}
+
+html[data-theme="bamboo"] .module::after,
+html[data-theme="indigo"] .module::after,
+html[data-theme="water"] .module::after {
+  position: absolute;
+  top: 0.55rem;
+  right: 0.65rem;
+  width: 1.6rem;
+  height: 1px;
+  background: color-mix(in srgb, var(--primary) 42%, transparent);
+  box-shadow: 0 0.22rem 0 color-mix(in srgb, var(--primary) 20%, transparent);
+  content: "";
+}
+
+html[data-theme="bamboo"] .icon,
+html[data-theme="indigo"] .icon,
+html[data-theme="water"] .icon {
+  stroke-width: 1.45;
+}
+
+html[data-theme="neumorphism"] {
+  --background: #e7ecf0;
+  --surface: #e7ecf0;
+  --surface-muted: #dce3e8;
+  --text-primary: #26333b;
+  --text-secondary: #65737c;
+  --text-muted: #8c989f;
+  --border: transparent;
+  --border-strong: #cdd6dc;
+  --primary: #4f716f;
+  --primary-hover: #3e5d5b;
+  --primary-light: #dce7e7;
+  --cyan: #719b9a;
+  --jade: #63867a;
+  --vermillion: #b65d53;
+  --gold: #a68a58;
+  --sidebar: #e7ecf0;
+  --module-status: #e7ecf0;
+  --module-focus: #e7ecf0;
+  --module-rhythm: #e7ecf0;
+  --module-habits: #e7ecf0;
+  --module-notes: #e7ecf0;
+  --module-finance: #e7ecf0;
+  --radius-control: 0.95rem;
+  --radius-module: 1.35rem;
+  --shadow-button: 4px 4px 9px #c5ccd1, -4px -4px 9px #fff;
+  --shadow-panel: 10px 10px 24px #c7cdd2, -10px -10px 24px rgb(255 255 255 / 88%);
+  --font-ui: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-title: "Segoe UI Variable Display", "Segoe UI", "Microsoft YaHei", sans-serif;
+}
+
+html[data-theme="neumorphism"] .sidebar {
+  border: 0;
+  box-shadow: 8px 0 22px rgb(185 194 201 / 55%);
+}
+
+html[data-theme="neumorphism"] .nav-link.is-active,
+html[data-theme="neumorphism"] .nav-link:hover,
+html[data-theme="neumorphism"] .field input,
+html[data-theme="neumorphism"] .field textarea,
+html[data-theme="neumorphism"] .field select,
+html[data-theme="neumorphism"] .theme-control select {
+  box-shadow: inset 3px 3px 7px #c8cfd4, inset -3px -3px 7px #fff;
+}
+
+html[data-theme="neumorphism"] .button,
+html[data-theme="neumorphism"] .icon-button {
+  border-color: transparent;
+  box-shadow: var(--shadow-button);
+}
+
+html[data-theme="neumorphism"] .metric,
+html[data-theme="neumorphism"] .rhythm-item {
+  border: 0;
+  border-radius: 0.85rem;
+  background: var(--background);
+  box-shadow: inset 2px 2px 6px #cbd2d7, inset -2px -2px 6px #fff;
+}
+
+html[data-theme="neumorphism"] .icon { stroke-width: 1.9; }
+
+html[data-theme="macos-glass"] {
+  --background: #dce8f2;
+  --surface: rgb(255 255 255 / 52%);
+  --surface-muted: rgb(230 238 245 / 62%);
+  --text-primary: #20303c;
+  --text-secondary: #5a6b78;
+  --text-muted: #82909a;
+  --border: rgb(255 255 255 / 68%);
+  --border-strong: rgb(111 136 154 / 35%);
+  --primary: #426f78;
+  --primary-hover: #315b66;
+  --primary-light: rgb(208 231 233 / 72%);
+  --cyan: #69a0ae;
+  --jade: #5d867b;
+  --vermillion: #c16059;
+  --gold: #ad8a51;
+  --sidebar: rgb(245 249 252 / 48%);
+  --module-status: rgb(229 244 241 / 58%);
+  --module-focus: rgb(255 242 221 / 58%);
+  --module-rhythm: rgb(223 241 245 / 60%);
+  --module-habits: rgb(231 244 233 / 58%);
+  --module-notes: rgb(242 234 245 / 56%);
+  --module-finance: rgb(252 241 224 / 58%);
+  --radius-control: 0.8rem;
+  --radius-module: 1.15rem;
+  --shadow-button: 0 0.5rem 1.1rem rgb(53 73 91 / 14%);
+  --shadow-panel: 0 1.2rem 3rem rgb(48 70 89 / 14%);
+  --font-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", "PingFang SC", sans-serif;
+  --font-title: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", "PingFang SC", sans-serif;
+}
+
+html[data-theme="macos-glass"] body {
+  background:
+    radial-gradient(circle at 12% 16%, rgb(135 195 184 / 64%), transparent 30rem),
+    radial-gradient(circle at 84% 12%, rgb(132 173 222 / 62%), transparent 32rem),
+    radial-gradient(circle at 70% 84%, rgb(233 176 150 / 45%), transparent 34rem),
+    #dce8f2;
+  background-attachment: fixed;
+}
+
+html[data-theme="macos-glass"] .sidebar,
+html[data-theme="macos-glass"] .module,
+html[data-theme="macos-glass"] .topbar {
+  backdrop-filter: blur(22px) saturate(135%);
+  -webkit-backdrop-filter: blur(22px) saturate(135%);
+}
+
+html[data-theme="macos-glass"] .sidebar { box-shadow: 0.8rem 0 2.8rem rgb(54 76 94 / 10%); }
+html[data-theme="macos-glass"] .icon { stroke-width: 1.65; }
+
+html[data-theme="ghibli"] {
+  --background: #f5ecd7;
+  --surface: #fffaf0;
+  --surface-muted: #e8dfc9;
+  --text-primary: #2c3f33;
+  --text-secondary: #657061;
+  --text-muted: #929786;
+  --border: #d8cba8;
+  --border-strong: #b8aa84;
+  --primary: #3f6c50;
+  --primary-hover: #31583f;
+  --primary-light: #dfe9cf;
+  --cyan: #74aeba;
+  --jade: #61835d;
+  --vermillion: #c8664f;
+  --gold: #d0a044;
+  --sidebar: #efe4c9;
+  --module-status: #e7efdc;
+  --module-focus: #fff0d2;
+  --module-rhythm: #dfeeed;
+  --module-habits: #e4edd5;
+  --module-notes: #efe7ec;
+  --module-finance: #f8e8ca;
+  --radius-control: 0.8rem;
+  --radius-module: 1.15rem;
+  --shadow-button: 3px 4px 0 rgb(73 85 59 / 15%);
+  --shadow-panel: 0 0.8rem 0 rgb(92 90 60 / 7%), 0 1.2rem 2.5rem rgb(76 79 54 / 8%);
+  --font-ui: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-title: "KaiTi", "STKaiti", "Microsoft YaHei", cursive;
+}
+
+html[data-theme="ghibli"] body {
+  background:
+    radial-gradient(ellipse at 15% 7%, rgb(255 255 255 / 85%) 0 4rem, transparent 4.2rem),
+    radial-gradient(ellipse at 28% 5%, rgb(255 255 255 / 66%) 0 5.5rem, transparent 5.7rem),
+    linear-gradient(180deg, #d8edf0 0, #f4ecd8 24rem, #f5ecd7 100%);
+  background-attachment: fixed;
+}
+
+html[data-theme="ghibli"] .module {
+  border-width: 2px;
+}
+
+html[data-theme="ghibli"] .module-heading h2::after {
+  display: inline-block;
+  width: 0.42rem;
+  height: 0.42rem;
+  margin-left: 0.5rem;
+  border-radius: 50% 50% 45% 55%;
+  background: var(--gold);
+  content: "";
+  vertical-align: 0.15em;
+}
+
+html[data-theme="ghibli"] .icon { stroke-width: 2; }
+
+html[data-theme="ghibli"] .button:hover:not(:disabled) .icon {
+  transform: rotate(-10deg) scale(1.08);
+}
