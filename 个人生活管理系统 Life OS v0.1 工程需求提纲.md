@@ -1,6 +1,6 @@
 ---
 created: 2026-09-18T13:51:18+08:00
-updated: 2026-09-20T09:47:38+08:00
+updated: 2026-09-20T10:17:02+08:00
 status: draft
 ---
 
@@ -18,7 +18,7 @@ v0.1 的目标是建立一个可靠、易迁移、可长期维护的最小可用
 2. 核心数据使用 SQLite 保存；不得将重要生活数据仅保存在浏览器 LocalStorage、缓存或内存中。
 3. 所有应用生成的可变数据与缓存集中在一个可迁移的运行时目录中，复制该目录即可完成数据迁移与恢复。
 4. 数据应能导出为 CSV 和 Markdown 等开放格式，避免被应用或框架锁定。
-5. 技术方案保持轻量：Python、Flask、SQLAlchemy、HTML、CSS 和 Vanilla JavaScript；普通运行不依赖 Docker、Node.js 构建系统或独立数据库服务。
+5. 技术方案保持轻量：Python、Flask、SQLAlchemy、HTML、CSS 和 Vanilla JavaScript；正式桌面发行使用 Waitress、pywebview 和 PyInstaller，不引入 C#、Electron 或 Node.js 构建系统，也不依赖 Docker 或独立数据库服务。
 6. UI、API、业务服务、数据库模型和数据访问逻辑应分离，但避免微服务、过度抽象和无必要的依赖。
 7. v0.1 优先支持 Windows 10/11 桌面环境，同时避免采用阻碍未来跨平台或响应式布局的设计。
 
@@ -28,6 +28,7 @@ v0.1 的目标是建立一个可靠、易迁移、可长期维护的最小可用
 
 - Python 3.12+
 - Flask
+- Waitress，作为正式桌面发行包内的本地 WSGI 服务；Flask 开发服务器只用于源码调试
 - SQLAlchemy；可使用 Flask-SQLAlchemy，但不同时维护两套数据库访问方式
 - SQLite
 - REST 风格 JSON API
@@ -38,6 +39,8 @@ v0.1 的目标是建立一个可靠、易迁移、可长期维护的最小可用
 
 - HTML5、CSS3、Vanilla JavaScript
 - 使用 `fetch` 调用后端 API，不因保存操作刷新整个页面
+- 正式运行时由 pywebview 提供独立桌面窗口，Windows 使用 WebView2 渲染；外部浏览器仅作为开发与故障诊断入口
+- pywebview 只承担窗口与生命周期管理，业务读写仍统一通过 REST API，不启用新的 JS-Python 业务桥接
 - v0.1 不引入 React、Vue、Angular 或 Node.js 构建链
 - Chart.js、FullCalendar、Markdown 渲染器等库只有在确有需要时才引入，并应固定版本、随应用本地分发，不以 CDN 可用为运行前提
 
@@ -59,6 +62,7 @@ life-os-data/
 ├── exports/
 │   └── journal/
 ├── cache/
+│   └── webview/
 ├── logs/
 │   └── app.log
 ├── temp/
@@ -74,7 +78,7 @@ life-os-data/
 - 应用自行生成的缓存、索引和缩略数据
 - 应用日志与临时文件
 
-Python 虚拟环境、pip 下载缓存和浏览器自身缓存不属于 Life OS 的应用数据；系统不得依赖这些外部缓存保存状态。浏览器 LocalStorage 仅可保存可丢弃的界面偏好，不得保存唯一副本的业务数据。
+Python 虚拟环境、pip 下载缓存和开发者外部浏览器的缓存不属于 Life OS 的应用数据；系统不得依赖这些外部缓存保存状态。正式桌面窗口使用的 pywebview/WebView2 缓存、LocalStorage 与其他持久化存储必须显式位于 `LIFE_OS_HOME/cache/webview/`，只可保存可丢弃的界面偏好，不得保存唯一副本的业务数据。
 
 ### 4.2 路径与迁移约束
 
@@ -91,28 +95,36 @@ Python 虚拟环境、pip 下载缓存和浏览器自身缓存不属于 Life OS 
 
 ```text
 life-os/
-├── app.py
-├── config.py
+├── app.py                       # 源码开发与诊断入口
+├── desktop_entry.py             # 正式桌面入口
 ├── requirements.txt
+├── requirements-dev.txt
+├── requirements-build.txt
+├── LifeOS.spec
 ├── README.md
 ├── start.bat
-├── app/
+├── build_desktop.bat
+├── life_os/
+│   ├── __init__.py              # Flask app factory
+│   ├── runtime.py
+│   ├── settings.py
+│   ├── desktop/                 # M4.5：窗口与 WSGI 生命周期
 │   ├── models/
 │   ├── routes/
 │   ├── services/
 │   │   ├── backup_service.py
 │   │   ├── export_service.py
 │   │   └── statistics_service.py
+│   ├── templates/
+│   ├── static/
+│   │   ├── css/
+│   │   ├── js/
+│   │   └── vendor/
 │   └── utils/
-├── templates/
-├── static/
-│   ├── css/
-│   ├── js/
-│   └── vendor/
 └── tests/
 ```
 
-应用调用链为：浏览器界面 → REST API → 业务服务 → SQLAlchemy → SQLite。备份、导出和未来的 AI 功能通过服务层访问数据，不直接绕过业务规则修改数据库。
+应用调用链为：pywebview 桌面窗口（正式运行）或外部浏览器（开发诊断）→ REST API → 业务服务 → SQLAlchemy → SQLite。桌面宿主不得绕过 API 直接修改业务数据；备份、导出和未来的 AI 功能通过服务层访问数据，不直接绕过业务规则修改数据库。
 
 ## 六、日期中心模型
 
@@ -282,9 +294,11 @@ CSV 使用 UTF-8；为兼容 Windows Excel，可使用 UTF-8 BOM。财务金额�
 
 ## 十二、启动、文档与质量要求
 
-提供 `start.bat`，使 Windows 普通用户可以双击启动。脚本应检查 Python 与依赖，启动 Flask，按需打开 `http://127.0.0.1:5000`，并在端口占用或数据目录不可写时给出明确提示。
+正式发行提供 PyInstaller `onedir` 形式的 `LifeOS.exe`。Windows 普通用户双击后直接进入 pywebview 桌面窗口，不显示终端、不打开外部浏览器，也不要求目标设备预装 Python、pip 或虚拟环境。程序内部使用 Waitress 在随机可用的 `127.0.0.1` 端口提供同源页面与 API，并在端口、WebView2 或数据目录不可用时显示明确错误。
 
-README 至少说明：系统用途、支持平台、Python 版本、安装与升级方式、启动与关闭方式、`LIFE_OS_HOME` 的默认位置和修改方法、目录迁移、备份、恢复、导出、项目结构以及已知限制。
+保留 `start.bat` 作为源码开发与故障诊断入口：它可以检查 Python 与依赖，使用固定或显式指定的本地端口启动服务，并按需打开外部浏览器，但不得作为普通用户的最终发行入口。
+
+README 至少说明：系统用途、支持平台、桌面发行包所需的 WebView2 Runtime、源码开发所需的 Python 版本、安装与升级方式、启动与关闭方式、`LIFE_OS_HOME` 的默认位置和修改方法、目录迁移、备份、恢复、导出、项目结构以及已知限制。
 
 `requirements.txt` 只包含实际使用并固定合理版本范围的依赖。代码应命名清晰、避免重复和无意义注释；关键数据操作需有必要说明。日志应支持大小或数量轮转，避免长期运行后无限增长。
 
@@ -304,7 +318,7 @@ README 至少说明：系统用途、支持平台、Python 版本、安装与升
 
 ## 十三、v0.1 范围
 
-v0.1 必须完成：日历导航、工作日/休息日与节假日/自定义标记、Today Dashboard、任务、动态习惯、健康、睡眠、体重、日记、当日记账与个人总体财务摘要、SQLite 持久化、统一运行时目录、自动与手动备份、全量导出、Windows 启动脚本及核心测试。
+v0.1 必须完成：日历导航、工作日/休息日与节假日/自定义标记、Today Dashboard、任务、动态习惯、健康、睡眠、体重、日记、当日记账与个人总体财务摘要、SQLite 持久化、统一运行时目录、自动与手动备份、全量导出、Windows 便携桌面发行包、源码诊断启动脚本及核心测试。
 
 v0.1 不实现：AI 分析、财务预算/账单自动导入/投资收益分析等复杂财务能力、其他复杂统计、多币种换算、云同步、账户系统、局域网访问、手机 App、通知、重复任务、子任务界面、日记标签、复杂富文本编辑器和完整数据导入。
 
@@ -316,10 +330,11 @@ v0.1 不实现：AI 分析、财务预算/账单自动导入/投资收益分析�
 2. 实现模型、约束、事务处理与核心服务。
 3. 实现按日期聚合的数据 API 及各模块 API。
 4. 实现基础页面、月历与 Today Dashboard。
-5. 完成任务、习惯、健康、睡眠、日记和财务交互与保存。
-6. 完成备份、导出、恢复说明和 Windows 启动脚本。
-7. 执行自动化测试、迁移演练和数据恢复验证。
-8. 在核心流程稳定后再优化 UI。
+5. 建立 Waitress + pywebview 桌面运行时、PyInstaller `onedir` 构建和便携数据目录验证。
+6. 完成任务、习惯、健康、睡眠、日记和财务交互与保存。
+7. 完成备份、导出、恢复说明和源码诊断启动脚本。
+8. 执行自动化测试、桌面干净环境测试、迁移演练和数据恢复验证。
+9. 在核心流程稳定后再优化 UI。
 
 每个阶段结束时都应运行现有测试，并通过最小手工流程验证该阶段的数据能够在关闭和重启后保留；未修复阻断性错误前不进入下一阶段。
 
@@ -327,15 +342,15 @@ v0.1 不实现：AI 分析、财务预算/账单自动导入/投资收益分析�
 
 满足以下场景即视为 MVP 核心合格：
 
-1. 用户通过 `start.bat` 启动系统，浏览器打开本地页面，且外部设备不能直接访问。
+1. 用户双击 `LifeOS.exe` 后直接看到独立桌面窗口，不出现终端或外部浏览器；目标设备无需安装 Python，且外部设备不能直接访问内部服务。
 2. 用户选择任意日期，能够新增任务、切换习惯、录入体重、睡眠、精力、情绪和 Markdown 日记。
 3. 用户能够把普通工作日标记为休息日、把周末标记为调休工作日，并添加节假日名称或自定义标签；关闭和重启后标记保持不变。
 4. 用户能够在当日新增收入、支出或转账，并查看账户余额、总资产、总负债、净资产和指定期间收支。
-5. 用户关闭浏览器和程序后重新启动，所有已确认保存的数据保持完整且不重复。
+5. 用户关闭 Life OS 窗口后重新启动，所有已确认保存的数据保持完整且不重复；前一次服务端口、数据库连接和运行时锁均已释放。
 6. 自动备份与手动备份均能生成可打开的一致性数据库副本，并按配置执行保留策略。
 7. 全量导出能生成结构正确、中文可读的 CSV 与按日期组织的 Markdown 日记。
-8. 将程序正常关闭后，用户只复制整个 `LIFE_OS_HOME` 到另一台兼容设备，指定新路径并启动，即可看到原有数据、配置及应用缓存；旧设备绝对路径不会导致失败。
-9. 在自定义运行时目录下执行完整流程时，Life OS 不在该目录之外写入数据库、备份、导出、日志、临时文件或应用缓存。
+8. 将程序正常关闭后，用户只复制整个 `LIFE_OS_HOME` 到另一台装有兼容 WebView2 Runtime 的 Windows 设备，配合相同或兼容版本的便携程序目录即可看到原有数据、配置及应用缓存；旧设备绝对路径不会导致失败。
+9. 在自定义运行时目录下执行完整流程时，Life OS 不在该目录之外写入数据库、备份、导出、日志、临时文件、pywebview/WebView2 存储或其他应用缓存。
 10. 保存、备份或导出失败时，界面提供明确错误，日志记录可诊断信息，主数据库不被破坏。
 
 ## 十六、已确定的默认决策
@@ -344,6 +359,10 @@ v0.1 不实现：AI 分析、财务预算/账单自动导入/投资收益分析�
 - ORM：SQLAlchemy
 - 数据库：SQLite
 - 前端：HTML + CSS + Vanilla JavaScript
+- 桌面宿主：pywebview；Windows 渲染运行时为 Microsoft Edge WebView2
+- 正式本地服务：Waitress；Flask 开发服务器仅用于源码调试
+- Windows 构建：PyInstaller `onedir`；不采用 `onefile` 作为 v0.1 默认发行形态
+- 开发诊断：保留 `start.bat` 与外部浏览器路径，不作为普通用户入口
 - 运行范围：localhost，仅本机访问
 - 运行时根目录：`LIFE_OS_HOME`，默认 `./life-os-data/`
 - 日历日期类型：工作日/休息日；节假日名称和自定义标签独立保存，显式设置覆盖星期推断
