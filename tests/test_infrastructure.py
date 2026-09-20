@@ -54,11 +54,67 @@ def test_frontend_shell_supports_versioned_local_assets(tmp_path: Path) -> None:
     assert "/static/css/layout.css?v=0.1.0-dev" in html
     assert "/static/css/components.css?v=0.1.0-dev" in html
     assert "/static/css/pages/today.css?v=0.1.0-dev" in html
+    assert "/static/css/pages/calendar.css?v=0.1.0-dev" in html
     assert 'type="module" src="/static/js/app.js?v=0.1.0-dev"' in html
-    assert "data-calendar-grid" in html
-    assert "data-day-marker-form" in html
+    assert 'data-page="today"' in html
+    assert 'href="/calendar"' in html
+    assert "data-calendar-grid" not in html
+    assert "data-day-marker-form" not in html
+    assert '<svg class="icon"' in html
     assert "http://" not in html
     assert "https://" not in html
+
+
+def test_calendar_page_owns_history_and_day_markers(tmp_path: Path) -> None:
+    app = create_app(runtime_home=tmp_path / "runtime", testing=True)
+    response = app.test_client().get("/calendar")
+    html = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    assert response.headers["Cache-Control"] == "no-cache"
+    assert 'data-page="calendar"' in html
+    assert "data-calendar-grid" in html
+    assert "data-day-overview" in html
+    assert "data-task-summary" in html
+    assert "data-rhythm-summary" in html
+    assert "data-habit-summary" in html
+    assert "data-journal-summary" in html
+    assert "data-finance-summary" in html
+    assert "data-day-marker-form" in html
+    assert "data-future-planner" in html
+    assert "data-planner-form" in html
+    assert "data-month-picker" in html
+    assert "选择任意日期" in html
+    assert 'href="/calendar" aria-current="page"' in html
+    assert "http://" not in html
+    assert "https://" not in html
+
+
+def test_future_date_plan_is_visible_in_day_aggregation(tmp_path: Path) -> None:
+    app = create_app(runtime_home=tmp_path / "runtime", testing=True)
+    client = app.test_client()
+
+    created = client.post(
+        "/api/tasks",
+        json={
+            "title": "未来规划事项",
+            "category": "规划",
+            "priority": "high",
+            "scheduled_date": "2030-10-08",
+            "due_date": "2030-10-08",
+        },
+    )
+    day = client.get("/api/day/2030-10-08")
+
+    assert created.status_code == 201
+    assert day.status_code == 200
+    data = day.get_json()["data"]
+    assert [item["title"] for item in data["tasks"]["scheduled"]] == [
+        "未来规划事项"
+    ]
+    assert [item["title"] for item in data["tasks"]["due"]] == [
+        "未来规划事项"
+    ]
 
 
 @pytest.mark.parametrize(
@@ -69,11 +125,13 @@ def test_frontend_shell_supports_versioned_local_assets(tmp_path: Path) -> None:
         "css/layout.css",
         "css/components.css",
         "css/pages/today.css",
+        "css/pages/calendar.css",
         "js/app.js",
         "js/api/client.js",
         "js/components/dom.js",
         "js/components/day-summary.js",
         "js/features/calendar.js",
+        "js/pages/calendar.js",
         "js/pages/today.js",
         "js/utils/date.js",
     ],

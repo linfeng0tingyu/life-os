@@ -1,0 +1,24 @@
+<aside class="sidebar" aria-label="主导航">
+  <a class="brand" href="{{ url_for('system.index') }}" aria-label="Life OS 今日">
+    <span class="brand-mark" aria-hidden="true"></span>
+    <span class="brand-copy"><strong>Life OS</strong><span>个人生活系统</span></span>
+  </a>
+  <nav class="primary-nav" aria-label="核心模块">
+    <a class="nav-link{% if active_page == 'today' %} is-active{% endif %}" href="{{ url_for('system.index') }}"{% if active_page == 'today' %} aria-current="page"{% endif %}>
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.8 12 3l9 7.8"></path><path d="M5.5 9.5V21h13V9.5"></path><path d="M9 21v-6h6v6"></path></svg><span>今日</span>
+    </a>
+    <a class="nav-link{% if active_page == 'calendar' %} is-active{% endif %}" href="{{ url_for('system.calendar_page') }}"{% if active_page == 'calendar' %} aria-current="page"{% endif %}>
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3v3M19 3v3M4 8h16M5 5h14a1 1 0 0 1 1 1v14H4V6a1 1 0 0 1 1-1Z"></path></svg><span>日历</span>
+    </a>
+    <a class="nav-link" href="{{ url_for('system.index') }}#tasks-panel">
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5z"></path><path d="m8 12 2.2 2.2L16 8.5"></path></svg><span>任务</span>
+    </a>
+    <a class="nav-link" href="{{ url_for('system.index') }}#habits-panel">
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="m8 12 2.5 2.5L16 9"></path></svg><span>习惯</span>
+    </a>
+    <a class="nav-link" href="{{ url_for('system.index') }}#journal-panel">
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5z"></path><path d="M8 8h8M8 12h8M8 16h5"></path></svg><span>记录</span>
+    </a>
+  </nav>
+  <div class="sidebar-foot"><span class="privacy-dot" aria-hidden="true"></span>数据仅保存在本机运行目录</div>
+</aside>

@@ -1,0 +1,50 @@
+<section class="dashboard-main day-dashboard {{ dashboard_class|default('') }}" aria-label="{{ dashboard_label|default('当日生活概览') }}">
+  <section class="module module-status" aria-labelledby="status-title" data-day-panel>
+    <div class="module-heading">
+      <div><p class="section-kicker">日期状态</p><h2 id="status-title">一天的轮廓</h2></div>
+      <span class="state-label" role="status" aria-live="polite" data-day-state>加载中</span>
+    </div>
+    <div class="day-overview" data-day-overview aria-busy="true">
+      <div class="skeleton skeleton-wide"></div>
+      <div class="metric-row"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>
+    </div>
+  </section>
+
+  <section class="module module-focus" id="tasks-panel" aria-labelledby="tasks-title">
+    <div class="module-heading">
+      <div><p class="section-kicker">需要关注</p><h2 id="tasks-title">当日重要事项</h2></div>
+      <span class="module-note">完整操作将在 M5 开放</span>
+    </div>
+    <div data-task-summary></div>
+  </section>
+
+  <section class="module module-rhythm" aria-labelledby="rhythm-title">
+    <div class="module-heading">
+      <div><p class="section-kicker">身体与节律</p><h2 id="rhythm-title">生活节律</h2></div>
+      <span class="module-note">详细信息在节律板块开放</span>
+    </div>
+    <div class="rhythm-grid" data-rhythm-summary></div>
+  </section>
+
+  <section class="module module-habits" id="habits-panel" aria-labelledby="habits-title">
+    <div class="module-heading">
+      <div><p class="section-kicker">轻量坚持</p><h2 id="habits-title">习惯</h2></div>
+      <span class="module-note">完整操作将在 M5 开放</span>
+    </div>
+    <div data-habit-summary></div>
+  </section>
+
+  <div class="paired-modules">
+    <section class="module module-notes" id="journal-panel" aria-labelledby="journal-title">
+      <div class="module-heading"><div><p class="section-kicker">文字记录</p><h2 id="journal-title">日记</h2></div></div>
+      <div data-journal-summary></div>
+    </section>
+    <section class="module module-finance" aria-labelledby="finance-title">
+      <div class="module-heading">
+        <div><p class="section-kicker">当日收支</p><h2 id="finance-title">财务</h2></div>
+        <span class="module-note">记账入口将在 M6 开放</span>
+      </div>
+      <div data-finance-summary></div>
+    </section>
+  </div>
+</section>

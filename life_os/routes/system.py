@@ -14,7 +14,18 @@ blueprint = Blueprint("system", __name__)
 def index():
     from life_os import __version__
 
-    return render_template("index.html", app_version=__version__)
+    return render_template(
+        "index.html", app_version=__version__, active_page="today"
+    )
+
+
+@blueprint.get("/calendar")
+def calendar_page():
+    from life_os import __version__
+
+    return render_template(
+        "calendar.html", app_version=__version__, active_page="calendar"
+    )
 
 
 @blueprint.get("/api/system/health")

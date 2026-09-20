@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block title %}日历 · Life OS{% endblock %}
+
+{% block body %}
+  <div class="app-shell" data-app-root data-page="calendar">
+    {% include "partials/sidebar.html" %}
+    <main class="main-content calendar-content" id="main-content">
+      <header class="topbar page-head">
+        <div>
+          <p class="eyebrow">回看生活留下的线索</p>
+          <h1>日历</h1>
+          <p class="date-subtitle" data-calendar-subtitle>选择任意日期：回顾过去、查看今天，或为未来安排计划。</p>
+        </div>
+        <button class="button button-secondary" type="button" data-action="go-today">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><path d="M12 8v4l3 2"></path></svg>
+          回到今天
+        </button>
+      </header>
+
+      <div class="notice is-hidden" role="alert" data-global-error>
+        <div><strong>暂时无法读取所选日期</strong><p data-global-error-message></p></div>
+        <button class="button button-secondary" type="button" data-action="retry-day">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5"></path><path d="M19 12a7 7 0 1 0-2 5"></path></svg>
+          重试
+        </button>
+      </div>
+
+      <section class="calendar-workspace" aria-label="日历与历史记录">
+        <section class="module calendar-module calendar-main" id="calendar-panel" aria-labelledby="calendar-title">
+          <div class="calendar-toolbar">
+            <button class="icon-button" type="button" data-action="previous-month" aria-label="上个月">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg>
+            </button>
+            <h2 id="calendar-title" data-month-heading>正在加载</h2>
+            <button class="icon-button" type="button" data-action="next-month" aria-label="下个月">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
+            </button>
+          </div>
+          <label class="month-jump">
+            <span>跳转月份</span>
+            <input type="month" data-month-picker aria-label="跳转月份">
+          </label>
+          <div class="calendar-weekdays" aria-hidden="true"><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span></div>
+          <div class="calendar-grid" role="grid" aria-labelledby="calendar-title" data-calendar-grid aria-busy="true"></div>
+          <div class="calendar-legend" aria-label="日历图例">
+            <span><i class="legend-dot has-data"></i>有记录</span><span><i class="legend-dot rest-day"></i>休息日</span><span><i class="legend-dot selected"></i>已选择</span>
+          </div>
+          <div class="inline-error is-hidden" role="alert" data-calendar-error>
+            <span data-calendar-error-message></span><button type="button" class="text-button" data-action="retry-month">重试</button>
+          </div>
+        </section>
+
+        <aside class="calendar-side">
+          <section class="module day-marker-module" aria-labelledby="marker-title">
+            <div class="module-heading compact">
+              <div><p class="section-kicker">日期属性</p><h2 id="marker-title">工作与休息标记</h2></div>
+              <span class="save-state" role="status" aria-live="polite" data-save-state>未修改</span>
+            </div>
+            <form data-day-marker-form>
+              <fieldset class="segmented-control">
+                <legend>日期类型</legend>
+                <label><input type="radio" name="day_type" value="workday">工作日</label>
+                <label><input type="radio" name="day_type" value="rest_day">休息日</label>
+              </fieldset>
+              <label class="field"><span>节假日名称</span><input type="text" name="holiday_name" maxlength="120" placeholder="例如：国庆节"></label>
+              <label class="field"><span>自定义标记</span><input type="text" name="custom_label" maxlength="120" placeholder="例如：家庭日"></label>
+              <label class="field"><span>备注</span><textarea name="note" maxlength="1000" rows="3" placeholder="记录这一天的特殊安排"></textarea></label>
+              <div class="form-actions">
+                <button class="button button-primary" type="submit">
+                  <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h12l2 2v14H5z"></path><path d="M8 4v6h8V4M8 20v-6h8v6"></path></svg>
+                  保存标记
+                </button>
+                <button class="button button-quiet is-hidden" type="button" data-action="clear-marker">
+                  <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13"></path></svg>
+                  恢复默认
+                </button>
+              </div>
+            </form>
+          </section>
+
+          <section class="module future-planner is-hidden" aria-labelledby="planner-title" data-future-planner>
+            <div class="module-heading compact">
+              <div><p class="section-kicker">未来规划</p><h2 id="planner-title" data-planner-heading>安排事项</h2></div>
+              <span class="save-state" role="status" aria-live="polite" data-planner-state>可规划</span>
+            </div>
+            <p class="planner-copy">事项会直接安排到所选日期，并出现在下方“当日重要事项”中。</p>
+            <form data-planner-form>
+              <label class="field"><span>事项名称</span><input type="text" name="title" maxlength="200" required placeholder="例如：准备周末采购清单"></label>
+              <label class="field"><span>分类</span><input type="text" name="category" maxlength="80" placeholder="例如：家庭"></label>
+              <label class="field"><span>优先级</span><select name="priority"><option value="normal">普通</option><option value="high">重要</option><option value="low">低</option></select></label>
+              <label class="check-field"><input type="checkbox" name="due_on_date" value="true">同时设为当天截止</label>
+              <button class="button button-primary" type="submit">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+                加入当天计划
+              </button>
+            </form>
+          </section>
+        </aside>
+      </section>
+
+      <section class="calendar-detail" aria-labelledby="calendar-detail-title">
+        <div class="calendar-detail-heading">
+          <div><p class="section-kicker" data-detail-kicker>所选日期</p><h2 id="calendar-detail-title" data-detail-heading>正在读取日期…</h2></div>
+          <p data-detail-description>完整呈现所选日期的事项、习惯、睡眠、日记和财务情况。</p>
+        </div>
+        {% set dashboard_class = "calendar-detail-dashboard" %}
+        {% set dashboard_label = "所选日期生活详情" %}
+        {% include "partials/day-dashboard.html" %}
+      </section>
+    </main>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+  <script type="module" src="{{ url_for('static', filename='js/app.js', v=app_version) }}"></script>
+{% endblock %}

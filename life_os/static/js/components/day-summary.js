@@ -20,7 +20,7 @@ function dayDescription(day) {
   const type = day.calendar_day.day_type === "rest_day" ? "休息日" : "工作日";
   if (labels.length) return `这是一个${type}，已标记为${labels.join("、")}。`;
   if (day.calendar_day.explicit) return `这是你手动设定的${type}。`;
-  return `这是根据星期自动推断的${type}，可以在右侧补充节假日或自定义标记。`;
+  return `这是根据星期自动推断的${type}，可前往日历补充节假日或自定义标记。`;
 }
 
 function renderOverview(day, nodes) {
@@ -41,8 +41,8 @@ function renderOverview(day, nodes) {
 function renderTasks(day, container) {
   const groups = [
     ["逾期", day.tasks.overdue],
-    ["今天到期", day.tasks.due],
-    ["今天计划", day.tasks.scheduled],
+    ["当日到期", day.tasks.due],
+    ["当日计划", day.tasks.scheduled],
   ];
   const seen = new Set();
   const rows = [];
@@ -59,16 +59,20 @@ function renderTasks(day, container) {
       ]));
     }
   }
-  replace(container, rows.length ? element("ul", { className: "item-list" }, rows.slice(0, 6)) : emptyMessage("这一天没有需要关注的任务。"));
+  replace(container, rows.length ? element("ul", { className: "item-list" }, rows) : emptyMessage("这一天没有需要关注的任务。"));
 }
 
 function renderRhythm(day, container) {
   const health = day.health;
   const values = health ? [
-    [health.sleep_duration_minutes ? `${Math.floor(health.sleep_duration_minutes / 60)}时${health.sleep_duration_minutes % 60}分` : "未记录", "睡眠"],
-    [health.energy_level ? `${health.energy_level} / 5` : "未记录", "精力"],
-    [health.mood_level ? `${health.mood_level} / 5` : "未记录", "心情"],
-  ] : [["未记录", "睡眠"], ["未记录", "精力"], ["未记录", "心情"]];
+    [health.sleep_duration_minutes ? `${Math.floor(health.sleep_duration_minutes / 60)}时${health.sleep_duration_minutes % 60}分` : "未记录", "睡眠时长"],
+    [health.weight_kg != null ? `${health.weight_kg} kg` : "未记录", "体重"],
+    [health.exercise_minutes != null ? `${health.exercise_minutes} 分钟` : "未记录", "运动"],
+    [health.body_status || "未记录", "身体健康"],
+  ] : [
+    ["未记录", "睡眠时长"], ["未记录", "体重"],
+    ["未记录", "运动"], ["未记录", "身体健康"],
+  ];
   replace(container, ...values.map(([value, label]) => element("div", { className: "rhythm-item" }, [
     element("strong", { text: value }),
     element("span", { text: label }),
@@ -102,11 +106,34 @@ function renderJournal(day, container) {
 }
 
 function renderFinance(day, container) {
-  replace(container, element("div", { className: "summary-metrics" }, [
+  const summary = element("div", { className: "summary-metrics" }, [
     metric(`¥ ${day.finance.income}`, "收入"),
     metric(`¥ ${day.finance.expense}`, "支出"),
-    metric(String(day.finance.transactions.length), "流水"),
-  ]));
+    metric(`¥ ${day.finance.net_cashflow}`, "净现金流"),
+  ]);
+  const labels = {
+    income: ["收入", "+"],
+    expense: ["支出", "−"],
+    transfer: ["转账", ""],
+  };
+  const transactions = day.finance.transactions.map((transaction) => {
+    const [typeLabel, sign] = labels[transaction.type] || [transaction.type, ""];
+    const description = transaction.description || transaction.category || transaction.note || "未填写说明";
+    return element("li", { className: "item-row", attrs: { "data-id": transaction.id } }, [
+      element("div", {}, [
+        element("p", { text: description }),
+        element("small", { text: [transaction.category, typeLabel].filter(Boolean).join(" · ") }),
+      ]),
+      element("span", { className: "tag finance-amount", text: `${sign}¥ ${transaction.amount}` }),
+    ]);
+  });
+  replace(
+    container,
+    summary,
+    transactions.length
+      ? element("ul", { className: "item-list finance-list" }, transactions)
+      : emptyMessage("这一天没有财务流水。"),
+  );
 }
 
 export class DaySummary {

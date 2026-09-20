@@ -14,6 +14,7 @@ export class CalendarFeature {
     this.onCalendarChange = onCalendarChange;
     this.grid = root.querySelector("[data-calendar-grid]");
     this.heading = root.querySelector("[data-month-heading]");
+    this.monthPicker = root.querySelector("[data-month-picker]");
     this.error = root.querySelector("[data-calendar-error]");
     this.errorMessage = root.querySelector("[data-calendar-error-message]");
     this.form = root.querySelector("[data-day-marker-form]");
@@ -37,6 +38,11 @@ export class CalendarFeature {
       this.loadMonth();
     });
     this.root.querySelector('[data-action="retry-month"]').addEventListener("click", () => this.loadMonth());
+    this.monthPicker?.addEventListener("change", () => {
+      if (!/^\d{4}-\d{2}$/.test(this.monthPicker.value)) return;
+      this.visibleMonth = this.monthPicker.value;
+      this.loadMonth();
+    });
     this.grid.addEventListener("click", (event) => {
       const button = event.target.closest("button[data-date]");
       if (button) this.onSelect(button.dataset.date);
@@ -73,6 +79,7 @@ export class CalendarFeature {
     this.grid.setAttribute("aria-busy", "true");
     this.error.classList.add("is-hidden");
     this.heading.textContent = monthLabel(this.visibleMonth);
+    if (this.monthPicker) this.monthPicker.value = this.visibleMonth;
     try {
       const data = await api.get(`/api/calendar/month/${this.visibleMonth}`, { signal: request.signal });
       if (this.monthRequest !== request) return;

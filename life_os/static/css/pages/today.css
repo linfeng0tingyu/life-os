@@ -5,139 +5,9 @@
   font-size: 1rem;
 }
 
-.calendar-module {
-  overflow: hidden;
-}
-
-.calendar-toolbar {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: var(--space-3);
-  margin-bottom: var(--space-4);
-}
-
-.calendar-toolbar h2 {
-  text-align: center;
-}
-
-.calendar-weekdays,
-.calendar-grid {
-  display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: var(--space-1);
-}
-
-.calendar-weekdays {
-  margin-bottom: var(--space-1);
-  color: var(--text-muted);
-  font-size: 0.7rem;
-  text-align: center;
-}
-
-.calendar-grid > .empty-state {
-  grid-column: 1 / -1;
-}
-
-.calendar-cell {
-  position: relative;
-  display: grid;
-  min-width: 0;
-  min-height: 3.55rem;
-  align-content: start;
-  justify-items: center;
-  gap: 0.1rem;
-  padding: 0.38rem 0.18rem;
-  border: 1px solid transparent;
-  border-radius: var(--radius-control);
-  background: transparent;
-  color: var(--text-primary);
-  font-variant-numeric: tabular-nums;
-}
-
-.calendar-cell:hover {
-  border-color: var(--border-strong);
-  background: rgb(255 255 255 / 52%);
-}
-
-.calendar-cell.is-rest {
-  color: var(--vermillion);
-}
-
-.calendar-cell.is-today::after {
-  content: "今";
-  position: absolute;
-  top: 0.12rem;
-  right: 0.12rem;
-  color: var(--gold);
-  font-size: 0.55rem;
-}
-
-.calendar-cell.is-selected {
-  border-color: var(--primary);
-  background: var(--primary-light);
-  color: var(--primary-hover);
-  font-weight: 700;
-}
-
-.calendar-cell .calendar-label {
-  max-width: 100%;
-  overflow: hidden;
-  color: var(--text-secondary);
-  font-size: 0.56rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.calendar-cell .habit-mini {
-  color: var(--text-muted);
-  font-size: 0.55rem;
-}
-
-.calendar-cell.has-data .day-number::before {
-  content: "";
-  position: absolute;
-  bottom: 0.22rem;
-  left: 50%;
-  width: 0.25rem;
-  height: 0.25rem;
-  transform: translateX(-50%);
-  border-radius: 50%;
-  background: var(--jade);
-}
-
-.calendar-blank {
-  min-height: 3.55rem;
-}
-
-.calendar-legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-3);
-  margin-top: var(--space-4);
-  color: var(--text-muted);
-  font-size: 0.7rem;
-}
-
-.calendar-legend span {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
-}
-
-.legend-dot {
-  width: 0.45rem;
-  height: 0.45rem;
-  border-radius: 50%;
-  background: var(--jade);
-}
-
-.legend-dot.rest-day { background: var(--vermillion); }
-.legend-dot.selected { background: var(--primary); }
-
 .rhythm-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
   gap: var(--space-3);
 }
 
@@ -152,40 +22,23 @@
   display: block;
 }
 
-.rhythm-item strong {
-  font-size: 1.1rem;
-}
-
-.rhythm-item span {
-  color: var(--text-secondary);
-  font-size: 0.76rem;
-}
+.rhythm-item strong { font-size: 1.1rem; }
+.rhythm-item span { color: var(--text-secondary); font-size: 0.76rem; }
 
 .journal-preview {
-  display: -webkit-box;
-  overflow: hidden;
   margin: 0;
   color: var(--text-secondary);
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 5;
   white-space: pre-wrap;
 }
 
-.day-marker-module form[aria-busy="true"] {
-  opacity: 0.7;
+.finance-list {
+  margin-top: var(--space-4);
+}
+
+.finance-amount {
+  font-variant-numeric: tabular-nums;
 }
 
 @media (max-width: 36rem) {
-  .calendar-cell,
-  .calendar-blank {
-    min-height: 3rem;
-  }
-
-  .calendar-cell .calendar-label {
-    display: none;
-  }
-
-  .rhythm-grid {
-    grid-template-columns: 1fr;
-  }
+  .rhythm-grid { grid-template-columns: 1fr; }
 }
