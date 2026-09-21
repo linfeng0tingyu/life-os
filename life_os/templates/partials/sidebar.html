@@ -16,8 +16,14 @@
     <a class="nav-link{% if active_page == 'habits' %} is-active{% endif %}" href="{{ url_for('system.habits_page') }}"{% if active_page == 'habits' %} aria-current="page"{% endif %}>
       <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="m8 12 2.5 2.5L16 9"></path></svg><span>习惯</span>
     </a>
-    <a class="nav-link" href="{{ url_for('system.index') }}#journal-panel">
+    <a class="nav-link{% if active_page == 'health' %} is-active{% endif %}" href="{{ url_for('system.health_page') }}"{% if active_page == 'health' %} aria-current="page"{% endif %}>
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13h3l2-5 3 10 2-5h6"></path><path d="M5 5h14v14H5z"></path></svg><span>节律</span>
+    </a>
+    <a class="nav-link{% if active_page == 'journal' %} is-active{% endif %}" href="{{ url_for('system.journal_page') }}"{% if active_page == 'journal' %} aria-current="page"{% endif %}>
       <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5z"></path><path d="M8 8h8M8 12h8M8 16h5"></path></svg><span>记录</span>
+    </a>
+    <a class="nav-link{% if active_page == 'finance' %} is-active{% endif %}" href="{{ url_for('system.finance_page') }}"{% if active_page == 'finance' %} aria-current="page"{% endif %}>
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16v12H4z"></path><path d="M7 7V5h10v2M8 12h8M8 15h5"></path></svg><span>财务</span>
     </a>
   </nav>
   <div class="theme-control">

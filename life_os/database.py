@@ -12,7 +12,7 @@ from .models import SchemaMeta
 from .models.base import now_iso
 
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 MINIMUM_MIGRATABLE_VERSION = 1
 
 
@@ -81,6 +81,10 @@ def initialize_database(app: Flask) -> None:
             elif stored_version_number is not None and stored_version_number < SCHEMA_VERSION:
                 if stored_version_number < 3:
                     _migrate_categories()
+                if stored_version_number == 3:
+                    _migrate_categories_v4()
+                if stored_version_number < 4:
+                    _backfill_finance_categories()
                 version_record = db.session.get(SchemaMeta, "schema_version")
                 if version_record is None:
                     raise DatabaseVersionError(
@@ -118,6 +122,55 @@ def _migrate_categories() -> None:
             ),
             {"scope": scope, "timestamp": timestamp},
         )
+
+
+def _migrate_categories_v4() -> None:
+    db.session.execute(
+        text(
+            "CREATE TABLE categories_v4 ("
+            "id INTEGER NOT NULL PRIMARY KEY, "
+            "scope VARCHAR(20) NOT NULL, "
+            "name VARCHAR(100) COLLATE NOCASE NOT NULL, "
+            "sort_order INTEGER NOT NULL DEFAULT 0, "
+            "created_at VARCHAR(40) NOT NULL, "
+            "updated_at VARCHAR(40) NOT NULL, "
+            "CONSTRAINT ck_categories_scope CHECK "
+            "(scope IN ('task', 'habit', 'finance')), "
+            "CONSTRAINT uq_categories_scope_name UNIQUE (scope, name)"
+            ")"
+        )
+    )
+    db.session.execute(
+        text(
+            "INSERT INTO categories_v4 "
+            "(id, scope, name, sort_order, created_at, updated_at) "
+            "SELECT id, scope, name, sort_order, created_at, updated_at "
+            "FROM categories"
+        )
+    )
+    db.session.execute(text("DROP TABLE categories"))
+    db.session.execute(text("ALTER TABLE categories_v4 RENAME TO categories"))
+    db.session.execute(
+        text(
+            "CREATE INDEX ix_categories_scope_sort "
+            "ON categories (scope, sort_order, id)"
+        )
+    )
+
+
+def _backfill_finance_categories() -> None:
+    timestamp = now_iso()
+    db.session.execute(
+        text(
+            "INSERT OR IGNORE INTO categories "
+            "(scope, name, sort_order, created_at, updated_at) "
+            "SELECT 'finance', category, 0, :timestamp, :timestamp "
+            "FROM finance_transactions "
+            "WHERE category IS NOT NULL AND trim(category) != '' "
+            "GROUP BY category"
+        ),
+        {"timestamp": timestamp},
+    )
 
 
 def checkpoint_database(app: Flask) -> None:

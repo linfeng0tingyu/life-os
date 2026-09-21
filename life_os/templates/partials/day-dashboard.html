@@ -21,7 +21,7 @@
   <section class="module module-rhythm" aria-labelledby="rhythm-title">
     <div class="module-heading">
       <div><p class="section-kicker">身体与节律</p><h2 id="rhythm-title">生活节律</h2></div>
-      <span class="module-note">详细信息在节律板块开放</span>
+      <a class="module-note module-link" data-health-link href="{{ url_for('system.health_page') }}">管理生活节律</a>
     </div>
     <div class="rhythm-grid" data-rhythm-summary></div>
   </section>
@@ -36,13 +36,13 @@
 
   <div class="paired-modules">
     <section class="module module-notes" id="journal-panel" aria-labelledby="journal-title">
-      <div class="module-heading"><div><p class="section-kicker">文字记录</p><h2 id="journal-title">日记</h2></div></div>
+      <div class="module-heading"><div><p class="section-kicker">文字记录</p><h2 id="journal-title">日记</h2></div><a class="module-note module-link" data-journal-link href="{{ url_for('system.journal_page') }}">编辑日记</a></div>
       <div data-journal-summary></div>
     </section>
     <section class="module module-finance" aria-labelledby="finance-title">
       <div class="module-heading">
         <div><p class="section-kicker">当日收支</p><h2 id="finance-title">财务</h2></div>
-        <span class="module-note">记账入口将在 M6 开放</span>
+        <a class="module-note module-link" data-finance-link href="{{ url_for('system.finance_page') }}">管理财务</a>
       </div>
       <div data-finance-summary></div>
     </section>

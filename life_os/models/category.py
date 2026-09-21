@@ -12,7 +12,7 @@ class Category(TimestampMixin, db.Model):
     __tablename__ = "categories"
     __table_args__ = (
         CheckConstraint(
-            "scope IN ('task', 'habit')",
+            "scope IN ('task', 'habit', 'finance')",
             name="ck_categories_scope",
         ),
         UniqueConstraint("scope", "name", name="uq_categories_scope_name"),

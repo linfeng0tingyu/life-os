@@ -30,8 +30,12 @@ export async function request(path, { method = "GET", body, signal, timeout = 10
   const headers = { Accept: "application/json" };
   const options = { method, headers, signal: controller.signal };
   if (body !== undefined) {
-    headers["Content-Type"] = "application/json";
-    options.body = JSON.stringify(body);
+    if (body instanceof FormData) {
+      options.body = body;
+    } else {
+      headers["Content-Type"] = "application/json";
+      options.body = JSON.stringify(body);
+    }
   }
 
   try {
@@ -113,5 +117,8 @@ export const api = {
   },
   delete(path, options = {}) {
     return request(path, { ...options, method: "DELETE" });
+  },
+  upload(path, formData, options = {}) {
+    return request(path, { ...options, method: "POST", body: formData, timeout: 30000 });
   },
 };

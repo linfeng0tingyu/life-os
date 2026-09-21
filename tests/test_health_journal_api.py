@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import base64
+from io import BytesIO
+
 from flask.testing import FlaskClient
 
 from life_os.extensions import db
@@ -97,3 +100,42 @@ def test_journal_unexpected_failure_rolls_back_and_hides_content(
 
     monkeypatch.setattr(JournalService, "upsert", original_upsert)
     assert client.get(path).get_json()["data"]["content"] == "Original"
+
+
+def test_journal_image_upload_preview_asset_and_self_contained_export(
+    client: FlaskClient, app
+) -> None:
+    image = b"\x89PNG\r\n\x1a\n" + b"test-image"
+    uploaded = client.post(
+        "/api/journal/2026-09-21/assets",
+        data={"image": (BytesIO(image), "示例.png")},
+        content_type="multipart/form-data",
+    )
+    assert uploaded.status_code == 201
+    asset = uploaded.get_json()["data"]
+    assert asset["mime_type"] == "image/png"
+    assert asset["url"].startswith("/api/journal/assets/2026-09-21/")
+    fetched = client.get(asset["url"])
+    assert fetched.status_code == 200
+    assert fetched.data == image
+
+    content = f"# 图文日记\n\n![示例]({asset['url']})"
+    client.put("/api/journal/2026-09-21", json={"content": content})
+    exported = client.get("/api/journal/2026-09-21/export")
+    assert exported.status_code == 200
+    assert "attachment" in exported.headers["Content-Disposition"]
+    expected_data = base64.b64encode(image).decode("ascii")
+    assert f"data:image/png;base64,{expected_data}" in exported.get_data(as_text=True)
+    paths = app.extensions["life_os_runtime"]
+    assert (paths.exports_dir / "journal" / "2026-09-21.md").is_file()
+    assert (paths.attachments_dir / "journal" / "2026-09-21" / asset["filename"]).is_file()
+
+
+def test_journal_image_upload_validation_and_missing_export(client: FlaskClient) -> None:
+    invalid = client.post(
+        "/api/journal/2026-09-21/assets",
+        data={"image": (BytesIO(b"not-an-image"), "bad.txt")},
+        content_type="multipart/form-data",
+    )
+    assert invalid.status_code == 400
+    assert client.get("/api/journal/2026-09-22/export").status_code == 404

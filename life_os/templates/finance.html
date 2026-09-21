@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}财务 · Life OS{% endblock %}
+
+{% block body %}
+  <div class="app-shell" data-app-root data-page="finance">
+    {% include "partials/sidebar.html" %}
+    <main class="main-content records-content finance-content" id="main-content">
+      <header class="topbar page-head">
+        <div><p class="eyebrow">让每一笔流动都有去处</p><h1>个人财务</h1><p class="date-subtitle">管理账户、当天记账，并查看资产、负债和期间收支。</p></div>
+        <div class="topbar-actions">
+          <button class="button button-secondary" type="button" data-action="new-account">新建账户</button>
+          <button class="button button-primary" type="button" data-action="new-transaction">记一笔</button>
+        </div>
+      </header>
+
+      <div class="notice is-hidden" role="alert" data-global-error>
+        <div><strong>财务操作未完成</strong><p data-global-error-message></p></div>
+        <button class="button button-secondary" type="button" data-action="retry-finance">重新读取</button>
+      </div>
+
+      <section class="module finance-summary" aria-labelledby="finance-summary-title">
+        <div class="module-heading">
+          <div><p class="section-kicker">总体财务</p><h2 id="finance-summary-title">资产概览</h2></div>
+          <span class="state-label" data-finance-state role="status" aria-live="polite">加载中</span>
+        </div>
+        <div class="finance-totals" data-finance-totals aria-busy="true"></div>
+        <div class="period-filter">
+          <label class="field"><span>统计开始</span><input type="date" data-summary-from></label>
+          <label class="field"><span>统计结束</span><input type="date" data-summary-to></label>
+          <button class="button button-secondary" type="button" data-action="apply-period">更新期间统计</button>
+        </div>
+        <div class="account-balance-list" data-account-balances></div>
+      </section>
+
+      <div class="finance-columns">
+        <section class="module module-finance" aria-labelledby="transaction-list-title">
+          <div class="module-heading"><div><p class="section-kicker">每日流水</p><h2 id="transaction-list-title">收支与转账</h2></div><span class="state-label" data-transaction-state>加载中</span></div>
+          <div class="finance-filter">
+            <label class="field"><span>查看日期</span><input type="date" data-transaction-date></label>
+            <label class="field"><span>类型</span><select data-transaction-type-filter><option value="">全部</option><option value="income">收入</option><option value="expense">支出</option><option value="transfer">转账</option></select></label>
+          </div>
+          <div data-transaction-list aria-busy="true"><p class="empty-state">正在读取流水…</p></div>
+        </section>
+
+        <section class="module" aria-labelledby="account-list-title">
+          <div class="module-heading"><div><p class="section-kicker">资金容器</p><h2 id="account-list-title">账户</h2></div></div>
+          <div data-account-list aria-busy="true"><p class="empty-state">正在读取账户…</p></div>
+        </section>
+      </div>
+
+      <dialog class="editor-dialog" data-account-dialog aria-labelledby="account-form-title">
+        <section class="module dialog-panel">
+          <div class="module-heading compact"><div><p class="section-kicker">账户资料</p><h2 id="account-form-title" data-account-form-title>新建账户</h2></div><button class="icon-button" type="button" data-action="close-account" aria-label="关闭账户窗口"><svg class="icon" viewBox="0 0 24 24"><path d="m7 7 10 10M17 7 7 17"></path></svg></button></div>
+          <form data-account-form>
+            <label class="field"><span>账户名称</span><input type="text" name="name" maxlength="200" required placeholder="例如：工资卡"></label>
+            <div class="field-grid">
+              <label class="field"><span>账户性质</span><select name="kind"><option value="asset">资产</option><option value="liability">负债</option></select></label>
+              <label class="field"><span>账户类型</span><select name="account_type"><option value="cash">现金</option><option value="bank">银行卡</option><option value="credit">信用账户</option><option value="investment">投资</option><option value="other">其他</option></select></label>
+            </div>
+            <label class="field"><span>期初余额（CNY）</span><input type="number" name="opening_balance" step="0.01" required value="0.00"><small>资产账户不得为负；负债账户请填写零或负数。</small></label>
+            <div class="form-actions"><button class="button button-primary" type="submit">保存账户</button><button class="button button-quiet" type="button" data-action="cancel-account">取消</button></div>
+          </form>
+        </section>
+      </dialog>
+
+      <dialog class="editor-dialog" data-transaction-dialog aria-labelledby="transaction-form-title">
+        <section class="module dialog-panel">
+          <div class="module-heading compact"><div><p class="section-kicker">财务流水</p><h2 id="transaction-form-title" data-transaction-form-title>记一笔</h2></div><button class="icon-button" type="button" data-action="close-transaction" aria-label="关闭记账窗口"><svg class="icon" viewBox="0 0 24 24"><path d="m7 7 10 10M17 7 7 17"></path></svg></button></div>
+          <form data-transaction-form>
+            <div class="field-grid">
+              <label class="field"><span>日期</span><input type="date" name="date" required></label>
+              <label class="field"><span>类型</span><select name="type"><option value="expense">支出</option><option value="income">收入</option><option value="transfer">转账</option></select></label>
+            </div>
+            <label class="field"><span>金额（CNY）</span><input type="number" name="amount" min="0.01" step="0.01" required placeholder="0.00"></label>
+            <div class="field-grid">
+              <label class="field" data-from-account-field><span>转出账户</span><select name="from_account_id"></select></label>
+              <label class="field" data-to-account-field><span>转入账户</span><select name="to_account_id"></select></label>
+            </div>
+            <div class="category-control" data-finance-category-control>
+              <label class="field"><span>分类</span><select name="category" data-category-select><option value="">未分类</option></select></label>
+              <div class="category-control-meta">
+                <span role="status" aria-live="polite" data-category-state>正在读取分类…</span>
+                <button class="text-button" type="button" data-action="show-category-creator">＋ 新建分类</button>
+              </div>
+              <div class="category-creator is-hidden" data-category-creator>
+                <input type="text" maxlength="100" data-category-name aria-label="新财务分类名称" placeholder="输入分类名称">
+                <button class="button button-secondary" type="button" data-action="save-category">创建并选中</button>
+                <button class="button button-quiet" type="button" data-action="cancel-category-creator">取消</button>
+              </div>
+            </div>
+            <label class="field"><span>说明</span><input type="text" name="description" maxlength="300" placeholder="例如：午餐"></label>
+            <label class="field"><span>备注</span><textarea name="note" maxlength="2000" rows="3"></textarea></label>
+            <div class="form-actions"><button class="button button-primary" type="submit" data-transaction-submit>保存流水</button><button class="button button-quiet" type="button" data-action="cancel-transaction">取消</button></div>
+          </form>
+        </section>
+      </dialog>
+    </main>
+  </div>
+{% endblock %}
+
+{% block scripts %}<script type="module" src="{{ url_for('static', filename='js/app.js', v=app_version) }}"></script>{% endblock %}

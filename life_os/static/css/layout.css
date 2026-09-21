@@ -9,6 +9,7 @@
   display: flex;
   width: var(--sidebar-width);
   flex-direction: column;
+  overflow-y: auto;
   padding: var(--space-8) var(--space-5);
   border-right: 1px solid var(--border);
   background: var(--sidebar);
@@ -188,6 +189,7 @@
     padding: var(--space-4) var(--space-5);
     border-right: 0;
     border-bottom: 1px solid var(--border);
+    overflow-y: visible;
   }
 
   .brand {

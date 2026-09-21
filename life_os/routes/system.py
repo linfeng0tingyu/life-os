@@ -46,6 +46,33 @@ def habits_page():
     )
 
 
+@blueprint.get("/health")
+def health_page():
+    from life_os import __version__
+
+    return render_template(
+        "health.html", app_version=__version__, active_page="health"
+    )
+
+
+@blueprint.get("/journal")
+def journal_page():
+    from life_os import __version__
+
+    return render_template(
+        "journal.html", app_version=__version__, active_page="journal"
+    )
+
+
+@blueprint.get("/finance")
+def finance_page():
+    from life_os import __version__
+
+    return render_template(
+        "finance.html", app_version=__version__, active_page="finance"
+    )
+
+
 @blueprint.get("/api/system/health")
 def health():
     from life_os import __version__

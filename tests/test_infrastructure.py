@@ -157,6 +157,69 @@ def test_m5_frontend_guards_repeated_actions_and_uses_existing_apis(
     assert "this.dialog.showModal()" in habits_script
 
 
+def test_m6_pages_expose_health_journal_and_finance_closed_loops(
+    tmp_path: Path,
+) -> None:
+    app = create_app(runtime_home=tmp_path / "runtime", testing=True)
+    client = app.test_client()
+
+    health_html = client.get("/health?date=2026-09-18").get_data(as_text=True)
+    journal_html = client.get("/journal?date=2026-09-18").get_data(as_text=True)
+    finance_html = client.get("/finance?date=2026-09-18").get_data(as_text=True)
+
+    assert 'data-page="health"' in health_html
+    assert 'data-health-form' in health_html
+    assert 'name="sleep_start"' in health_html
+    assert 'data-manual-sleep' in health_html
+    assert 'href="/health" aria-current="page"' in health_html
+    assert 'data-page="journal"' in journal_html
+    assert 'data-journal-content' in journal_html
+    assert 'data-journal-saved-at' in journal_html
+    assert 'data-action="insert-time"' in journal_html
+    assert 'data-action="heading-1"' in journal_html
+    assert 'data-action="insert-image"' in journal_html
+    assert 'data-action="export-journal"' in journal_html
+    assert 'data-journal-preview' in journal_html
+    assert 'href="/journal" aria-current="page"' in journal_html
+    assert 'data-page="finance"' in finance_html
+    assert 'data-account-form' in finance_html
+    assert 'data-transaction-form' in finance_html
+    assert 'data-finance-category-control' in finance_html
+    assert 'name="category" data-category-select' in finance_html
+    assert 'data-show-inactive' not in finance_html
+    assert 'data-finance-totals' in finance_html
+    assert 'href="/finance" aria-current="page"' in finance_html
+    assert "/static/css/pages/records.css?v=0.1.0-dev" in finance_html
+
+
+def test_m6_frontend_uses_debounced_saves_and_explicit_finance_submit(
+    tmp_path: Path,
+) -> None:
+    app = create_app(runtime_home=tmp_path / "runtime", testing=True)
+    client = app.test_client()
+    health_script = client.get("/static/js/pages/health.js").get_data(as_text=True)
+    journal_script = client.get("/static/js/pages/journal.js").get_data(as_text=True)
+    finance_script = client.get("/static/js/pages/finance.js").get_data(as_text=True)
+    summary_script = client.get("/static/js/components/day-summary.js").get_data(as_text=True)
+
+    assert "window.setTimeout(() => this.save(), 800)" in health_script
+    assert "sleep_duration_minutes" in health_script
+    assert "window.setTimeout(() => this.save(), 1200)" in journal_script
+    assert 'window.addEventListener("beforeunload"' in journal_script
+    assert "insertCurrentTime()" in journal_script
+    assert "applyHeading(level)" in journal_script
+    assert "api.upload(`/api/journal/${this.date}/assets`" in journal_script
+    assert "renderMarkdownPreview" in journal_script
+    assert 'this.accountForm.addEventListener("submit"' in finance_script
+    assert 'this.transactionForm.addEventListener("submit"' in finance_script
+    assert "this.setDisabled(this.transactionForm, true)" in finance_script
+    assert 'scope: "finance"' in finance_script
+    assert 'api.delete(`/api/finance/transactions/${transaction.id}`)' in finance_script
+    assert '[this.nodes.healthLink, "/health"]' in summary_script
+    assert '[this.nodes.journalLink, "/journal"]' in summary_script
+    assert '[this.nodes.financeLink, "/finance"]' in summary_script
+
+
 def test_calendar_go_today_awaits_month_and_day_refresh(tmp_path: Path) -> None:
     app = create_app(runtime_home=tmp_path / "runtime", testing=True)
     client = app.test_client()
@@ -260,6 +323,7 @@ def test_future_date_plan_is_visible_in_day_aggregation(tmp_path: Path) -> None:
         "css/pages/today.css",
         "css/pages/calendar.css",
         "css/pages/management.css",
+        "css/pages/records.css",
         "css/themes.css",
         "images/life-os-logo.png",
         "js/app.js",
@@ -268,9 +332,13 @@ def test_future_date_plan_is_visible_in_day_aggregation(tmp_path: Path) -> None:
         "js/components/dom.js",
         "js/components/category-select.js",
         "js/components/day-summary.js",
+        "js/components/markdown-preview.js",
         "js/features/calendar.js",
         "js/pages/calendar.js",
         "js/pages/habits.js",
+        "js/pages/health.js",
+        "js/pages/journal.js",
+        "js/pages/finance.js",
         "js/pages/tasks.js",
         "js/pages/today.js",
         "js/utils/date.js",

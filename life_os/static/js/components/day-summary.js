@@ -184,6 +184,9 @@ export class DaySummary {
       habits: root.querySelector("[data-habit-summary]"),
       journal: root.querySelector("[data-journal-summary]"),
       finance: root.querySelector("[data-finance-summary]"),
+      healthLink: root.querySelector("[data-health-link]"),
+      journalLink: root.querySelector("[data-journal-link]"),
+      financeLink: root.querySelector("[data-finance-link]"),
     };
   }
 
@@ -205,6 +208,13 @@ export class DaySummary {
     renderHabits(day, this.nodes.habits, this.onHabitStatusChange, this.canEditDate);
     renderJournal(day, this.nodes.journal);
     renderFinance(day, this.nodes.finance);
+    for (const [node, path] of [
+      [this.nodes.healthLink, "/health"],
+      [this.nodes.journalLink, "/journal"],
+      [this.nodes.financeLink, "/finance"],
+    ]) {
+      if (node) node.href = `${path}?date=${encodeURIComponent(day.date)}`;
+    }
   }
 
   error() {

@@ -16,7 +16,7 @@ from .common import (
 )
 
 
-CATEGORY_SCOPES = {"task", "habit"}
+CATEGORY_SCOPES = {"task", "habit", "finance"}
 
 
 class CategoryService:

@@ -1,5 +1,8 @@
 import { CalendarPage } from "./pages/calendar.js";
 import { HabitsPage } from "./pages/habits.js";
+import { HealthPage } from "./pages/health.js";
+import { JournalPage } from "./pages/journal.js";
+import { FinancePage } from "./pages/finance.js";
 import { TasksPage } from "./pages/tasks.js";
 import { TodayPage } from "./pages/today.js";
 
@@ -18,6 +21,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const pages = {
       calendar: CalendarPage,
       habits: HabitsPage,
+      health: HealthPage,
+      journal: JournalPage,
+      finance: FinancePage,
       tasks: TasksPage,
       today: TodayPage,
     };

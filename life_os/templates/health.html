@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}生活节律 · Life OS{% endblock %}
+
+{% block body %}
+  <div class="app-shell" data-app-root data-page="health">
+    {% include "partials/sidebar.html" %}
+    <main class="main-content records-content" id="main-content">
+      <header class="topbar page-head">
+        <div>
+          <p class="eyebrow">观察身体，而不是评判自己</p>
+          <h1>生活节律</h1>
+          <p class="date-subtitle">记录睡眠、体重、精力、情绪、运动与身体状态；修改会自动保存。</p>
+        </div>
+        <label class="date-switcher"><span>记录日期</span><input type="date" data-record-date></label>
+      </header>
+
+      <div class="notice is-hidden" role="alert" data-global-error>
+        <div><strong>节律记录未能保存</strong><p data-global-error-message></p></div>
+        <button class="button button-secondary" type="button" data-action="retry-health">重试</button>
+      </div>
+
+      <form class="records-grid" data-health-form>
+        <section class="module module-rhythm" aria-labelledby="sleep-title">
+          <div class="module-heading"><div><p class="section-kicker">睡眠</p><h2 id="sleep-title">休息与恢复</h2></div><span class="save-state" data-health-state role="status" aria-live="polite">正在读取</span></div>
+          <div class="field-grid">
+            <label class="field"><span>入睡时间</span><input type="datetime-local" name="sleep_start"></label>
+            <label class="field"><span>醒来时间</span><input type="datetime-local" name="sleep_end"></label>
+          </div>
+          <label class="check-field"><input type="checkbox" data-manual-sleep>手动修正睡眠时长</label>
+          <label class="field"><span>睡眠时长（分钟）</span><input type="number" name="sleep_duration_minutes" min="0" max="1440" step="1" disabled><small data-sleep-hint>填写起止时间后自动计算，支持跨午夜。</small></label>
+          <label class="field"><span>睡眠质量</span><select name="sleep_quality"><option value="">未记录</option><option value="1">1 · 很差</option><option value="2">2 · 较差</option><option value="3">3 · 一般</option><option value="4">4 · 良好</option><option value="5">5 · 很好</option></select></label>
+        </section>
+
+        <section class="module" aria-labelledby="body-title">
+          <div class="module-heading"><div><p class="section-kicker">身体</p><h2 id="body-title">健康状态</h2></div></div>
+          <div class="field-grid">
+            <label class="field"><span>体重（kg）</span><input type="number" name="weight_kg" min="0.01" step="0.01" placeholder="例如：65.5"></label>
+            <label class="field"><span>运动（分钟）</span><input type="number" name="exercise_minutes" min="0" max="1440" step="1"></label>
+            <label class="field"><span>精力水平</span><select name="energy_level"><option value="">未记录</option><option value="1">1 · 很低</option><option value="2">2 · 较低</option><option value="3">3 · 一般</option><option value="4">4 · 良好</option><option value="5">5 · 充沛</option></select></label>
+            <label class="field"><span>情绪水平</span><select name="mood_level"><option value="">未记录</option><option value="1">1 · 很差</option><option value="2">2 · 较差</option><option value="3">3 · 一般</option><option value="4">4 · 良好</option><option value="5">5 · 很好</option></select></label>
+          </div>
+          <label class="field"><span>身体健康</span><textarea name="body_status" maxlength="500" rows="3" placeholder="例如：肩颈略紧，其他正常"></textarea></label>
+          <label class="field"><span>补充备注</span><textarea name="note" maxlength="2000" rows="4" placeholder="药物、症状或训练感受等"></textarea></label>
+        </section>
+      </form>
+    </main>
+  </div>
+{% endblock %}
+
+{% block scripts %}<script type="module" src="{{ url_for('static', filename='js/app.js', v=app_version) }}"></script>{% endblock %}

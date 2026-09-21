@@ -76,7 +76,7 @@ def test_incompatible_schema_version_stops_startup(tmp_path: Path) -> None:
         create_app(runtime_home=runtime_home, testing=True)
 
 
-def test_schema_v1_is_migrated_to_v3_without_losing_data(tmp_path: Path) -> None:
+def test_schema_v1_is_migrated_to_v4_without_losing_data(tmp_path: Path) -> None:
     runtime_home = tmp_path / "runtime"
     first_app = create_app(runtime_home=runtime_home, testing=True)
     with first_app.app_context():
@@ -93,7 +93,7 @@ def test_schema_v1_is_migrated_to_v3_without_losing_data(tmp_path: Path) -> None
     with migrated_app.app_context():
         tables = set(inspect(db.engine).get_table_names())
         assert {"finance_accounts", "finance_transactions"} <= tables
-        assert db.session.get(SchemaMeta, "schema_version").value == "3"
+        assert db.session.get(SchemaMeta, "schema_version").value == "4"
         assert JournalService.get("2026-09-18").content == "keep me"
 
 
@@ -130,7 +130,67 @@ def test_schema_v2_migration_preserves_existing_category_values(
             text("SELECT scope, name FROM categories ORDER BY scope, name")
         ).all()
         assert rows == [("habit", "健康"), ("task", "工作")]
-        assert db.session.get(SchemaMeta, "schema_version").value == "3"
+        assert db.session.get(SchemaMeta, "schema_version").value == "4"
+
+
+def test_schema_v3_migration_adds_finance_scope_and_backfills_categories(
+    tmp_path: Path,
+) -> None:
+    runtime_home = tmp_path / "runtime"
+    first_app = create_app(runtime_home=runtime_home, testing=True)
+    with first_app.app_context():
+        db.session.execute(
+            text(
+                "INSERT INTO finance_accounts "
+                "(name, kind, account_type, currency, opening_balance_minor, "
+                "active, sort_order, created_at, updated_at) "
+                "VALUES ('现金', 'asset', 'cash', 'CNY', 0, 1, 0, 'now', 'now')"
+            )
+        )
+        account_id = db.session.execute(
+            text("SELECT id FROM finance_accounts WHERE name = '现金'")
+        ).scalar_one()
+        db.session.execute(
+            text(
+                "INSERT INTO finance_transactions "
+                "(date, transaction_type, amount_minor, category, from_account_id, "
+                "created_at, updated_at) "
+                "VALUES ('2026-09-21', 'expense', 100, '餐饮', :account_id, "
+                "'now', 'now')"
+            ),
+            {"account_id": account_id},
+        )
+        db.session.execute(text("DROP TABLE categories"))
+        db.session.execute(
+            text(
+                "CREATE TABLE categories ("
+                "id INTEGER NOT NULL PRIMARY KEY, scope VARCHAR(20) NOT NULL, "
+                "name VARCHAR(100) COLLATE NOCASE NOT NULL, sort_order INTEGER NOT NULL, "
+                "created_at VARCHAR(40) NOT NULL, updated_at VARCHAR(40) NOT NULL, "
+                "CHECK (scope IN ('task', 'habit')), UNIQUE (scope, name))"
+            )
+        )
+        db.session.execute(
+            text("UPDATE schema_meta SET value = '3' WHERE key = 'schema_version'")
+        )
+        db.session.commit()
+    checkpoint_database(first_app)
+
+    migrated_app = create_app(runtime_home=runtime_home, testing=True)
+    with migrated_app.app_context():
+        rows = db.session.execute(
+            text("SELECT scope, name FROM categories ORDER BY scope, name")
+        ).all()
+        assert rows == [("finance", "餐饮")]
+        assert db.session.get(SchemaMeta, "schema_version").value == "4"
+        db.session.execute(
+            text(
+                "INSERT INTO categories "
+                "(scope, name, sort_order, created_at, updated_at) "
+                "VALUES ('finance', '交通', 0, 'now', 'now')"
+            )
+        )
+        db.session.commit()
 
 
 def test_existing_unversioned_database_stops_startup(tmp_path: Path) -> None:

@@ -16,6 +16,7 @@ RUNTIME_DIRECTORY_NAMES = (
     "database",
     "backups",
     "exports",
+    "attachments",
     "cache",
     "logs",
     "temp",
@@ -33,6 +34,7 @@ class RuntimePaths:
     database_dir: Path
     backups_dir: Path
     exports_dir: Path
+    attachments_dir: Path
     cache_dir: Path
     webview_cache_dir: Path
     logs_dir: Path
@@ -52,6 +54,7 @@ class RuntimePaths:
             database_dir=resolved_home / "database",
             backups_dir=resolved_home / "backups",
             exports_dir=resolved_home / "exports",
+            attachments_dir=resolved_home / "attachments",
             cache_dir=resolved_home / "cache",
             webview_cache_dir=resolved_home / "cache" / "webview",
             logs_dir=resolved_home / "logs",
@@ -70,6 +73,7 @@ class RuntimePaths:
             self.database_dir,
             self.backups_dir,
             self.exports_dir,
+            self.attachments_dir,
             self.cache_dir,
             self.webview_cache_dir,
             self.logs_dir,

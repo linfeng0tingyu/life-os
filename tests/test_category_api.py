@@ -18,14 +18,22 @@ def test_categories_are_scoped_sorted_and_case_insensitive_unique(
         "/api/categories",
         json={"scope": "habit", "name": "健康"},
     )
+    finance = client.post(
+        "/api/categories",
+        json={"scope": "finance", "name": "餐饮"},
+    )
 
-    assert later.status_code == earlier.status_code == habit.status_code == 201
+    assert later.status_code == earlier.status_code == habit.status_code == finance.status_code == 201
     task_items = client.get("/api/categories?scope=task").get_json()["data"]
     assert [item["name"] for item in task_items] == ["家庭", "工作"]
     habit_items = client.get(
         "/api/categories?scope=habit"
     ).get_json()["data"]
     assert [item["name"] for item in habit_items] == ["健康"]
+    finance_items = client.get(
+        "/api/categories?scope=finance"
+    ).get_json()["data"]
+    assert [item["name"] for item in finance_items] == ["餐饮"]
 
     duplicate = client.post(
         "/api/categories", json={"scope": "task", "name": "工作"}
@@ -43,7 +51,7 @@ def test_categories_are_scoped_sorted_and_case_insensitive_unique(
 
 def test_categories_validate_scope_and_item_assignment(client: FlaskClient) -> None:
     assert client.get("/api/categories").status_code == 400
-    assert client.get("/api/categories?scope=finance").status_code == 400
+    assert client.get("/api/categories?scope=unknown").status_code == 400
     assert client.post(
         "/api/categories", json={"scope": "task", "name": "  "}
     ).status_code == 400
