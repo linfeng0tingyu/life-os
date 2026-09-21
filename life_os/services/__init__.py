@@ -1,4 +1,5 @@
 from .calendar_service import CalendarService, ResolvedCalendarDay
+from .category_service import CategoryService
 from .common import ConflictError, DomainError, NotFoundError, ValidationError
 from .day_service import DayService
 from .finance_service import FinanceService
@@ -9,6 +10,7 @@ from .task_service import TaskService
 
 __all__ = [
     "CalendarService",
+    "CategoryService",
     "ConflictError",
     "DomainError",
     "DayService",

@@ -62,14 +62,15 @@ export class CalendarFeature {
     return this.loadMonth();
   }
 
-  setSelectedDate(value) {
+  async setSelectedDate(value) {
     const nextMonth = monthKey(value);
     this.selectedDate = value;
-    this.render();
     if (nextMonth !== this.visibleMonth) {
       this.visibleMonth = nextMonth;
-      this.loadMonth();
+      await this.loadMonth();
+      return;
     }
+    this.render();
   }
 
   async loadMonth() {

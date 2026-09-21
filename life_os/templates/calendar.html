@@ -12,10 +12,10 @@
           <h1>日历</h1>
           <p class="date-subtitle" data-calendar-subtitle>选择任意日期：回顾过去、查看今天，或为未来安排计划。</p>
         </div>
-        <button class="button button-secondary" type="button" data-action="go-today">
-          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><path d="M12 8v4l3 2"></path></svg>
-          回到今天
-        </button>
+        <a class="button button-secondary" href="{{ url_for('system.index') }}">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m4 11 8-7 8 7"></path><path d="M6 10v10h12V10M10 20v-6h4v6"></path></svg>
+          回到今日
+        </a>
       </header>
 
       <div class="notice is-hidden" role="alert" data-global-error>
@@ -32,7 +32,13 @@
             <button class="icon-button" type="button" data-action="previous-month" aria-label="上个月">
               <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg>
             </button>
-            <h2 id="calendar-title" data-month-heading>正在加载</h2>
+            <div class="calendar-toolbar-center">
+              <h2 id="calendar-title" data-month-heading>正在加载</h2>
+              <button class="button button-quiet calendar-today-button" type="button" data-action="calendar-today">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3v3M19 3v3M4 8h16M5 5h14a1 1 0 0 1 1 1v14H4V6a1 1 0 0 1 1-1Z"></path><circle cx="12" cy="14" r="2"></circle></svg>
+                回到今天
+              </button>
+            </div>
             <button class="icon-button" type="button" data-action="next-month" aria-label="下个月">
               <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
             </button>
@@ -87,7 +93,18 @@
             <p class="planner-copy">事项会直接安排到所选日期，并出现在下方“当日重要事项”中。</p>
             <form data-planner-form>
               <label class="field"><span>事项名称</span><input type="text" name="title" maxlength="200" required placeholder="例如：准备周末采购清单"></label>
-              <label class="field"><span>分类</span><input type="text" name="category" maxlength="80" placeholder="例如：家庭"></label>
+              <div class="category-control" data-category-control>
+                <label class="field"><span>分类</span><select name="category" data-category-select><option value="">未分类</option></select></label>
+                <div class="category-control-meta">
+                  <span role="status" aria-live="polite" data-category-state>正在读取分类…</span>
+                  <button class="text-button" type="button" data-action="show-category-creator">＋ 新建分类</button>
+                </div>
+                <div class="category-creator is-hidden" data-category-creator>
+                  <input type="text" maxlength="100" data-category-name aria-label="新任务分类名称" placeholder="输入分类名称">
+                  <button class="button button-secondary" type="button" data-action="save-category">创建并选中</button>
+                  <button class="button button-quiet" type="button" data-action="cancel-category-creator">取消</button>
+                </div>
+              </div>
               <label class="field"><span>优先级</span><select name="priority"><option value="normal">普通</option><option value="high">重要</option><option value="low">低</option></select></label>
               <label class="check-field"><input type="checkbox" name="due_on_date" value="true">同时设为当天截止</label>
               <button class="button button-primary" type="submit">

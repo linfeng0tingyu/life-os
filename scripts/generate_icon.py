@@ -6,6 +6,8 @@ from PIL import Image
 
 
 CANVAS_SIZE = 1024
+ICON_CONTENT_SIZE = 1000
+VISIBLE_ALPHA_THRESHOLD = 8
 ICON_SIZES = (16, 24, 32, 48, 64, 128, 256)
 LOGO_SOURCE = (
     "design-assets/logo-concepts/"
@@ -25,11 +27,16 @@ def main() -> int:
 
     with Image.open(source_path) as source:
         logo = source.convert("RGBA")
-    alpha_bounds = logo.getbbox()
+    visible_alpha = logo.getchannel("A").point(
+        lambda value: 255 if value >= VISIBLE_ALPHA_THRESHOLD else 0
+    )
+    alpha_bounds = visible_alpha.getbbox()
     if alpha_bounds is None:
         raise ValueError("Logo source is fully transparent.")
     logo = logo.crop(alpha_bounds)
-    logo.thumbnail((880, 880), Image.Resampling.LANCZOS)
+    logo.thumbnail(
+        (ICON_CONTENT_SIZE, ICON_CONTENT_SIZE), Image.Resampling.LANCZOS
+    )
 
     image = Image.new("RGBA", (CANVAS_SIZE, CANVAS_SIZE), (0, 0, 0, 0))
     offset = ((CANVAS_SIZE - logo.width) // 2, (CANVAS_SIZE - logo.height) // 2)

@@ -4,6 +4,7 @@ from typing import Any
 
 from .models import (
     CalendarDay,
+    Category,
     DailyHealth,
     FinanceAccount,
     FinanceTransaction,
@@ -14,6 +15,17 @@ from .models import (
 )
 from .services.calendar_service import ResolvedCalendarDay
 from .services.finance_service import minor_to_money
+
+
+def category_data(category: Category) -> dict[str, Any]:
+    return {
+        "id": category.id,
+        "scope": category.scope,
+        "name": category.name,
+        "sort_order": category.sort_order,
+        "created_at": category.created_at,
+        "updated_at": category.updated_at,
+    }
 
 
 def calendar_day_data(day: ResolvedCalendarDay | CalendarDay) -> dict[str, Any]:

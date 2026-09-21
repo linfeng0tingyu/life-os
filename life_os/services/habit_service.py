@@ -17,6 +17,7 @@ from .common import (
     required_text,
     transactional,
 )
+from .category_service import CategoryService
 
 
 class HabitService:
@@ -54,7 +55,7 @@ class HabitService:
             name=required_text(name, "name", 200),
             description=optional_text(description, "description", 2000),
             icon=optional_text(icon, "icon", 100),
-            category=optional_text(category, "category", 100),
+            category=CategoryService.normalize_assignment("habit", category),
             sort_order=sort_order,
             active=True,
         )
@@ -84,7 +85,9 @@ class HabitService:
         if icon is not UNSET:
             habit.icon = optional_text(icon, "icon", 100)
         if category is not UNSET:
-            habit.category = optional_text(category, "category", 100)
+            habit.category = CategoryService.normalize_assignment(
+                "habit", category
+            )
         if active is not UNSET:
             if not isinstance(active, bool):
                 raise ValidationError("active 必须是布尔值。")

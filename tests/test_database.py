@@ -18,6 +18,7 @@ from life_os.services import HabitService, JournalService
 
 EXPECTED_TABLES = {
     "calendar_days",
+    "categories",
     "daily_health",
     "finance_accounts",
     "finance_transactions",
@@ -75,7 +76,7 @@ def test_incompatible_schema_version_stops_startup(tmp_path: Path) -> None:
         create_app(runtime_home=runtime_home, testing=True)
 
 
-def test_schema_v1_is_migrated_to_v2_without_losing_data(tmp_path: Path) -> None:
+def test_schema_v1_is_migrated_to_v3_without_losing_data(tmp_path: Path) -> None:
     runtime_home = tmp_path / "runtime"
     first_app = create_app(runtime_home=runtime_home, testing=True)
     with first_app.app_context():
@@ -92,8 +93,44 @@ def test_schema_v1_is_migrated_to_v2_without_losing_data(tmp_path: Path) -> None
     with migrated_app.app_context():
         tables = set(inspect(db.engine).get_table_names())
         assert {"finance_accounts", "finance_transactions"} <= tables
-        assert db.session.get(SchemaMeta, "schema_version").value == "2"
+        assert db.session.get(SchemaMeta, "schema_version").value == "3"
         assert JournalService.get("2026-09-18").content == "keep me"
+
+
+def test_schema_v2_migration_preserves_existing_category_values(
+    tmp_path: Path,
+) -> None:
+    runtime_home = tmp_path / "runtime"
+    first_app = create_app(runtime_home=runtime_home, testing=True)
+    with first_app.app_context():
+        db.session.execute(
+            text(
+                "INSERT INTO tasks "
+                "(title, status, priority, category, sort_order, created_at, updated_at) "
+                "VALUES ('旧任务', 'todo', 'normal', '工作', 0, 'now', 'now')"
+            )
+        )
+        db.session.execute(
+            text(
+                "INSERT INTO habits "
+                "(name, category, active, sort_order, created_at, updated_at) "
+                "VALUES ('旧习惯', '健康', 1, 0, 'now', 'now')"
+            )
+        )
+        db.session.execute(text("DROP TABLE categories"))
+        db.session.execute(
+            text("UPDATE schema_meta SET value = '2' WHERE key = 'schema_version'")
+        )
+        db.session.commit()
+    checkpoint_database(first_app)
+
+    migrated_app = create_app(runtime_home=runtime_home, testing=True)
+    with migrated_app.app_context():
+        rows = db.session.execute(
+            text("SELECT scope, name FROM categories ORDER BY scope, name")
+        ).all()
+        assert rows == [("habit", "健康"), ("task", "工作")]
+        assert db.session.get(SchemaMeta, "schema_version").value == "3"
 
 
 def test_existing_unversioned_database_stops_startup(tmp_path: Path) -> None:

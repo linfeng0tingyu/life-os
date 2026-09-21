@@ -18,6 +18,7 @@ from .common import (
     required_text,
     transactional,
 )
+from .category_service import CategoryService
 
 
 TASK_STATUSES = {"todo", "doing", "done", "cancelled"}
@@ -77,7 +78,7 @@ class TaskService:
             description=optional_text(description, "description", 5000),
             status=normalized_status,
             priority=choice(priority, "priority", TASK_PRIORITIES),
-            category=optional_text(category, "category", 100),
+            category=CategoryService.normalize_assignment("task", category),
             scheduled_date=(
                 parse_life_date(scheduled_date, "scheduled_date")
                 if scheduled_date is not None
@@ -124,7 +125,9 @@ class TaskService:
         if priority is not UNSET:
             task.priority = choice(priority, "priority", TASK_PRIORITIES)
         if category is not UNSET:
-            task.category = optional_text(category, "category", 100)
+            task.category = CategoryService.normalize_assignment(
+                "task", category
+            )
         if scheduled_date is not UNSET:
             task.scheduled_date = (
                 parse_life_date(scheduled_date, "scheduled_date")

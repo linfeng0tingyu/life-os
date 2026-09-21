@@ -1,4 +1,5 @@
 import { api, ApiError } from "../api/client.js";
+import { CategorySelect } from "../components/category-select.js";
 import { DaySummary } from "../components/day-summary.js";
 import { CalendarFeature } from "../features/calendar.js";
 import { longDateLabel, normalizeDate, toLocalDateString } from "../utils/date.js";
@@ -28,16 +29,21 @@ export class CalendarPage {
     this.plannerForm = root.querySelector("[data-planner-form]");
     this.dayRequest = null;
     this.requestSequence = 0;
+    this.calendarTodayButton = root.querySelector('[data-action="calendar-today"]');
     const query = new URLSearchParams(window.location.search);
     this.selectedDate = normalizeDate(query.get("date"));
     this.calendar = new CalendarFeature(root, {
       onSelect: (date) => this.selectDate(date, { updateHistory: true }),
       onCalendarChange: () => this.loadDay({ preserveEditor: true }),
     });
+    this.categoryControl = new CategorySelect(root.querySelector("[data-category-control]"), {
+      scope: "task",
+      onError: (error) => this.showMutationError(error),
+    });
   }
 
   start() {
-    this.root.querySelector('[data-action="go-today"]').addEventListener("click", () => this.selectDate(toLocalDateString(), { updateHistory: true }));
+    this.calendarTodayButton.addEventListener("click", () => this.focusCalendarToday());
     this.root.querySelector('[data-action="retry-day"]').addEventListener("click", () => this.loadDay());
     this.plannerForm.addEventListener("submit", (event) => {
       event.preventDefault();
@@ -48,12 +54,13 @@ export class CalendarPage {
       this.selectDate(normalizeDate(value), { updateHistory: false });
     });
     this.replaceUrlIfInvalid();
+    this.categoryControl.start();
     this.updateDateContext();
     this.calendar.initialize(this.selectedDate);
     this.loadDay();
   }
 
-  selectDate(value, { updateHistory }) {
+  async selectDate(value, { updateHistory }) {
     const normalized = normalizeDate(value, this.selectedDate);
     if (updateHistory && normalized !== this.selectedDate) {
       const url = new URL(window.location.href);
@@ -62,9 +69,22 @@ export class CalendarPage {
     }
     this.selectedDate = normalized;
     this.updateDateContext();
-    this.calendar.setSelectedDate(normalized);
     this.calendar.setEditorLoading();
-    this.loadDay();
+    await Promise.all([
+      this.calendar.setSelectedDate(normalized),
+      this.loadDay(),
+    ]);
+  }
+
+  async focusCalendarToday() {
+    if (this.calendarTodayButton.disabled) return;
+    this.calendarTodayButton.disabled = true;
+    try {
+      await this.selectDate(toLocalDateString(), { updateHistory: true });
+    } finally {
+      this.calendarTodayButton.disabled = false;
+      this.calendarTodayButton.focus();
+    }
   }
 
   async loadDay({ preserveEditor = false } = {}) {

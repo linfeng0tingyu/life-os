@@ -1,4 +1,5 @@
 import { api, ApiError } from "../api/client.js";
+import { CategorySelect } from "../components/category-select.js";
 import { element, emptyMessage, replace } from "../components/dom.js";
 import { normalizeDate, toLocalDateString } from "../utils/date.js";
 
@@ -17,6 +18,7 @@ export class HabitsPage {
   constructor(root) {
     this.root = root;
     this.form = root.querySelector("[data-habit-form]");
+    this.dialog = root.querySelector("[data-habit-dialog]");
     this.formTitle = root.querySelector("[data-habit-form-title]");
     this.formState = root.querySelector("[data-habit-form-state]");
     this.cancelEdit = root.querySelector('[data-action="cancel-habit-edit"]');
@@ -36,14 +38,23 @@ export class HabitsPage {
     this.pending = new Set();
     this.request = null;
     this.formBusy = false;
+    this.categoryControl = new CategorySelect(root.querySelector("[data-category-control]"), {
+      scope: "habit",
+      onError: (error) => this.showError(error),
+    });
   }
 
   start() {
     this.dateInput.value = this.today;
     this.dateInput.max = this.today;
-    this.root.querySelector('[data-action="new-habit"]').addEventListener("click", () => this.resetForm(true));
+    this.root.querySelector('[data-action="new-habit"]').addEventListener("click", () => this.openCreate());
     this.root.querySelector('[data-action="retry-habits"]').addEventListener("click", () => this.load());
-    this.cancelEdit.addEventListener("click", () => this.resetForm(true));
+    this.root.querySelector('[data-action="close-habit-dialog"]').addEventListener("click", () => this.closeEditor());
+    this.cancelEdit.addEventListener("click", () => this.closeEditor());
+    this.dialog.addEventListener("cancel", (event) => {
+      if (this.formBusy) event.preventDefault();
+      else this.resetForm();
+    });
     this.form.addEventListener("submit", (event) => {
       event.preventDefault();
       this.saveHabit();
@@ -56,6 +67,7 @@ export class HabitsPage {
     });
     this.search.addEventListener("input", () => this.renderList());
     this.showInactive.addEventListener("change", () => this.renderList());
+    this.categoryControl.start();
     this.load();
   }
 
@@ -215,23 +227,34 @@ export class HabitsPage {
     fields.habit_id.value = String(habit.id);
     fields.name.value = habit.name;
     fields.description.value = habit.description || "";
-    fields.category.value = habit.category || "";
+    this.categoryControl.setValue(habit.category || "");
     fields.icon.value = habit.icon || "";
     this.formTitle.textContent = "编辑习惯";
     this.formState.textContent = habit.active ? "正在编辑" : "正在编辑停用项";
-    this.cancelEdit.classList.remove("is-hidden");
+    this.dialog.showModal();
     fields.name.focus();
   }
 
-  resetForm(focus = false) {
+  openCreate() {
+    this.resetForm();
+    this.dialog.showModal();
+    this.form.elements.name.focus();
+  }
+
+  closeEditor() {
+    if (this.formBusy) return;
+    this.dialog.close();
+    this.resetForm();
+  }
+
+  resetForm() {
     this.editingId = null;
     this.form.reset();
     this.form.elements.habit_id.value = "";
     this.formTitle.textContent = "新建习惯";
     this.formState.textContent = "可编辑";
     this.formState.dataset.state = "ready";
-    this.cancelEdit.classList.add("is-hidden");
-    if (focus) this.form.elements.name.focus();
+    this.categoryControl.setValue("");
   }
 
   async saveHabit() {
@@ -251,6 +274,7 @@ export class HabitsPage {
     try {
       if (this.editingId == null) await api.post("/api/habits", payload);
       else await api.put(`/api/habits/${this.editingId}`, payload);
+      this.dialog.close();
       this.resetForm();
       this.formState.textContent = "已保存";
       this.formState.dataset.state = "saved";

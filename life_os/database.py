@@ -9,9 +9,10 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from .extensions import db
 from .models import SchemaMeta
+from .models.base import now_iso
 
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 MINIMUM_MIGRATABLE_VERSION = 1
 
 
@@ -78,6 +79,8 @@ def initialize_database(app: Flask) -> None:
                 )
                 db.session.commit()
             elif stored_version_number is not None and stored_version_number < SCHEMA_VERSION:
+                if stored_version_number < 3:
+                    _migrate_categories()
                 version_record = db.session.get(SchemaMeta, "schema_version")
                 if version_record is None:
                     raise DatabaseVersionError(
@@ -100,6 +103,21 @@ def initialize_database(app: Flask) -> None:
         except SQLAlchemyError as exc:
             db.session.rollback()
             raise DatabaseInitializationError("SQLite 初始化失败。") from exc
+
+
+def _migrate_categories() -> None:
+    timestamp = now_iso()
+    for scope, table in (("task", "tasks"), ("habit", "habits")):
+        db.session.execute(
+            text(
+                "INSERT OR IGNORE INTO categories "
+                "(scope, name, sort_order, created_at, updated_at) "
+                f"SELECT :scope, category, 0, :timestamp, :timestamp FROM {table} "
+                "WHERE category IS NOT NULL AND trim(category) != '' "
+                "GROUP BY category"
+            ),
+            {"scope": scope, "timestamp": timestamp},
+        )
 
 
 def checkpoint_database(app: Flask) -> None:

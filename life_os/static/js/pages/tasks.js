@@ -1,4 +1,5 @@
 import { api, ApiError } from "../api/client.js";
+import { CategorySelect } from "../components/category-select.js";
 import { element, emptyMessage, replace } from "../components/dom.js";
 
 const STATUS_LABELS = { todo: "待办", doing: "进行中", done: "已完成", cancelled: "已取消" };
@@ -17,6 +18,7 @@ export class TasksPage {
   constructor(root) {
     this.root = root;
     this.form = root.querySelector("[data-task-form]");
+    this.dialog = root.querySelector("[data-task-dialog]");
     this.formTitle = root.querySelector("[data-task-form-title]");
     this.formState = root.querySelector("[data-task-form-state]");
     this.cancelEdit = root.querySelector('[data-action="cancel-task-edit"]');
@@ -34,12 +36,21 @@ export class TasksPage {
     this.pending = new Set();
     this.request = null;
     this.formBusy = false;
+    this.categoryControl = new CategorySelect(root.querySelector("[data-category-control]"), {
+      scope: "task",
+      onError: (error) => this.showError(error),
+    });
   }
 
   start() {
-    this.root.querySelector('[data-action="new-task"]').addEventListener("click", () => this.resetForm(true));
+    this.root.querySelector('[data-action="new-task"]').addEventListener("click", () => this.openCreate());
     this.root.querySelector('[data-action="retry-tasks"]').addEventListener("click", () => this.loadTasks());
-    this.cancelEdit.addEventListener("click", () => this.resetForm(true));
+    this.root.querySelector('[data-action="close-task-dialog"]').addEventListener("click", () => this.closeEditor());
+    this.cancelEdit.addEventListener("click", () => this.closeEditor());
+    this.dialog.addEventListener("cancel", (event) => {
+      if (this.formBusy) event.preventDefault();
+      else this.resetForm();
+    });
     this.form.addEventListener("submit", (event) => {
       event.preventDefault();
       this.saveTask();
@@ -47,6 +58,7 @@ export class TasksPage {
     for (const control of [this.search, this.statusFilter, this.dateFilter, this.showArchived]) {
       control.addEventListener(control === this.search ? "input" : "change", () => this.render());
     }
+    this.categoryControl.start();
     this.loadTasks();
   }
 
@@ -176,17 +188,29 @@ export class TasksPage {
     fields.description.value = task.description || "";
     fields.status.value = task.status;
     fields.priority.value = task.priority;
-    fields.category.value = task.category || "";
+    this.categoryControl.setValue(task.category || "");
     fields.scheduled_date.value = task.scheduled_date || "";
     fields.due_date.value = task.due_date || "";
     fields.parent_id.value = task.parent_id == null ? "" : String(task.parent_id);
     this.formTitle.textContent = "编辑任务";
     this.formState.textContent = "正在编辑";
-    this.cancelEdit.classList.remove("is-hidden");
+    this.dialog.showModal();
     fields.title.focus();
   }
 
-  resetForm(focus = false) {
+  openCreate() {
+    this.resetForm();
+    this.dialog.showModal();
+    this.form.elements.title.focus();
+  }
+
+  closeEditor() {
+    if (this.formBusy) return;
+    this.dialog.close();
+    this.resetForm();
+  }
+
+  resetForm() {
     this.editingId = null;
     this.form.reset();
     this.form.elements.task_id.value = "";
@@ -196,8 +220,7 @@ export class TasksPage {
     this.formTitle.textContent = "新建任务";
     this.formState.textContent = "可编辑";
     this.formState.dataset.state = "ready";
-    this.cancelEdit.classList.add("is-hidden");
-    if (focus) this.form.elements.title.focus();
+    this.categoryControl.setValue("");
   }
 
   updateParentOptions(excludedId = null) {
@@ -231,6 +254,7 @@ export class TasksPage {
     try {
       if (this.editingId == null) await api.post("/api/tasks", payload);
       else await api.put(`/api/tasks/${this.editingId}`, payload);
+      this.dialog.close();
       this.resetForm();
       this.formState.textContent = "已保存";
       this.formState.dataset.state = "saved";

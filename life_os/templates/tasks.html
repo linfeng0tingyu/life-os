@@ -12,7 +12,7 @@
           <h1>任务</h1>
           <p class="date-subtitle">集中管理无日期、计划、到期和逾期事项，并完成状态流转与归档。</p>
         </div>
-        <button class="button button-primary" type="button" data-action="new-task">
+        <button class="button button-primary" type="button" data-action="new-task" aria-haspopup="dialog">
           <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
           新建任务
         </button>
@@ -23,11 +23,16 @@
         <button class="button button-secondary" type="button" data-action="retry-tasks">重试读取</button>
       </div>
 
-      <section class="management-layout" aria-label="任务管理工作区">
-        <aside class="module management-editor" aria-labelledby="task-form-title">
+      <dialog class="editor-dialog" data-task-dialog aria-labelledby="task-form-title">
+        <section class="module management-editor dialog-panel">
           <div class="module-heading compact">
             <div><p class="section-kicker">任务资料</p><h2 id="task-form-title" data-task-form-title>新建任务</h2></div>
-            <span class="save-state" role="status" aria-live="polite" data-task-form-state>可编辑</span>
+            <div class="dialog-heading-actions">
+              <span class="save-state" role="status" aria-live="polite" data-task-form-state>可编辑</span>
+              <button class="icon-button" type="button" data-action="close-task-dialog" aria-label="关闭任务窗口">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"></path></svg>
+              </button>
+            </div>
           </div>
           <form data-task-form>
             <input type="hidden" name="task_id">
@@ -37,7 +42,18 @@
               <label class="field"><span>状态</span><select name="status"><option value="todo">待办</option><option value="doing">进行中</option><option value="done">已完成</option><option value="cancelled">已取消</option></select></label>
               <label class="field"><span>优先级</span><select name="priority"><option value="normal">普通</option><option value="high">重要</option><option value="urgent">紧急</option><option value="low">低</option></select></label>
             </div>
-            <label class="field"><span>分类</span><input type="text" name="category" maxlength="100" placeholder="例如：家庭、学习、工作"></label>
+            <div class="category-control" data-category-control>
+              <label class="field"><span>分类</span><select name="category" data-category-select><option value="">未分类</option></select></label>
+              <div class="category-control-meta">
+                <span role="status" aria-live="polite" data-category-state>正在读取分类…</span>
+                <button class="text-button" type="button" data-action="show-category-creator">＋ 新建分类</button>
+              </div>
+              <div class="category-creator is-hidden" data-category-creator>
+                <input type="text" maxlength="100" data-category-name aria-label="新任务分类名称" placeholder="输入分类名称">
+                <button class="button button-secondary" type="button" data-action="save-category">创建并选中</button>
+                <button class="button button-quiet" type="button" data-action="cancel-category-creator">取消</button>
+              </div>
+            </div>
             <div class="field-grid">
               <label class="field"><span>计划日期</span><input type="date" name="scheduled_date"></label>
               <label class="field"><span>截止日期</span><input type="date" name="due_date"></label>
@@ -48,12 +64,13 @@
                 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h12l2 2v14H5z"></path><path d="M8 4v6h8V4M8 20v-6h8v6"></path></svg>
                 保存任务
               </button>
-              <button class="button button-quiet is-hidden" type="button" data-action="cancel-task-edit">取消编辑</button>
+              <button class="button button-quiet" type="button" data-action="cancel-task-edit">取消</button>
             </div>
           </form>
-        </aside>
+        </section>
+      </dialog>
 
-        <section class="module management-list" aria-labelledby="task-list-title">
+      <section class="module management-list" aria-labelledby="task-list-title">
           <div class="module-heading">
             <div><p class="section-kicker">执行清单</p><h2 id="task-list-title">全部任务</h2></div>
             <span class="state-label" role="status" aria-live="polite" data-task-list-state>加载中</span>
@@ -65,7 +82,6 @@
             <label class="check-field filter-check"><input type="checkbox" data-task-show-archived>显示已归档</label>
           </div>
           <div data-task-list aria-busy="true"><p class="empty-state">正在读取任务…</p></div>
-        </section>
       </section>
     </main>
   </div>

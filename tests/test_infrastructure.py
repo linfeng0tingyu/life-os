@@ -108,6 +108,10 @@ def test_m5_task_and_habit_pages_expose_complete_management_controls(
     assert tasks.status_code == habits.status_code == 200
     assert 'data-page="tasks"' in task_html
     assert 'data-task-form' in task_html
+    assert '<dialog class="editor-dialog" data-task-dialog' in task_html
+    assert 'data-action="new-task" aria-haspopup="dialog"' in task_html
+    assert 'name="category" data-category-select' in task_html
+    assert 'data-action="show-category-creator"' in task_html
     assert 'data-task-list' in task_html
     assert 'name="scheduled_date"' in task_html
     assert 'name="due_date"' in task_html
@@ -115,6 +119,9 @@ def test_m5_task_and_habit_pages_expose_complete_management_controls(
     assert 'href="/tasks" aria-current="page"' in task_html
     assert 'data-page="habits"' in habit_html
     assert 'data-habit-form' in habit_html
+    assert '<dialog class="editor-dialog" data-habit-dialog' in habit_html
+    assert 'data-action="new-habit" aria-haspopup="dialog"' in habit_html
+    assert 'name="category" data-category-select' in habit_html
     assert 'data-habit-check-list' in habit_html
     assert 'data-habit-list' in habit_html
     assert 'data-habit-date' in habit_html
@@ -134,6 +141,9 @@ def test_m5_frontend_guards_repeated_actions_and_uses_existing_apis(
     summary_script = client.get(
         "/static/js/components/day-summary.js"
     ).get_data(as_text=True)
+    category_script = client.get(
+        "/static/js/components/category-select.js"
+    ).get_data(as_text=True)
 
     assert "this.pending = new Set()" in tasks_script
     assert "this.pending = new Set()" in habits_script
@@ -142,6 +152,29 @@ def test_m5_frontend_guards_repeated_actions_and_uses_existing_apis(
     assert "value: log.value" in habits_script
     assert "onTaskStatusChange" in summary_script
     assert "onHabitStatusChange" in summary_script
+    assert 'api.post("/api/categories"' in category_script
+    assert "this.dialog.showModal()" in tasks_script
+    assert "this.dialog.showModal()" in habits_script
+
+
+def test_calendar_go_today_awaits_month_and_day_refresh(tmp_path: Path) -> None:
+    app = create_app(runtime_home=tmp_path / "runtime", testing=True)
+    client = app.test_client()
+    html = client.get("/calendar").get_data(as_text=True)
+    page_script = client.get("/static/js/pages/calendar.js").get_data(as_text=True)
+    feature_script = client.get(
+        "/static/js/features/calendar.js"
+    ).get_data(as_text=True)
+
+    assert '<a class="button button-secondary" href="/">' in html
+    assert "回到今日" in html
+    assert 'data-action="calendar-today"' in html
+    assert "回到今天" in html
+    assert 'data-action="go-today"' not in html
+    assert "async focusCalendarToday()" in page_script
+    assert "await this.selectDate(toLocalDateString()" in page_script
+    assert "async setSelectedDate(value)" in feature_script
+    assert "await this.loadMonth()" in feature_script
 
 
 def test_theme_switcher_lists_all_visual_variants_without_business_calls(
@@ -189,6 +222,11 @@ def test_future_date_plan_is_visible_in_day_aggregation(tmp_path: Path) -> None:
     app = create_app(runtime_home=tmp_path / "runtime", testing=True)
     client = app.test_client()
 
+    category = client.post(
+        "/api/categories", json={"scope": "task", "name": "规划"}
+    )
+    assert category.status_code == 201
+
     created = client.post(
         "/api/tasks",
         json={
@@ -228,6 +266,7 @@ def test_future_date_plan_is_visible_in_day_aggregation(tmp_path: Path) -> None:
         "js/theme.js",
         "js/api/client.js",
         "js/components/dom.js",
+        "js/components/category-select.js",
         "js/components/day-summary.js",
         "js/features/calendar.js",
         "js/pages/calendar.js",
