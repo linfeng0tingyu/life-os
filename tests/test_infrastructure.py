@@ -240,6 +240,29 @@ def test_calendar_go_today_awaits_month_and_day_refresh(tmp_path: Path) -> None:
     assert "await this.loadMonth()" in feature_script
 
 
+def test_calendar_renders_lunar_dates_and_official_day_badges(
+    tmp_path: Path,
+) -> None:
+    app = create_app(runtime_home=tmp_path / "runtime", testing=True)
+    client = app.test_client()
+    html = client.get("/calendar").get_data(as_text=True)
+    feature_script = client.get(
+        "/static/js/features/calendar.js"
+    ).get_data(as_text=True)
+    lunar_script = client.get("/static/js/utils/lunar.js").get_data(as_text=True)
+    styles = client.get("/static/css/pages/calendar.css").get_data(as_text=True)
+
+    assert "法定放假" in html
+    assert "调休上班" in html
+    assert 'import { lunarLabel } from "../utils/lunar.js"' in feature_script
+    assert 'classes.push("is-official")' in feature_script
+    assert 'classes.push("is-adjusted-workday")' in feature_script
+    assert 'Intl.DateTimeFormat("zh-CN-u-ca-chinese"' in lunar_script
+    assert ".calendar-cell .day-number" in styles
+    assert "font-size: 1.28rem;" in styles
+    assert ".calendar-cell .lunar-label" in styles
+
+
 def test_theme_switcher_lists_all_visual_variants_without_business_calls(
     tmp_path: Path,
 ) -> None:
@@ -270,6 +293,37 @@ def test_theme_switcher_lists_all_visual_variants_without_business_calls(
     assert "fetch(" not in theme_script
     assert "/api/" not in theme_script
     assert "只改变外观，不改变数据" in html
+
+
+def test_heritage_palettes_and_finance_semantic_colors_are_explicit(
+    tmp_path: Path,
+) -> None:
+    app = create_app(runtime_home=tmp_path / "runtime", testing=True)
+    client = app.test_client()
+    themes = client.get("/static/css/themes.css").get_data(as_text=True)
+    tokens = client.get("/static/css/tokens.css").get_data(as_text=True)
+    layout = client.get("/static/css/layout.css").get_data(as_text=True)
+    records = client.get("/static/css/pages/records.css").get_data(as_text=True)
+    finance_script = client.get("/static/js/pages/finance.js").get_data(as_text=True)
+
+    assert "--primary: #789262;" in themes
+    assert "--primary: #2e4e7e;" in themes
+    assert "--primary: #88ada6;" in themes
+    assert "html[data-theme=\"indigo\"] .sidebar" in themes
+    assert "--finance-asset:" in tokens
+    assert "--finance-liability:" in tokens
+    assert "--finance-income:" in tokens
+    assert "--finance-expense:" in tokens
+    assert "--finance-transfer:" in tokens
+    assert "--finance-flow-surface:" in tokens
+    assert "--finance-account-surface:" in tokens
+    assert ".finance-totals .finance-asset" in records
+    assert ".finance-transaction.transaction-expense" in records
+    assert "linear-gradient" not in records
+    assert "finance-account-${account.kind}" in finance_script
+    assert "transaction-${item.type}" in finance_script
+    assert "font-size: 1.02rem;" in layout
+    assert "font-weight: 800;" in layout
 
 
 def test_selected_logo_is_served_as_local_png(tmp_path: Path) -> None:
@@ -342,6 +396,7 @@ def test_future_date_plan_is_visible_in_day_aggregation(tmp_path: Path) -> None:
         "js/pages/tasks.js",
         "js/pages/today.js",
         "js/utils/date.js",
+        "js/utils/lunar.js",
     ],
 )
 def test_m4_local_frontend_assets_are_served(tmp_path: Path, asset: str) -> None:

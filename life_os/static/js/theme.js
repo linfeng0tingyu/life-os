@@ -23,9 +23,9 @@
   };
   const THEME_COLORS = {
     default: "#f5f3ed",
-    bamboo: "#eef1e5",
-    indigo: "#e9edf2",
-    water: "#eaf4f2",
+    bamboo: "#f1f0e3",
+    indigo: "#243e63",
+    water: "#edf6f4",
     neumorphism: "#e7ecf0",
     "macos-glass": "#dce8f2",
     ghibli: "#f5ecd7",

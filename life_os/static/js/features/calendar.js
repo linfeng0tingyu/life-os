@@ -1,6 +1,7 @@
 import { api, ApiError } from "../api/client.js";
 import { element, replace } from "../components/dom.js";
 import { mondayOffset, monthKey, monthLabel, shiftMonth, toLocalDateString } from "../utils/date.js";
+import { lunarLabel } from "../utils/lunar.js";
 
 function errorText(error) {
   const suffix = error.requestId ? `（请求编号：${error.requestId}）` : "";
@@ -114,11 +115,15 @@ export class CalendarFeature {
       if (day.date === today) classes.push("is-today");
       if (day.date === this.selectedDate) classes.push("is-selected");
       if (day.has_data) classes.push("has-data");
+      if (day.source === "official") classes.push("is-official");
+      if (day.source === "official" && day.day_type === "workday") classes.push("is-adjusted-workday");
       const habit = day.habit_summary;
-      const accessible = [day.date, day.day_type === "rest_day" ? "休息日" : "工作日", label]
+      const lunar = lunarLabel(day.date);
+      const accessible = [day.date, lunar ? `农历${lunar}` : "", day.day_type === "rest_day" ? "休息日" : "工作日", label, day.source === "official" ? "法定节假日预置" : ""]
         .filter(Boolean)
         .join("，");
       const children = [element("span", { className: "day-number", text: number })];
+      if (lunar) children.push(element("span", { className: "lunar-label", text: lunar }));
       if (label) children.push(element("span", { className: "calendar-label", text: label }));
       if (habit.total) children.push(element("span", { className: "habit-mini", text: `${habit.completed}/${habit.total}` }));
       cells.push(element("button", {
@@ -152,7 +157,7 @@ export class CalendarFeature {
     this.form.setAttribute("aria-busy", "false");
     this.setDisabled(false);
     this.clearButton.classList.toggle("is-hidden", !day.explicit);
-    this.setSaveState("ready", day.explicit ? "已应用自定义标记" : "使用星期默认值");
+    this.setSaveState("ready", day.explicit ? "已应用自定义标记" : day.source === "official" ? "使用法定节假日预置" : "使用星期默认值");
   }
 
   setEditorError() {
@@ -191,7 +196,7 @@ export class CalendarFeature {
     try {
       const result = await api.delete(`/api/calendar/days/${this.selectedDate}`);
       this.setSelectedDay(result.calendar_day);
-      this.setSaveState("saved", "已恢复星期默认值");
+      this.setSaveState("saved", result.calendar_day.source === "official" ? "已恢复法定节假日预置" : "已恢复星期默认值");
       await this.loadMonth();
       await this.onCalendarChange(result.calendar_day);
     } catch (error) {

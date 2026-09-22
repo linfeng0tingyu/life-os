@@ -148,6 +148,7 @@
 
 .finance-summary {
   margin-bottom: var(--space-5);
+  border-color: color-mix(in srgb, var(--finance-neutral) 32%, var(--border));
   background: var(--module-finance);
 }
 
@@ -158,7 +159,43 @@
 }
 
 .finance-totals .metric:nth-child(n + 4) {
-  border-left-color: var(--gold);
+  border-left-color: transparent;
+}
+
+.finance-totals .metric {
+  border: 1px solid color-mix(in srgb, var(--finance-neutral) 16%, var(--border));
+  border-top: 3px solid var(--finance-neutral);
+  border-radius: calc(var(--radius-control) * 0.75);
+  background: color-mix(in srgb, var(--surface) 78%, transparent);
+}
+
+.finance-totals .metric strong {
+  color: var(--finance-neutral);
+}
+
+.finance-totals .finance-asset { border-top-color: var(--finance-asset); }
+.finance-totals .finance-asset strong { color: var(--finance-asset); }
+.finance-totals .finance-liability { border-top-color: var(--finance-liability); }
+.finance-totals .finance-liability strong { color: var(--finance-liability); }
+.finance-totals .finance-net { border-top-color: var(--primary); }
+.finance-totals .finance-net strong { color: var(--primary-hover); }
+.finance-totals .finance-income { border-top-color: var(--finance-income); }
+.finance-totals .finance-income strong { color: var(--finance-income); }
+.finance-totals .finance-expense { border-top-color: var(--finance-expense); }
+.finance-totals .finance-expense strong { color: var(--finance-expense); }
+.finance-totals .finance-cashflow { border-top-color: var(--finance-transfer); }
+.finance-totals .finance-cashflow strong { color: var(--finance-transfer); }
+
+.finance-columns > .module {
+  border-color: color-mix(in srgb, var(--finance-neutral) 24%, var(--border));
+}
+
+.finance-columns > .module-finance {
+  background: var(--finance-flow-surface);
+}
+
+.finance-columns > .finance-accounts {
+  background: var(--finance-account-surface);
 }
 
 .period-filter {
@@ -195,6 +232,14 @@
   background: rgb(255 255 255 / 30%);
 }
 
+.balance-items li.finance-account-asset {
+  border-left: 3px solid var(--finance-asset);
+}
+
+.balance-items li.finance-account-liability {
+  border-left: 3px solid var(--finance-liability);
+}
+
 .balance-items .muted {
   grid-column: 1;
   font-size: 0.72rem;
@@ -206,6 +251,9 @@
   align-self: center;
   font-variant-numeric: tabular-nums;
 }
+
+.balance-items .finance-account-asset strong { color: var(--finance-asset); }
+.balance-items .finance-account-liability strong { color: var(--finance-liability); }
 
 .finance-filter {
   margin-bottom: var(--space-4);
@@ -219,13 +267,36 @@
   padding: var(--space-3);
 }
 
+.finance-account,
+.finance-transaction {
+  border-left: 3px solid var(--finance-neutral);
+  background: color-mix(in srgb, var(--surface) 76%, transparent);
+}
+
+.finance-account.finance-account-asset { border-left-color: var(--finance-asset); }
+.finance-account.finance-account-liability { border-left-color: var(--finance-liability); }
+.finance-transaction.transaction-income { border-left-color: var(--finance-income); }
+.finance-transaction.transaction-expense { border-left-color: var(--finance-expense); }
+.finance-transaction.transaction-transfer { border-left-color: var(--finance-transfer); }
+
+.finance-type {
+  padding: 0.02rem 0.42rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, currentColor 10%, transparent);
+  font-weight: 700;
+}
+
+.finance-type-income { color: var(--finance-income); }
+.finance-type-expense { color: var(--finance-expense); }
+.finance-type-transfer { color: var(--finance-transfer); }
+
 .finance-value {
   font-weight: 800;
   font-variant-numeric: tabular-nums;
 }
 
-.money-positive { color: var(--jade); }
-.money-negative { color: var(--vermillion); }
+.money-positive { color: var(--finance-income); }
+.money-negative { color: var(--finance-expense); }
 
 @media (max-width: 72rem) {
   .records-grid,

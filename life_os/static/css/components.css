@@ -55,11 +55,12 @@
 
 .button-primary {
   background: var(--primary);
-  color: white;
+  color: var(--on-primary);
 }
 
 .button-primary:hover:not(:disabled) {
   background: var(--primary-hover);
+  color: #ffffff;
 }
 
 .button-secondary,

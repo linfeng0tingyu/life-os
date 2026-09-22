@@ -11,6 +11,7 @@
   --primary: #3f625f;
   --primary-hover: #345552;
   --primary-light: #dce8e4;
+  --on-primary: #ffffff;
   --cyan: #729b99;
   --jade: #5e8076;
   --vermillion: #b95549;
@@ -23,6 +24,14 @@
   --module-habits: #edf4ee;
   --module-notes: #f3eff3;
   --module-finance: #f7f1e8;
+  --finance-asset: #356574;
+  --finance-liability: #955951;
+  --finance-income: #47745d;
+  --finance-expense: #b95549;
+  --finance-transfer: #716482;
+  --finance-neutral: #987a48;
+  --finance-flow-surface: #eaf2ed;
+  --finance-account-surface: #e8eff2;
   --font-ui: "Times New Roman", "PingFang SC", "Microsoft YaHei", sans-serif;
   --font-title: "Times New Roman", "Songti SC", "STSong", serif;
   --space-1: 0.25rem;

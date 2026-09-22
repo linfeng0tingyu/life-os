@@ -18,6 +18,20 @@ def test_month_returns_every_day_with_weekday_inference(client: FlaskClient) -> 
     ] == "rest_day"
 
 
+def test_month_returns_preloaded_official_holidays(client: FlaskClient) -> None:
+    days = client.get("/api/calendar/month/2026-09").get_json()["data"]["days"]
+    adjusted = next(day for day in days if day["date"] == "2026-09-20")
+    mid_autumn = next(day for day in days if day["date"] == "2026-09-25")
+
+    assert adjusted["source"] == "official"
+    assert adjusted["day_type"] == "workday"
+    assert adjusted["custom_label"] == "调休上班"
+    assert adjusted["explicit"] is False
+    assert mid_autumn["source"] == "official"
+    assert mid_autumn["day_type"] == "rest_day"
+    assert mid_autumn["holiday_name"] == "中秋节"
+
+
 def test_calendar_override_update_and_clear(client: FlaskClient) -> None:
     created = client.put(
         "/api/calendar/days/2026-09-05",

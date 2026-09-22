@@ -116,7 +116,7 @@ export class FinancePage {
         button("编辑", () => this.openAccount(account)),
         button(account.active ? "停用" : "启用", () => this.toggleAccount(account), account.active ? "button button-quiet" : "button button-secondary"),
       ]);
-      return element("li", { className: `management-item${account.active ? "" : " is-inactive"}` }, [
+      return element("li", { className: `management-item finance-account finance-account-${account.kind}${account.active ? "" : " is-inactive"}` }, [
         element("div", {}, [
           element("h3", { text: account.name }),
           element("div", { className: "item-details" }, [
@@ -163,12 +163,12 @@ export class FinancePage {
           ? `来自 ${accountNames.get(item.from_account_id) || "账户"}`
           : `${accountNames.get(item.from_account_id) || "账户"} → ${accountNames.get(item.to_account_id) || "账户"}`;
       const amountClass = item.type === "income" ? "money-positive" : item.type === "expense" ? "money-negative" : "";
-      return element("li", { className: "management-item" }, [
+      return element("li", { className: `management-item finance-transaction transaction-${item.type}` }, [
         element("div", {}, [
           element("h3", { text: item.description || item.category || TYPE_LABELS[item.type] }),
           element("div", { className: "item-details" }, [
             element("span", { className: `finance-value ${amountClass}`, text: `${item.type === "income" ? "+" : item.type === "expense" ? "−" : ""}${money(item.amount)}` }),
-            element("span", { text: TYPE_LABELS[item.type] }),
+            element("span", { className: `finance-type finance-type-${item.type}`, text: TYPE_LABELS[item.type] }),
             element("span", { text: route }),
             item.category ? element("span", { text: item.category }) : null,
           ].filter(Boolean)),
@@ -198,13 +198,13 @@ export class FinancePage {
     try {
       const summary = await api.get(`/api/finance/summary?${params}`);
       const totals = [
-        [summary.total_assets, "总资产"], [summary.total_liabilities, "总负债"], [summary.net_worth, "净资产"],
-        [summary.income, "期间收入"], [summary.expense, "期间支出"], [summary.net_cashflow, "期间净现金流"],
+        [summary.total_assets, "总资产", "finance-asset"], [summary.total_liabilities, "总负债", "finance-liability"], [summary.net_worth, "净资产", "finance-net"],
+        [summary.income, "期间收入", "finance-income"], [summary.expense, "期间支出", "finance-expense"], [summary.net_cashflow, "期间净现金流", "finance-cashflow"],
       ];
-      replace(this.totals, ...totals.map(([value, label]) => element("div", { className: "metric" }, [element("strong", { text: money(value) }), element("span", { text: label })])));
+      replace(this.totals, ...totals.map(([value, label, tone]) => element("div", { className: `metric ${tone}` }, [element("strong", { text: money(value) }), element("span", { text: label })])));
       const activeBalances = summary.accounts.filter((account) => account.active || Number(account.balance) !== 0);
       replace(this.balanceList, activeBalances.length
-        ? element("ul", { className: "balance-items" }, activeBalances.map((account) => element("li", {}, [
+        ? element("ul", { className: "balance-items" }, activeBalances.map((account) => element("li", { className: `finance-account-${account.kind}` }, [
           element("span", { text: account.name }),
           element("span", { className: "muted", text: `${KIND_LABELS[account.kind]} · ${account.active ? "使用中" : "已停用"}` }),
           element("strong", { text: money(account.balance) }),

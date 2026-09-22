@@ -89,10 +89,10 @@
   position: relative;
   display: grid;
   min-width: 0;
-  min-height: 5.4rem;
+  min-height: 6.25rem;
   align-content: start;
   justify-items: center;
-  gap: 0.2rem;
+  gap: 0.12rem;
   padding: 0.62rem 0.25rem;
   border: 1px solid transparent;
   border-radius: var(--radius-control);
@@ -102,12 +102,53 @@
   transition: color var(--transition-fast), background var(--transition-fast), border-color var(--transition-fast);
 }
 
+.calendar-cell .day-number {
+  font-size: 1.28rem;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.calendar-cell .lunar-label {
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .calendar-cell:hover {
   border-color: var(--border-strong);
   background: rgb(255 255 255 / 52%);
 }
 
 .calendar-cell.is-rest { color: var(--vermillion); }
+
+.calendar-cell.is-official {
+  border-color: color-mix(in srgb, var(--gold) 40%, transparent);
+}
+
+.calendar-cell.is-official::before {
+  position: absolute;
+  top: 0.28rem;
+  left: 0.3rem;
+  min-width: 1rem;
+  padding: 0 0.18rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--vermillion) 12%, transparent);
+  color: var(--vermillion);
+  content: "休";
+  font-size: 0.58rem;
+  font-weight: 800;
+  line-height: 1rem;
+}
+
+.calendar-cell.is-adjusted-workday::before {
+  background: color-mix(in srgb, var(--primary) 13%, transparent);
+  color: var(--primary-hover);
+  content: "班";
+}
 
 .calendar-cell.is-today::after {
   position: absolute;
@@ -130,6 +171,7 @@
   overflow: hidden;
   color: var(--text-secondary);
   font-size: 0.66rem;
+  font-weight: 700;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -151,7 +193,7 @@
   content: "";
 }
 
-.calendar-blank { min-height: 5.4rem; }
+.calendar-blank { min-height: 6.25rem; }
 
 .calendar-legend {
   display: flex;
@@ -166,6 +208,18 @@
 .legend-dot { width: 0.45rem; height: 0.45rem; border-radius: 50%; background: var(--jade); }
 .legend-dot.rest-day { background: var(--vermillion); }
 .legend-dot.selected { background: var(--primary); }
+.legend-badge {
+  display: inline-grid;
+  min-width: 1rem;
+  height: 1rem;
+  place-items: center;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--vermillion) 12%, transparent);
+  color: var(--vermillion);
+  font-size: 0.58rem;
+  font-style: normal;
+  font-weight: 800;
+}
 
 .day-marker-module form[aria-busy="true"] { opacity: 0.7; }
 
@@ -198,13 +252,15 @@
 @media (max-width: 48rem) {
   .calendar-side { grid-template-columns: 1fr; }
   .calendar-cell,
-  .calendar-blank { min-height: 4.3rem; }
+  .calendar-blank { min-height: 5.2rem; }
   .calendar-detail-heading { align-items: start; flex-direction: column; }
   .calendar-detail-heading p:last-child { text-align: left; }
 }
 
 @media (max-width: 30rem) {
   .calendar-cell,
-  .calendar-blank { min-height: 3.35rem; }
+  .calendar-blank { min-height: 4.25rem; }
+  .calendar-cell .day-number { font-size: 1.08rem; }
+  .calendar-cell .lunar-label { font-size: 0.6rem; }
   .calendar-cell .calendar-label { display: none; }
 }

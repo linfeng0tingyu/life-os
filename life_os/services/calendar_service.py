@@ -18,6 +18,7 @@ from .common import (
     parse_life_date,
     transactional,
 )
+from .statutory_holidays import get_statutory_holiday
 
 
 DAY_TYPES = {"workday", "rest_day"}
@@ -130,6 +131,17 @@ class CalendarService:
                 note=explicit.note,
                 source=explicit.source,
                 explicit=True,
+            )
+        official = get_statutory_holiday(target)
+        if official is not None:
+            return ResolvedCalendarDay(
+                date=target,
+                day_type=official.day_type,
+                holiday_name=official.holiday_name,
+                custom_label=official.custom_label,
+                note=official.notice,
+                source="official",
+                explicit=False,
             )
         inferred_type = "workday" if target.weekday() < 5 else "rest_day"
         return ResolvedCalendarDay(

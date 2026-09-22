@@ -15,6 +15,40 @@ def test_calendar_infers_weekdays_and_weekends(app_context: None) -> None:
     assert saturday.explicit is False
 
 
+def test_official_holiday_schedule_precedes_weekday_inference(
+    app_context: None,
+) -> None:
+    spring_festival = CalendarService.resolve("2026-02-17")
+    adjusted_workday = CalendarService.resolve("2026-02-14")
+
+    assert spring_festival.day_type == "rest_day"
+    assert spring_festival.holiday_name == "春节"
+    assert spring_festival.source == "official"
+    assert spring_festival.explicit is False
+    assert adjusted_workday.day_type == "workday"
+    assert adjusted_workday.custom_label == "调休上班"
+    assert adjusted_workday.source == "official"
+
+
+def test_manual_marker_overrides_and_can_reveal_official_schedule(
+    app_context: None,
+) -> None:
+    CalendarService.set_day(
+        "2026-10-01",
+        day_type="workday",
+        custom_label="临时值班",
+    )
+    manual = CalendarService.resolve("2026-10-01")
+    assert manual.source == "manual"
+    assert manual.day_type == "workday"
+
+    CalendarService.clear_day("2026-10-01")
+    restored = CalendarService.resolve("2026-10-01")
+    assert restored.source == "official"
+    assert restored.day_type == "rest_day"
+    assert restored.holiday_name == "国庆节"
+
+
 def test_explicit_rest_day_holiday_and_custom_label(app_context: None) -> None:
     record = CalendarService.set_day(
         "2026-10-01",
