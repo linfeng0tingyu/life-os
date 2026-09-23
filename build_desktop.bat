@@ -37,6 +37,8 @@ copy /Y "部署与迁移指南.md" "dist\LifeOS\部署与迁移指南.md" >nul
 if errorlevel 1 goto failed
 copy /Y "CHANGELOG.md" "dist\LifeOS\CHANGELOG.md" >nul
 if errorlevel 1 goto failed
+copy /Y "LICENSE" "dist\LifeOS\LICENSE" >nul
+if errorlevel 1 goto failed
 
 echo.
 echo Life OS desktop package is ready: dist\LifeOS\LifeOS.exe

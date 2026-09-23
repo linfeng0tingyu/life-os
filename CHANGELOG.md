@@ -2,7 +2,7 @@
 title: "Life OS Changelog"
 type: changelog
 created: 2026-09-23T09:15:00+08:00
-updated: 2026-09-23T09:15:00+08:00
+updated: 2026-09-23T10:43:00+08:00
 status: completed
 ---
 
@@ -21,6 +21,7 @@ Life OS 的第一个可用桌面版本。
 - Waitress + pywebview + PyInstaller `onedir` Windows 桌面发行方式。
 - 每日/手动 SQLite 一致性备份、CSV/Markdown/ZIP 全量导出和启动前安全恢复。
 - 单一 `LIFE_OS_HOME` 可移植运行时，支持不同设备和不同绝对路径迁移。
+- 项目源码与发行包采用 MIT License 开放使用、修改与分发。
 
 ### 数据兼容
 

@@ -22,7 +22,16 @@ def test_release_version_and_metadata_are_final() -> None:
     project = tomllib.loads((PROJECT_ROOT / "pyproject.toml").read_text("utf-8"))
     assert __version__ == "0.1.0"
     assert project["project"]["version"] == __version__
+    assert project["project"]["license"] == "MIT"
     assert "dev" not in __version__.lower()
+
+    license_text = (PROJECT_ROOT / "LICENSE").read_text("utf-8")
+    assert license_text.startswith("MIT License\n")
+    assert "Copyright (c) 2026 linfeng0tingyu" in license_text
+    assert "MIT License](LICENSE)" in (PROJECT_ROOT / "README.md").read_text("utf-8")
+    assert 'copy /Y "LICENSE" "dist\\LifeOS\\LICENSE"' in (
+        PROJECT_ROOT / "build_desktop.bat"
+    ).read_text("utf-8")
 
 
 def test_theme_preview_query_is_restricted_to_supported_themes() -> None:
@@ -54,6 +63,7 @@ def test_release_packager_creates_rooted_zip_and_checksum(tmp_path: Path) -> Non
     source = project / "dist" / "LifeOS"
     source.mkdir(parents=True)
     (source / "LifeOS.exe").write_bytes(b"portable-executable")
+    (source / "LICENSE").write_text("MIT License", encoding="utf-8")
     (source / "README.md").write_text("Life OS", encoding="utf-8")
     package_release = runpy.run_path(
         str(PROJECT_ROOT / "scripts/package_release.py")
@@ -63,6 +73,7 @@ def test_release_packager_creates_rooted_zip_and_checksum(tmp_path: Path) -> Non
 
     with zipfile.ZipFile(archive) as bundle:
         assert sorted(bundle.namelist()) == [
+            "LifeOS/LICENSE",
             "LifeOS/LifeOS.exe",
             "LifeOS/README.md",
         ]
