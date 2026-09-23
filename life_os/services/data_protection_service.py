@@ -155,7 +155,9 @@ class DataProtectionService:
             raise ValidationError("备份类型无效。")
         if not 1 <= retention_count <= 3650:
             raise ValidationError("备份保留数量必须在 1 到 3650 之间。")
-        moment = (now or datetime.now().astimezone()).astimezone()
+        moment = now or datetime.now().astimezone()
+        if moment.tzinfo is None:
+            moment = moment.astimezone()
         if kind == "auto":
             filename = f"life-os-{moment:%Y%m%d}-auto.db"
         else:
@@ -207,7 +209,9 @@ class DataProtectionService:
     ) -> dict[str, object]:
         if not isinstance(include_zip, bool):
             raise ValidationError("include_zip 必须是布尔值。")
-        moment = (now or datetime.now().astimezone()).astimezone()
+        moment = now or datetime.now().astimezone()
+        if moment.tzinfo is None:
+            moment = moment.astimezone()
         name = f"export-{moment:%Y%m%d-%H%M%S-%f}"
         incomplete = paths.exports_dir / f".{name}.incomplete"
         destination = paths.exports_dir / name
