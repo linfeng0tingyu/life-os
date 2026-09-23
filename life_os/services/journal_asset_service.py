@@ -100,18 +100,7 @@ class JournalAssetService:
     ) -> Path:
         target = parse_life_date(value_date).isoformat()
 
-        def embed(match: re.Match[str]) -> str:
-            asset_path = JournalAssetService.asset_path(
-                paths, match.group("date"), match.group("name")
-            )
-            mime_type = JournalAssetService.mime_type(asset_path.suffix)
-            encoded = base64.b64encode(asset_path.read_bytes()).decode("ascii")
-            return f"data:{mime_type};base64,{encoded}"
-
-        try:
-            exported = ASSET_URL_PATTERN.sub(embed, content)
-        except OSError as exc:
-            raise ValidationError("日记图片无法读取，导出已停止。") from exc
+        exported = JournalAssetService.render_self_contained(paths, content)
 
         directory = paths.exports_dir / "journal"
         JournalAssetService._assert_contained(paths, directory)
@@ -141,6 +130,23 @@ class JournalAssetService:
             if temporary is not None and temporary.exists():
                 temporary.unlink(missing_ok=True)
         return destination
+
+    @staticmethod
+    def render_self_contained(paths: RuntimePaths, content: str) -> str:
+
+        def embed(match: re.Match[str]) -> str:
+            asset_path = JournalAssetService.asset_path(
+                paths, match.group("date"), match.group("name")
+            )
+            mime_type = JournalAssetService.mime_type(asset_path.suffix)
+            encoded = base64.b64encode(asset_path.read_bytes()).decode("ascii")
+            return f"data:{mime_type};base64,{encoded}"
+
+        try:
+            exported = ASSET_URL_PATTERN.sub(embed, content)
+        except OSError as exc:
+            raise ValidationError("日记图片无法读取，导出已停止。") from exc
+        return exported
 
     @staticmethod
     def mime_type(suffix: str) -> str:

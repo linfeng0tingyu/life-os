@@ -10,15 +10,23 @@ from pathlib import Path
 # Production startup must not scatter Python bytecode caches beside source files.
 sys.dont_write_bytecode = True
 
-from life_os import create_app
+from life_os import __version__, create_app
 from life_os.database import (
     DatabaseInitializationError,
     checkpoint_database,
 )
-from life_os.instance_lock import InstanceLockError
+from life_os.instance_lock import InstanceLock, InstanceLockError
 from life_os.network import PortUnavailableError, ensure_port_available
-from life_os.runtime import RuntimeSetupError
+from life_os.runtime import (
+    RuntimeSetupError,
+    initialize_runtime,
+    resolve_runtime_paths,
+)
 from life_os.settings import SettingsError
+from life_os.services.data_protection_service import (
+    DataProtectionError,
+    DataProtectionService,
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -36,6 +44,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Validate and initialize the runtime, then exit.",
     )
+    parser.add_argument(
+        "--restore",
+        metavar="BACKUP_FILENAME",
+        help="Restore a validated backup before starting the application.",
+    )
     return parser.parse_args()
 
 
@@ -50,6 +63,23 @@ def main() -> int:
         os.environ["LIFE_OS_HOME"] = str(expanded_home.resolve(strict=False))
 
     try:
+        if args.restore:
+            paths = resolve_runtime_paths()
+            initialize_runtime(paths, __version__)
+            instance_lock = InstanceLock(paths.lock_file)
+            instance_lock.acquire()
+            try:
+                result = DataProtectionService.restore_immediately(
+                    paths, args.restore
+                )
+            finally:
+                instance_lock.release()
+            print(
+                "Life OS 恢复完成："
+                f"{result['backup_file']}；恢复前副本：{result['safety_copy']}"
+            )
+            return 0
+
         app = create_app(acquire_lock=True)
         settings = app.extensions["life_os_settings"]
         paths = app.extensions["life_os_runtime"]
@@ -78,6 +108,7 @@ def main() -> int:
         InstanceLockError,
         PortUnavailableError,
         DatabaseInitializationError,
+        DataProtectionError,
     ) as exc:
         print(f"Life OS 启动失败：{exc}", file=sys.stderr)
         return 1

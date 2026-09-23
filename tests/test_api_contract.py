@@ -50,7 +50,7 @@ def test_invalid_date_is_a_validation_error(client: FlaskClient) -> None:
     assert "date" in payload["error"]["message"]
 
 
-def test_system_info_has_versions_and_no_absolute_runtime_path(
+def test_system_info_has_versions_and_portable_runtime_path(
     client: FlaskClient,
 ) -> None:
     response = client.get("/api/system/info")
@@ -62,8 +62,13 @@ def test_system_info_has_versions_and_no_absolute_runtime_path(
     assert data["schema_version"] == SCHEMA_VERSION
     assert data["runtime"]["portable"] is True
     assert data["runtime"]["database"] == "database/life.db"
-    assert data["capabilities"]["backup"] is False
+    assert data["capabilities"] == {
+        "backup": True,
+        "export": True,
+        "restore_on_restart": True,
+    }
     assert not Path(data["runtime"]["database"]).is_absolute()
+    assert Path(data["runtime"]["home"]).is_absolute()
     serialized = response.get_data(as_text=True)
     assert "SQLALCHEMY_DATABASE_URI" not in serialized
     assert "LIFE_OS_HOME" not in serialized

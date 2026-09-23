@@ -378,6 +378,7 @@ def test_future_date_plan_is_visible_in_day_aggregation(tmp_path: Path) -> None:
         "css/pages/calendar.css",
         "css/pages/management.css",
         "css/pages/records.css",
+        "css/pages/settings.css",
         "css/themes.css",
         "images/life-os-logo.png",
         "js/app.js",
@@ -395,6 +396,7 @@ def test_future_date_plan_is_visible_in_day_aggregation(tmp_path: Path) -> None:
         "js/pages/finance.js",
         "js/pages/tasks.js",
         "js/pages/today.js",
+        "js/pages/settings.js",
         "js/utils/date.js",
         "js/utils/lunar.js",
     ],
@@ -405,6 +407,23 @@ def test_m4_local_frontend_assets_are_served(tmp_path: Path, asset: str) -> None
 
     assert response.status_code == 200
     assert response.data
+
+
+def test_settings_page_exposes_m7_data_protection_controls(tmp_path: Path) -> None:
+    app = create_app(runtime_home=tmp_path / "runtime", testing=True)
+    client = app.test_client()
+    html = client.get("/settings").get_data(as_text=True)
+    script = client.get("/static/js/pages/settings.js").get_data(as_text=True)
+    styles = client.get("/static/css/pages/settings.css").get_data(as_text=True)
+
+    assert "设置与数据" in html
+    assert "立即备份" in html
+    assert "导出全部数据" in html
+    assert "安排下次启动恢复" in html
+    assert 'api.post("/api/system/backup"' in script
+    assert 'api.post("/api/system/export"' in script
+    assert 'api.post("/api/system/restore"' in script
+    assert ".settings-grid" in styles
 
 
 def test_second_instance_cannot_take_same_lock(tmp_path: Path) -> None:

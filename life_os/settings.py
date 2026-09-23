@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import os
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -70,6 +72,50 @@ def load_settings(path: Path) -> AppSettings:
     )
 
 
+def update_backup_retention(path: Path, retention_count: int) -> AppSettings:
+    if isinstance(retention_count, bool) or not isinstance(retention_count, int):
+        raise SettingsError("retention_count 必须是整数。")
+    if not 1 <= retention_count <= 3650:
+        raise SettingsError("retention_count 必须在 1 到 3650 之间。")
+    try:
+        with path.open("r", encoding="utf-8") as handle:
+            document = json.load(handle)
+        if not isinstance(document, dict):
+            raise SettingsError("settings.json 顶层必须是 JSON 对象。")
+        backup = _section(document, "backup")
+        backup["retention_count"] = retention_count
+        _atomic_write(path, document)
+    except SettingsError:
+        raise
+    except (OSError, json.JSONDecodeError) as exc:
+        raise SettingsError(f"无法更新配置文件：{path}") from exc
+    return load_settings(path)
+
+
+def _atomic_write(path: Path, document: dict[str, Any]) -> None:
+    temporary: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            newline="\n",
+            prefix=f".{path.name}.",
+            suffix=".tmp",
+            dir=path.parent,
+            delete=False,
+        ) as handle:
+            json.dump(document, handle, ensure_ascii=False, indent=2)
+            handle.write("\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+            temporary = Path(handle.name)
+        os.replace(temporary, path)
+        temporary = None
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
+
+
 def _section(document: dict[str, Any], name: str) -> dict[str, Any]:
     value = document.get(name)
     if not isinstance(value, dict):
@@ -93,4 +139,3 @@ def _boolean(section: dict[str, Any], key: str) -> bool:
     if not isinstance(value, bool):
         raise SettingsError(f"{key} 必须是布尔值。")
     return value
-

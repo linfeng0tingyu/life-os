@@ -16,6 +16,10 @@ from .logging_setup import configure_logging
 from .runtime import RuntimePaths, initialize_runtime, resolve_runtime_paths
 from .settings import load_settings
 from .services.common import ConflictError, DomainError, NotFoundError, ValidationError
+from .services.data_protection_service import (
+    DataProtectionError,
+    DataProtectionService,
+)
 
 
 __version__ = "0.1.0-dev"
@@ -60,20 +64,61 @@ def create_app(
     app.extensions["life_os_settings"] = settings
 
     configure_logging(app, paths, settings)
-    db.init_app(app)
-    initialize_database(app)
-    _register_error_handlers(app)
+    instance_lock: InstanceLock | None = None
+    try:
+        if acquire_lock:
+            instance_lock = InstanceLock(paths.lock_file)
+            instance_lock.acquire()
+            app.extensions["life_os_instance_lock"] = instance_lock
+            atexit.register(instance_lock.release)
+            restore_result = DataProtectionService.process_pending_restore(paths)
+            if restore_result is not None:
+                app.logger.info(
+                    "Pending restore processed status=%s backup=%s",
+                    restore_result.get("status"),
+                    restore_result.get("backup_file"),
+                )
 
-    from .routes import BLUEPRINTS
+        db.init_app(app)
+        initialize_database(app)
+        app.extensions["life_os_startup_backup"] = {"status": "not_run"}
+        if not testing:
+            try:
+                backup_result = DataProtectionService.create_backup(
+                    paths,
+                    settings.backup_retention_count,
+                    kind="auto",
+                )
+                app.extensions["life_os_startup_backup"] = {
+                    "status": "created" if backup_result.created else "current",
+                    "filename": backup_result.backup.filename,
+                    "created_at": backup_result.backup.created_at,
+                }
+                app.logger.info(
+                    "Daily backup ready filename=%s created=%s removed=%s",
+                    backup_result.backup.filename,
+                    backup_result.created,
+                    backup_result.removed_count,
+                )
+            except DataProtectionError as exc:
+                app.extensions["life_os_startup_backup"] = {
+                    "status": "failed",
+                    "message": str(exc),
+                }
+                app.logger.error(
+                    "Daily backup failed error_type=%s", type(exc).__name__
+                )
 
-    for blueprint in BLUEPRINTS:
-        app.register_blueprint(blueprint)
+        _register_error_handlers(app)
 
-    if acquire_lock:
-        instance_lock = InstanceLock(paths.lock_file)
-        instance_lock.acquire()
-        app.extensions["life_os_instance_lock"] = instance_lock
-        atexit.register(instance_lock.release)
+        from .routes import BLUEPRINTS
+
+        for blueprint in BLUEPRINTS:
+            app.register_blueprint(blueprint)
+    except Exception:
+        if instance_lock is not None:
+            instance_lock.release()
+        raise
 
     app.logger.info(
         "Life OS initialized version=%s runtime_home=%s",
@@ -141,4 +186,19 @@ def _register_error_handlers(app: Flask) -> None:
         )
         return error_response(
             "internal_error", "服务器发生内部错误。", status=500
+        )
+
+    @app.errorhandler(DataProtectionError)
+    def handle_data_protection_error(error: DataProtectionError):
+        app.logger.error(
+            "Data protection error request_id=%s method=%s path=%s error_type=%s",
+            g.get("request_id", ""),
+            request.method,
+            request.path,
+            type(error).__name__,
+        )
+        return error_response(
+            "data_protection_error",
+            str(error),
+            status=500,
         )

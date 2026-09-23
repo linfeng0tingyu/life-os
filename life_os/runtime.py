@@ -44,6 +44,8 @@ class RuntimePaths:
     database_file: Path
     log_file: Path
     lock_file: Path
+    pending_restore_file: Path
+    restore_result_file: Path
 
     @classmethod
     def from_home(cls, home: Path) -> "RuntimePaths":
@@ -64,6 +66,8 @@ class RuntimePaths:
             database_file=resolved_home / "database" / "life.db",
             log_file=resolved_home / "logs" / "app.log",
             lock_file=resolved_home / "temp" / "life-os.lock",
+            pending_restore_file=resolved_home / "temp" / "pending-restore.json",
+            restore_result_file=resolved_home / "temp" / "restore-result.json",
         )
 
     @property
@@ -88,6 +92,8 @@ class RuntimePaths:
             self.database_file,
             self.log_file,
             self.lock_file,
+            self.pending_restore_file,
+            self.restore_result_file,
         )
 
     def assert_contained(self) -> None:

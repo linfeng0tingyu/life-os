@@ -2,7 +2,7 @@
 title: "Life OS 工程说明"
 type: project-readme
 created: 2026-09-18T14:30:00+08:00
-updated: 2026-09-22T08:48:40+08:00
+updated: 2026-09-22T11:53:25+08:00
 status: draft
 related:
   - "[[项目说明]]"
@@ -13,6 +13,7 @@ related:
   - "[[界面主题设计规范]]"
   - "[[M5任务与习惯闭环建设记录]]"
   - "[[M6健康日记与财务闭环建设记录]]"
+  - "[[M7数据保护与迁移建设记录]]"
 ---
 
 # Life OS
@@ -89,10 +90,11 @@ life-os-data/
 ├── database/life.db
 ├── backups/
 ├── exports/
+├── attachments/
 ├── cache/
 │   └── webview/                # 桌面模式的 WebView 缓存、主题偏好与存储
 ├── logs/app.log
-├── temp/life-os.lock
+├── temp/                        # 实例锁、恢复请求与恢复结果
 └── metadata.json
 ```
 
@@ -127,7 +129,9 @@ M3 提供以下路径，成功响应统一使用 `{"success": true, "data": ...}
 - `GET|POST /api/categories`：按任务、习惯或财务作用域列出、创建可单选分类。
 - `/api/health/{date}` 与 `/api/journal/{date}`：按日期读写健康/睡眠数据和 Markdown 日记；日记另支持图片附件和单日 Markdown 导出。
 - `/api/finance/accounts`、`/api/finance/transactions` 与 `/api/finance/summary`：管理 CNY 资产/负债账户、收入/支出/转账流水和总体财务摘要。
-- `GET /api/system/info`：返回应用版本、schema 版本和可移植运行时状态，不暴露本机绝对路径。
+- `GET /api/system/info` 与 `GET /api/system/backups`：返回应用版本、schema、当前 `LIFE_OS_HOME`、数据保护状态和可用备份。
+- `POST /api/system/backup`、`POST /api/system/export` 与 `POST /api/system/restore`：手动一致性备份、全量开放格式导出，以及安排在下次启动前执行的安全恢复。
+- `PUT /api/system/settings/backup`：保存 1–3650 范围内的备份保留数量。
 
 详细字段、状态码与验收行为见 [[接口验收清单]]。
 
@@ -165,3 +169,5 @@ M4.5 已完成桌面入口、Waitress 生命周期、动态回环端口、WebVie
 M5 已完成 `/tasks` 与 `/habits` 独立管理页。任务支持创建、编辑、开始、完成、取消、重新打开、排序、归档与恢复；习惯支持创建、编辑、排序、停用、恢复，以及今天或过去日期的即时打卡。新增与编辑表单默认隐藏，点击按钮后以应用内模态窗口打开；任务和习惯分类是分作用域、可现场创建的单选项。Calendar 页首“回到今日”返回 Today，月历内部“回到今天”才会把日期详情、月历和 URL 同步定位到系统今天。Today 与 Calendar 的日期详情可直接切换任务和习惯状态，写入期间会阻止重复触发。
 
 M6 已完成 `/health`、`/journal` 与 `/finance` 独立管理页。生活节律支持睡眠、体重、运动、精力、情绪、身体状态和备注，起止时间自动计算跨午夜时长，也可手动修正；日记使用 1.2 秒防抖自动保存，支持插入当前 24 小时制时分、三级标题、图片、本地安全预览和单日 Markdown 导出；财务支持账户管理、可现场新增的单选分类、收入/支出/转账、流水编辑与软归档、账户余额以及资产负债和期间收支汇总。Today 与 Calendar 的生活节律、日记和财务标题区可携带当前日期进入完整管理页。图片保存在 `LIFE_OS_HOME/attachments/journal/`，导出文件保存在 `LIFE_OS_HOME/exports/journal/`。
+
+M7 已开放 `/settings` 数据保护页。程序每天首次启动使用 SQLite backup API 创建一致性副本，也支持手动备份和 1–3650 份保留策略。全量导出在 `exports/export-<timestamp>/` 生成 UTF-8 BOM CSV、全部自包含 Markdown 日记、`manifest.json` 和可选 ZIP；财务金额使用 CNY 元与两位小数。界面恢复请求会在正常重启前校验备份、保存当前数据库安全副本并离线替换；数据库已经损坏、无法进入界面时，可在 Life OS 完全关闭后执行 `LifeOS.exe --home "D:\LifeOSData" --restore "备份文件名.db"`。完整步骤与迁移演练见 [[部署与迁移指南]] 和 [[M7数据保护与迁移建设记录]]。

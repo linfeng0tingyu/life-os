@@ -5,6 +5,7 @@ import { JournalPage } from "./pages/journal.js";
 import { FinancePage } from "./pages/finance.js";
 import { TasksPage } from "./pages/tasks.js";
 import { TodayPage } from "./pages/today.js";
+import { SettingsPage } from "./pages/settings.js";
 
 function showStartupError(root) {
   const notice = root.querySelector("[data-global-error]");
@@ -26,6 +27,7 @@ document.addEventListener("DOMContentLoaded", () => {
       finance: FinancePage,
       tasks: TasksPage,
       today: TodayPage,
+      settings: SettingsPage,
     };
     const Page = pages[root.dataset.page] || TodayPage;
     const page = new Page(root);

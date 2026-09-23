@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}设置与数据 · Life OS{% endblock %}
+
+{% block body %}
+  <div class="app-shell" data-app-root data-page="settings">
+    {% include "partials/sidebar.html" %}
+    <main class="main-content settings-content" id="main-content">
+      <header class="topbar page-head">
+        <div><p class="eyebrow">让重要数据始终有退路</p><h1>设置与数据</h1><p class="date-subtitle">管理备份、开放格式导出、恢复计划与便携运行目录。</p></div>
+        <a class="button button-secondary" href="{{ url_for('system.habits_page') }}">管理习惯</a>
+      </header>
+
+      <div class="notice is-hidden" role="alert" data-global-error>
+        <div><strong>数据保护操作未完成</strong><p data-global-error-message></p></div>
+        <button class="button button-secondary" type="button" data-action="retry-settings">重新读取</button>
+      </div>
+
+      <div class="settings-grid">
+        <section class="module module-status settings-runtime" aria-labelledby="runtime-title">
+          <div class="module-heading"><div><p class="section-kicker">系统信息</p><h2 id="runtime-title">便携运行目录</h2></div><span class="state-label" data-system-state role="status" aria-live="polite">加载中</span></div>
+          <dl class="settings-facts">
+            <div><dt>Life OS 版本</dt><dd data-app-version>—</dd></div>
+            <div><dt>数据库结构</dt><dd data-schema-version>—</dd></div>
+            <div class="settings-path-row"><dt>LIFE_OS_HOME</dt><dd><code data-runtime-home>正在读取…</code><button class="text-button" type="button" data-action="copy-runtime">复制路径</button></dd></div>
+          </dl>
+          <p class="module-note">所有数据库、附件、备份、导出、缓存和日志都位于这个目录。迁移时请先正常关闭 Life OS，再复制整个目录。</p>
+        </section>
+
+        <section class="module module-habits" aria-labelledby="backup-title">
+          <div class="module-heading"><div><p class="section-kicker">一致性副本</p><h2 id="backup-title">数据库备份</h2></div><span class="state-label" data-backup-state role="status" aria-live="polite">加载中</span></div>
+          <div class="backup-actions">
+            <label class="field"><span>保留最近备份数量</span><input type="number" min="1" max="3650" step="1" data-retention-count></label>
+            <button class="button button-secondary" type="button" data-action="save-retention">保存数量</button>
+            <button class="button button-primary" type="button" data-action="create-backup">立即备份</button>
+          </div>
+          <p class="module-note">每天首次启动会自动备份一次；手动备份使用 SQLite 一致性快照，不会简单复制正在写入的数据库文件。</p>
+          <div data-backup-list aria-live="polite"><p class="empty-state">正在读取备份…</p></div>
+        </section>
+
+        <section class="module module-notes" aria-labelledby="export-title">
+          <div class="module-heading"><div><p class="section-kicker">开放格式</p><h2 id="export-title">全量导出</h2></div><span class="state-label" data-export-state role="status" aria-live="polite">就绪</span></div>
+          <p>生成结构化 CSV、按日期组织的自包含 Markdown 日记与清单文件。CSV 使用 UTF-8 BOM，财务金额以 CNY 元和两位小数表示。</p>
+          <label class="check-field"><input type="checkbox" data-include-zip checked> 同时生成便于复制的 ZIP</label>
+          <button class="button button-primary" type="button" data-action="export-all">导出全部数据</button>
+          <div class="operation-result is-hidden" data-export-result></div>
+        </section>
+
+        <section class="module module-focus" aria-labelledby="restore-title">
+          <div class="module-heading"><div><p class="section-kicker">安全恢复</p><h2 id="restore-title">从备份恢复</h2></div><span class="state-label" data-restore-state role="status" aria-live="polite">未安排</span></div>
+          <p>恢复不会在当前运行中改写数据库。安排后请正常关闭并重新打开 Life OS；启动前会再次校验备份，并把当前数据库保存到 <code>backups/restore-safety/</code>。</p>
+          <label class="field"><span>选择备份</span><select data-restore-backup><option value="">暂无备份</option></select></label>
+          <label class="field"><span>输入“恢复此备份”确认</span><input type="text" autocomplete="off" data-restore-confirmation placeholder="恢复此备份"></label>
+          <div class="form-actions"><button class="button button-secondary" type="button" data-action="schedule-restore">安排下次启动恢复</button><button class="button button-quiet is-hidden" type="button" data-action="cancel-restore">取消待恢复计划</button></div>
+          <div class="operation-result is-hidden" data-restore-result></div>
+        </section>
+      </div>
+    </main>
+  </div>
+{% endblock %}
+
+{% block scripts %}<script type="module" src="{{ url_for('static', filename='js/app.js', v=app_version) }}"></script>{% endblock %}
