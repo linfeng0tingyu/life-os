@@ -48,23 +48,23 @@ def test_frontend_shell_supports_versioned_local_assets(tmp_path: Path) -> None:
 
     assert response.status_code == 200
     assert response.headers["Cache-Control"] == "no-cache"
-    assert '<meta name="life-os-version" content="0.1.0-dev">' in html
-    assert "/static/css/tokens.css?v=0.1.0-dev" in html
-    assert "/static/css/base.css?v=0.1.0-dev" in html
-    assert "/static/css/layout.css?v=0.1.0-dev" in html
-    assert "/static/css/components.css?v=0.1.0-dev" in html
-    assert "/static/css/pages/today.css?v=0.1.0-dev" in html
-    assert "/static/css/pages/calendar.css?v=0.1.0-dev" in html
-    assert "/static/css/themes.css?v=0.1.0-dev" in html
-    assert "/static/js/theme.js?v=0.1.0-dev" in html
-    assert 'type="module" src="/static/js/app.js?v=0.1.0-dev"' in html
+    assert '<meta name="life-os-version" content="0.1.0">' in html
+    assert "/static/css/tokens.css?v=0.1.0" in html
+    assert "/static/css/base.css?v=0.1.0" in html
+    assert "/static/css/layout.css?v=0.1.0" in html
+    assert "/static/css/components.css?v=0.1.0" in html
+    assert "/static/css/pages/today.css?v=0.1.0" in html
+    assert "/static/css/pages/calendar.css?v=0.1.0" in html
+    assert "/static/css/themes.css?v=0.1.0" in html
+    assert "/static/js/theme.js?v=0.1.0" in html
+    assert 'type="module" src="/static/js/app.js?v=0.1.0"' in html
     assert 'data-page="today"' in html
     assert 'href="/calendar"' in html
     assert "data-calendar-grid" not in html
     assert "data-day-marker-form" not in html
     assert '<svg class="icon"' in html
     assert 'data-theme-select' in html
-    assert 'images/life-os-logo.png?v=0.1.0-dev' in html
+    assert 'images/life-os-logo.png?v=0.1.0' in html
     assert "http://" not in html
     assert "https://" not in html
 
@@ -126,7 +126,7 @@ def test_m5_task_and_habit_pages_expose_complete_management_controls(
     assert 'data-habit-list' in habit_html
     assert 'data-habit-date' in habit_html
     assert 'href="/habits" aria-current="page"' in habit_html
-    assert "/static/css/pages/management.css?v=0.1.0-dev" in task_html
+    assert "/static/css/pages/management.css?v=0.1.0" in task_html
     assert "http://" not in task_html + habit_html
     assert "https://" not in task_html + habit_html
 
@@ -189,7 +189,7 @@ def test_m6_pages_expose_health_journal_and_finance_closed_loops(
     assert 'data-show-inactive' not in finance_html
     assert 'data-finance-totals' in finance_html
     assert 'href="/finance" aria-current="page"' in finance_html
-    assert "/static/css/pages/records.css?v=0.1.0-dev" in finance_html
+    assert "/static/css/pages/records.css?v=0.1.0" in finance_html
 
 
 def test_m6_frontend_uses_debounced_saves_and_explicit_finance_submit(

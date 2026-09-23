@@ -1,108 +1,110 @@
 ---
-title: "Life OS 工程说明"
+title: "Life OS"
 type: project-readme
 created: 2026-09-18T14:30:00+08:00
-updated: 2026-09-22T11:53:25+08:00
-status: draft
+updated: 2026-09-23T09:15:00+08:00
+status: completed
 related:
   - "[[项目说明]]"
   - "[[里程碑计划]]"
   - "[[部署与迁移指南]]"
-  - "[[桌面封装架构与改造工作量评估]]"
-  - "[[M4.5桌面封装建设记录]]"
-  - "[[界面主题设计规范]]"
-  - "[[M5任务与习惯闭环建设记录]]"
-  - "[[M6健康日记与财务闭环建设记录]]"
-  - "[[M7数据保护与迁移建设记录]]"
+  - "[[M8系统验收与v0.1发布记录]]"
 ---
 
-# Life OS
+<p align="center">
+  <img src="design-assets/logo-concepts/life-os-logo-02a-ref-a-full-landscape-contained.png" alt="Life OS Logo" width="760">
+</p>
 
-Life OS 是一个本地优先、以日期为中心的个人生活管理系统。当前已完成 M1–M6：具备可移植运行时、SQLite 数据库与领域服务、统一核心 API、日期界面、任务与习惯闭环、健康/睡眠与日记自动保存、个人财务闭环、七套可切换视觉主题，以及可直接打开的 Windows 独立桌面窗口和 `onedir` 便携发行基础。
+<p align="center">
+  <strong>本地优先、以日期为中心的个人生活管理桌面应用</strong><br>
+  任务、习惯、日历、生活节律、Markdown 日记和个人财务，都保存在你自己的电脑中。
+</p>
 
-## 当前状态与目标运行方式
+<p align="center">
+  <code>v0.1.0</code> · Windows 10/11 · SQLite · Flask · pywebview · PyInstaller
+</p>
 
-普通用户入口现为 PyInstaller `onedir` 包中的 `LifeOS.exe`。双击后由 Waitress 在随机回环端口承载现有 Flask 应用，并由 pywebview/WebView2 显示独立窗口；不显示终端、不打开外部浏览器，也不要求安装 Python。`start.bat` 与 `app.py` 继续作为源码开发和故障诊断入口。
+![Life OS 默认主题](docs/images/themes/default.png)
 
-## 桌面版快速启动
+## 功能概览
 
-1. 保持 `dist/LifeOS/` 整个目录结构不变，不能只复制 `LifeOS.exe`。
-2. 双击 `dist/LifeOS/LifeOS.exe`。首次启动会在可执行文件旁创建 `life-os-data/`。
-3. 正常关闭窗口后再复制或迁移 `life-os-data/`。
+Life OS 以“某一天”为核心组织个人生活信息。“今日”提供当天总览；“日历”可以访问过去、现在和未来的任意日期，并以相同结构回顾历史或提前规划。
 
-目标设备需要 64 位 Windows 10/11 和兼容的 Microsoft Edge WebView2 Runtime；不需要 Python、pip、Node.js、SQLite 服务或外部浏览器。要使用另一个绝对数据目录，可执行：
+- 日期与日历：月历、离线农历、法定节假日与调休、自定义工作日/休息日及日期标记。
+- 任务管理：创建、编辑、分类、优先级、计划/到期日期、状态流转、归档与恢复。
+- 习惯管理：自定义习惯、单选分类、历史打卡、数值记录、停用与恢复。
+- 生活节律：睡眠起止与时长、体重、运动、精力、情绪、身体状态和备注。
+- Markdown 日记：自动保存、三级标题、当前时间插入、图片附件、安全预览和独立导出。
+- 个人财务：账户、收入、支出、转账、分类、流水归档、资产负债和期间收支统计。
+- 数据保护：每日/手动 SQLite 一致性备份、保留策略、CSV/Markdown/ZIP 全量导出及安全恢复。
+- 便携运行：数据库、附件、缓存、配置、日志和备份统一位于一个 `life-os-data/` 目录。
+
+## 七套界面风格
+
+主题切换只改变前端配色、字体、边框、圆角、阴影与图标表现，不修改 SQLite 数据。
+
+| 默认 | 古风竹青 |
+| --- | --- |
+| ![默认](docs/images/themes/default.png) | ![古风竹青](docs/images/themes/bamboo.png) |
+
+| 古风藏青 | 古风水色 |
+| --- | --- |
+| ![古风藏青](docs/images/themes/indigo.png) | ![古风水色](docs/images/themes/water.png) |
+
+| 新拟物派 | macOS 毛玻璃 |
+| --- | --- |
+| ![新拟物派](docs/images/themes/neumorphism.png) | ![macOS 毛玻璃](docs/images/themes/macos-glass.png) |
+
+| 吉卜力风格 |
+| --- |
+| ![吉卜力风格](docs/images/themes/ghibli.png) |
+
+## Windows 便携版
+
+从 GitHub Releases 下载 `LifeOS-v0.1.0-windows-x64.zip`，解压后保持目录结构不变，双击 `LifeOS/LifeOS.exe` 即可。普通使用不需要安装 Python、Node.js、SQLite 服务或外部浏览器。
+
+目标环境：
+
+- 64 位 Windows 10 或 Windows 11。
+- Microsoft Edge WebView2 Runtime；大多数现代 Windows 设备已预装。
+- 对程序目录或自定义数据目录具有普通读写权限。
+- 数据目录应位于本地 NTFS 磁盘，不建议直接放入实时云同步目录或网络共享盘。
+
+首次运行会在 `LifeOS.exe` 旁创建 `life-os-data/`。也可以指定其他绝对路径：
 
 ```bat
 LifeOS.exe --home "D:\LifeOSData"
 ```
 
-完整环境要求、迁移方法和故障处理见 [[部署与迁移指南]]。
+完整的安装、迁移、备份和恢复步骤见[部署与迁移指南](部署与迁移指南.md)。
 
-## 界面主题与 Logo
-
-共享导航中的“界面风格”可以即时切换：默认、古风竹青、古风藏青、古风水色、新拟物派、macOS 毛玻璃和吉卜力风格。切换只修改色彩、字体、圆角、边框、阴影、背景与图标表现，不调用业务 API，也不修改 SQLite。桌面版会把选择作为可丢弃的 WebView 本地偏好保存在 `life-os-data/cache/webview/`，并兼容随机端口重启；清空缓存后回到默认。
-
-页面和桌面图标统一来自 `design-assets/logo-concepts/life-os-logo-02a-ref-a-full-landscape-contained.png`。七套风格的具体色板、组件语言和验收边界见 [[界面主题设计规范]]。
-
-## 当前源码运行环境要求
-
-- Windows 10 或 Windows 11，推荐 64 位系统。
-- 64 位 Python 3.12 或更高版本；推荐安装 Python Launcher（`py`）或将 `python` 加入 PATH。
-- 现代版 Edge、Chrome 或 Firefox。
-- 首次安装依赖时需要访问 Python 包源；安装完成后，M1 基础服务可离线运行。
-- 普通用户权限即可，不需要 Docker、Node.js、单独安装 SQLite 或数据库服务。
-- 默认使用 `127.0.0.1:5000`，该端口必须空闲。
-
-桌面发行与源码诊断两种运行方式的完整要求、目录复制步骤和配置格式见 [[部署与迁移指南]]。
-
-## 当前源码快速启动
-
-双击 `start.bat`。首次启动会在项目目录创建 `.venv`，安装 `requirements.txt` 中的依赖，然后启动服务并打开浏览器。
-
-默认运行时目录是项目目录下的 `life-os-data/`。要使用已迁移的数据目录，可在命令提示符中执行：
-
-```bat
-start.bat "D:\LifeOSData"
-```
-
-需要阻止自动打开浏览器时，可追加 `--no-browser`：
-
-```bat
-start.bat "D:\LifeOSData" --no-browser
-```
-
-也可以预先设置绝对路径环境变量：
-
-```bat
-set LIFE_OS_HOME=D:\LifeOSData
-start.bat
-```
-
-选择顺序为：命令行 `--home`/`start.bat` 第一个参数、`LIFE_OS_HOME` 环境变量、项目内默认 `life-os-data/`。
-
-## 运行时目录
-
-程序首次启动会创建：
+## 数据完全在本机
 
 ```text
 life-os-data/
 ├── config/settings.json
 ├── database/life.db
 ├── backups/
+│   └── restore-safety/
 ├── exports/
 ├── attachments/
-├── cache/
-│   └── webview/                # 桌面模式的 WebView 缓存、主题偏好与存储
+├── cache/webview/
 ├── logs/app.log
-├── temp/                        # 实例锁、恢复请求与恢复结果
+├── temp/
 └── metadata.json
 ```
 
-所有应用生成的配置、数据库、备份、导出、缓存、日志和临时文件必须位于这一根目录。`.venv` 是设备相关的 Python 环境，不属于应用数据，不应随数据目录迁移。
+关闭 Life OS 后复制整个 `life-os-data/`，即可迁移到另一台设备或不同绝对路径。应用默认只监听 `127.0.0.1`，不提供互联网或局域网服务，也不依赖云端账户。
 
-## 源码开发与诊断启动
+## 从源码运行
 
-使用已建立的虚拟环境：
+源码开发需要 64 位 Python 3.12 或更高版本。Windows 下可直接运行：
+
+```bat
+start.bat
+```
+
+首次执行会创建项目内 `.venv` 并安装依赖。诊断命令：
 
 ```bat
 .venv\Scripts\python.exe app.py --check
@@ -110,64 +112,43 @@ life-os-data/
 .venv\Scripts\python.exe app.py --home "D:\LifeOSData"
 ```
 
-服务健康检查：
-
-```text
-GET http://127.0.0.1:5000/api/system/health
-```
-
-上述固定端口和外部浏览器只属于源码诊断模式。正式桌面模式使用进程内协商的随机 `127.0.0.1` 端口，并由窗口生命周期统一启动和关闭服务。
-
-## 核心 API
-
-M3 提供以下路径，成功响应统一使用 `{"success": true, "data": ...}`，失败响应统一使用 `{"success": false, "error": ...}`：
-
-- `GET /api/day/{date}`：聚合指定日期的日历标记、习惯日志、计划/到期/逾期任务、健康、日记和当日财务流水。
-- `GET /api/calendar/month/{year-month}` 与 `PUT|DELETE /api/calendar/days/{date}`：查询月历及轻量数据/习惯摘要，并设置或清除工作日、休息日、节假日和自定义标记。
-- `/api/habits` 与 `/api/habits/{id}/log/{date}`：管理习惯、停用/恢复、排序及每日记录。
-- `/api/tasks` 与 `/api/tasks/{id}/restore`：创建、查询、编辑、归档和恢复任务，支持日期、状态和归档筛选。
-- `GET|POST /api/categories`：按任务、习惯或财务作用域列出、创建可单选分类。
-- `/api/health/{date}` 与 `/api/journal/{date}`：按日期读写健康/睡眠数据和 Markdown 日记；日记另支持图片附件和单日 Markdown 导出。
-- `/api/finance/accounts`、`/api/finance/transactions` 与 `/api/finance/summary`：管理 CNY 资产/负债账户、收入/支出/转账流水和总体财务摘要。
-- `GET /api/system/info` 与 `GET /api/system/backups`：返回应用版本、schema、当前 `LIFE_OS_HOME`、数据保护状态和可用备份。
-- `POST /api/system/backup`、`POST /api/system/export` 与 `POST /api/system/restore`：手动一致性备份、全量开放格式导出，以及安排在下次启动前执行的安全恢复。
-- `PUT /api/system/settings/backup`：保存 1–3650 范围内的备份保留数量。
-
-详细字段、状态码与验收行为见 [[接口验收清单]]。
-
-## 开发与测试
-
-开发依赖与测试命令：
+## 测试与构建
 
 ```bat
 .venv\Scripts\python.exe -m pip install -r requirements-dev.txt
 .venv\Scripts\python.exe -m pytest
-```
-
-测试使用临时 `LIFE_OS_HOME`，不会向默认 `life-os-data/` 写入测试状态。
-
-构建桌面便携包：
-
-```bat
 build_desktop.bat
+.venv\Scripts\python.exe scripts\package_release.py --version 0.1.0
 ```
 
-脚本会安装 `requirements-build.txt`、生成应用图标，并通过 `LifeOS.spec` 重建 `dist/LifeOS/`。该目录已被 Git 忽略，发布时应整体复制；构建要求 64 位 Python 3.12+，本轮已在 Python 3.14.6 上验证。
+最后两条命令分别生成 `dist/LifeOS/` 便携目录，以及带 SHA-256 校验文件的 `release/LifeOS-v0.1.0-windows-x64.zip`。GitHub Actions 会在 Windows + Python 3.12 环境执行完整测试套件。
 
-## 数据库基础
+## 技术结构
 
-首次启动会自动创建 `LIFE_OS_HOME/database/life.db`，不需要手工执行 SQL。当前 schema 版本为 `4`，在既有生活数据表外包含财务表与任务、习惯、财务分类表。现有 schema v1–v3 会在启动时原地升级，并按作用域把旧任务、习惯和财务流水中的非空分类回填为单选选项，不删除既有数据。
+- 后端：Python、Flask、Flask-SQLAlchemy、SQLite。
+- 前端：Jinja、原生 JavaScript ES Modules、HTML/CSS，无 Node.js 构建链。
+- 桌面宿主：Waitress 随机回环端口、pywebview、Edge WebView2。
+- 发行：PyInstaller `onedir`，应用版本与 Windows 文件版本统一为 `0.1.0`。
+- 数据模型：schema v4，可从 schema v1–v3 原地升级。
 
-每个连接启用 SQLite 外键约束、5 秒 busy timeout、WAL 与 NORMAL synchronous；启动后执行完整性检查，正常关闭时执行 WAL checkpoint。日期解析优先使用用户显式标记，其次使用程序内置的国务院办公厅 2025、2026 年节假日安排，最后才按周一至周五为工作日、周六与周日为休息日推断。用户标记始终可以覆盖官方预置；清除后会恢复官方预置或星期推断。官方来源为[2025 年通知](https://www.gov.cn/zhengce/zhengceku/202411/content_6986383.htm)与[2026 年通知](https://www.gov.cn/zhengce/content/202511/content_7047090.htm)，未正式公布的年份不做猜测。
+核心接口统一使用 `{"success": true, "data": ...}` 或 `{"success": false, "error": ...}`。接口字段与验收行为见[接口验收清单](接口验收清单.md)，数据库结构见[数据库模型](数据库模型.md)。
 
-## 当前边界
+## v0.1 边界
 
-M4 已完成 Today Dashboard、独立日历页、任意日期访问、未来任务快速规划、工作/休息日标记、统一 API Client 和前端状态框架。“今日”只呈现设备本地当天数据；过去与未来月份、完整日期聚合和节假日/自定义标记统一在 `/calendar` 中处理。月历在公历日期下显示本机离线派生的农历，并用“休/班”文字徽标区分法定放假与调休上班。日历详情与 Today 使用相同的任务、习惯、生活节律、日记和财务布局，其中生活节律概览只显示睡眠时长、体重、运动和身体健康；未来日期可以新增安排到当天的任务。主内容随视口自适应填满可用空间，超宽屏自动分栏、窄屏保持单列。
+当前版本不包含云同步、账户体系、手机 App、消息提醒、财务预算/账单导入、多币种、投资分析、复杂富文本、CSV 回导或 AI 分析。日历内置 2025、2026 年正式公布的法定节假日安排；未正式公布的年份不会猜测。
 
-M4.5 已完成桌面入口、Waitress 生命周期、动态回环端口、WebView 缓存归位、冻结资源定位、统一 Logo 图标/版本资源和 `onedir` 构建脚本。M4 的主题增量已实现七套风格、即时切换、偏好恢复和本地 Logo；最终发布前仍需在 M8 的全新 Windows 设备上完成完整迁移和恢复验收。
+应用内备份不能替代异地备份或设备加密。重要数据应定期复制到独立介质，并验证 ZIP 导出或 SQLite 备份能够打开。
 
-M5 已完成 `/tasks` 与 `/habits` 独立管理页。任务支持创建、编辑、开始、完成、取消、重新打开、排序、归档与恢复；习惯支持创建、编辑、排序、停用、恢复，以及今天或过去日期的即时打卡。新增与编辑表单默认隐藏，点击按钮后以应用内模态窗口打开；任务和习惯分类是分作用域、可现场创建的单选项。Calendar 页首“回到今日”返回 Today，月历内部“回到今天”才会把日期详情、月历和 URL 同步定位到系统今天。Today 与 Calendar 的日期详情可直接切换任务和习惯状态，写入期间会阻止重复触发。
+## 文档
 
-M6 已完成 `/health`、`/journal` 与 `/finance` 独立管理页。生活节律支持睡眠、体重、运动、精力、情绪、身体状态和备注，起止时间自动计算跨午夜时长，也可手动修正；日记使用 1.2 秒防抖自动保存，支持插入当前 24 小时制时分、三级标题、图片、本地安全预览和单日 Markdown 导出；财务支持账户管理、可现场新增的单选分类、收入/支出/转账、流水编辑与软归档、账户余额以及资产负债和期间收支汇总。Today 与 Calendar 的生活节律、日记和财务标题区可携带当前日期进入完整管理页。图片保存在 `LIFE_OS_HOME/attachments/journal/`，导出文件保存在 `LIFE_OS_HOME/exports/journal/`。
+- [部署与迁移指南](部署与迁移指南.md)
+- [工程需求提纲](个人生活管理系统%20Life%20OS%20v0.1%20工程需求提纲.md)
+- [里程碑计划](里程碑计划.md)
+- [数据库模型](数据库模型.md)
+- [接口验收清单](接口验收清单.md)
+- [界面主题设计规范](界面主题设计规范.md)
+- [M8 系统验收与 v0.1 发布记录](M8系统验收与v0.1发布记录.md)
 
-M7 已开放 `/settings` 数据保护页。程序每天首次启动使用 SQLite backup API 创建一致性副本，也支持手动备份和 1–3650 份保留策略。全量导出在 `exports/export-<timestamp>/` 生成 UTF-8 BOM CSV、全部自包含 Markdown 日记、`manifest.json` 和可选 ZIP；财务金额使用 CNY 元与两位小数。界面恢复请求会在正常重启前校验备份、保存当前数据库安全副本并离线替换；数据库已经损坏、无法进入界面时，可在 Life OS 完全关闭后执行 `LifeOS.exe --home "D:\LifeOSData" --restore "备份文件名.db"`。完整步骤与迁移演练见 [[部署与迁移指南]] 和 [[M7数据保护与迁移建设记录]]。
+## 许可说明
+
+当前仓库尚未附加开源许可证，默认保留所有权利。若计划开放协作或二次分发，应先明确并补充许可证。

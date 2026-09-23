@@ -6,5 +6,6 @@
 /htmlcov/
 /build/
 /dist/
+/release/
 /packaging/generated/
 *.py[cod]

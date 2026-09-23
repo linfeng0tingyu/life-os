@@ -139,6 +139,30 @@ def test_backup_failure_leaves_main_database_readable(
         DataProtectionService.create_backup(paths, 30)
 
     assert paths.database_file.read_bytes() == before
+
+
+def test_export_failure_cleans_partial_files_and_preserves_database(
+    app, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _seed_all_domains(app)
+    paths = app.extensions["life_os_runtime"]
+
+    def fail_write(*_args, **_kwargs):
+        raise OSError("simulated disk write failure")
+
+    monkeypatch.setattr(DataProtectionService, "_write_csv", fail_write)
+    with pytest.raises(DataProtectionError, match="全量导出失败"):
+        DataProtectionService.export_all(
+            paths,
+            app_version="test-version",
+            schema_version=4,
+        )
+
+    assert list(paths.exports_dir.iterdir()) == []
+    with sqlite3.connect(paths.database_file) as connection:
+        assert connection.execute("SELECT name FROM habits").fetchone() == (
+            "阅读中文",
+        )
     with app.app_context():
         assert db.session.scalar(select(Habit.name)) == "阅读中文"
 

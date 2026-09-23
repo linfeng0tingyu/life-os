@@ -22,7 +22,7 @@ from .services.data_protection_service import (
 )
 
 
-__version__ = "0.1.0-dev"
+__version__ = "0.1.0"
 
 
 def create_app(

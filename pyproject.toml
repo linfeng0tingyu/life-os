@@ -1,6 +1,6 @@
 [project]
 name = "life-os"
-version = "0.1.0.dev0"
+version = "0.1.0"
 description = "Local-first personal life management system"
 requires-python = ">=3.12"
 dependencies = [

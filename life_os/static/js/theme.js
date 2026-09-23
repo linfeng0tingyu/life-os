@@ -48,6 +48,12 @@
 
   function readTheme() {
     try {
+      const preview = new URLSearchParams(window.location.search).get("theme");
+      if (THEMES.has(preview)) return preview;
+    } catch (_error) {
+      // Invalid or unavailable URLs fall back to the persisted preference.
+    }
+    try {
       const stored = window.localStorage.getItem(STORAGE_KEY);
       if (THEMES.has(stored)) return stored;
     } catch (_error) {
