@@ -35,7 +35,7 @@ def test_release_version_and_metadata_are_final() -> None:
 
 
 def test_theme_preview_query_is_restricted_to_supported_themes() -> None:
-    script = (PROJECT_ROOT / "life_os/static/js/theme.js").read_text("utf-8")
+    script = (PROJECT_ROOT / "src/life_os/static/js/theme.js").read_text("utf-8")
     assert 'new URLSearchParams(window.location.search).get("theme")' in script
     assert "if (THEMES.has(preview)) return preview;" in script
 
@@ -43,7 +43,7 @@ def test_theme_preview_query_is_restricted_to_supported_themes() -> None:
 def test_github_readme_references_logo_and_all_theme_screenshots() -> None:
     readme = (PROJECT_ROOT / "README.md").read_text("utf-8")
     assets = [
-        "design-assets/logo-concepts/"
+        "assets/branding/logo-concepts/"
         "life-os-logo-02a-ref-a-full-landscape-contained.png",
         "docs/images/themes/default.png",
         "docs/images/themes/bamboo.png",

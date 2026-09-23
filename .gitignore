@@ -8,4 +8,5 @@
 /dist/
 /release/
 /packaging/generated/
+/LifeOS.exe
 *.py[cod]

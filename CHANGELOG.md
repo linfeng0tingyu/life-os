@@ -2,7 +2,7 @@
 title: "Life OS Changelog"
 type: changelog
 created: 2026-09-23T09:15:00+08:00
-updated: 2026-09-23T13:58:00+08:00
+updated: 2026-09-23T14:10:19+08:00
 status: completed
 ---
 
@@ -15,6 +15,12 @@ status: completed
 - 信用卡负债账户支持 1–28 日的每月账单日，默认采用 18 日。
 - 财务页增加账期视图、信用卡消费与还款快捷入口；还款使用现有账户转账，账期在账单日次日自动滚动。
 - 数据库升级到 schema v5，原有信用账户安全补入默认账单日，账户 CSV 导出增加 `billing_day`。
+
+### 工程整理
+
+- 应用源码统一归入 `src/`，产品、架构、设计、指南和里程碑文档分别归档到 `docs/` 子目录。
+- 品牌素材和设计试作统一归入 `assets/`，PyInstaller 配置统一归入 `packaging/`。
+- 构建流程新增项目根目录单文件 `LifeOS.exe`，同时保留 `dist/LifeOS/` 目录型便携发行包。
 
 ## 0.1.0 — 2026-09-23
 

@@ -135,7 +135,7 @@ def resolve_program_root() -> Path:
     """Return the source root or the directory containing a frozen executable."""
     if getattr(sys, "frozen", False):
         return Path(sys.executable).resolve(strict=False).parent
-    return Path(__file__).resolve().parents[1]
+    return Path(__file__).resolve().parents[2]
 
 
 def initialize_runtime(paths: RuntimePaths, app_version: str) -> RuntimePaths:

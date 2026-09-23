@@ -30,19 +30,19 @@ if errorlevel 1 goto failed
 if /i "%~1"=="--no-browser" goto run_default_no_browser
 if "%~1"=="" goto run_default
 if /i "%~2"=="--no-browser" goto run_custom_no_browser
-".venv\Scripts\python.exe" "app.py" --home "%~f1"
+".venv\Scripts\python.exe" "src\app.py" --home "%~f1"
 goto finished
 
 :run_custom_no_browser
-".venv\Scripts\python.exe" "app.py" --home "%~f1" --no-browser
+".venv\Scripts\python.exe" "src\app.py" --home "%~f1" --no-browser
 goto finished
 
 :run_default
-".venv\Scripts\python.exe" "app.py"
+".venv\Scripts\python.exe" "src\app.py"
 goto finished
 
 :run_default_no_browser
-".venv\Scripts\python.exe" "app.py" --no-browser
+".venv\Scripts\python.exe" "src\app.py" --no-browser
 goto finished
 
 :no_python

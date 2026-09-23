@@ -1,6 +1,6 @@
 ---
 created: 2026-09-18T13:51:18+08:00
-updated: 2026-09-23T13:58:00+08:00
+updated: 2026-09-23T14:10:19+08:00
 status: draft
 ---
 
@@ -43,7 +43,7 @@ v0.1 的目标是建立一个可靠、易迁移、可长期维护的最小可用
 - 正式运行时由 pywebview 提供独立桌面窗口，Windows 使用 WebView2 渲染；外部浏览器仅作为开发与故障诊断入口
 - pywebview 只承担窗口与生命周期管理，业务读写仍统一通过 REST API，不启用新的 JS-Python 业务桥接
 - 支持“默认、古风竹青、古风藏青、古风水色、新拟物派、macOS 毛玻璃、吉卜力风格”七套本地主题；主题选择由 CSS Token 与组件覆盖实现，不复制页面和业务脚本
-- 项目 Logo 固定使用 `design-assets/logo-concepts/life-os-logo-02a-ref-a-full-landscape-contained.png`，页面使用其本地静态副本，桌面图标从同一源文件生成
+- 项目 Logo 固定使用 `assets/branding/logo-concepts/life-os-logo-02a-ref-a-full-landscape-contained.png`，页面使用其本地静态副本，桌面图标从同一源文件生成
 - 页面品牌 Logo 与 Windows 应用图标应充分利用图标画布，视觉尺寸参考 Chrome、ChatGPT 等常用桌面应用，不能因透明留白而显得明显偏小
 - v0.1 不引入 React、Vue、Angular 或 Node.js 构建链
 - Chart.js、FullCalendar、Markdown 渲染器等库只有在确有需要时才引入，并应固定版本、随应用本地分发，不以 CDN 可用为运行前提
@@ -102,35 +102,30 @@ Python 虚拟环境、pip 下载缓存和开发者外部浏览器的缓存不属
 
 ```text
 life-os/
-├── app.py                       # 源码开发与诊断入口
-├── desktop_entry.py             # 正式桌面入口
+├── LifeOS.exe                   # 构建后位于根目录的单文件桌面入口
 ├── requirements.txt
 ├── requirements-dev.txt
 ├── requirements-build.txt
-├── LifeOS.spec
 ├── README.md
 ├── start.bat
 ├── build_desktop.bat
-├── life_os/
-│   ├── __init__.py              # Flask app factory
-│   ├── runtime.py
-│   ├── settings.py
-│   ├── desktop/                 # M4.5：窗口与 WSGI 生命周期
-│   ├── models/
-│   ├── routes/
-│   ├── services/
-│   │   ├── backup_service.py
-│   │   ├── export_service.py
-│   │   └── statistics_service.py
-│   ├── templates/
-│   ├── static/
-│   │   ├── css/
-│   │   │   └── themes.css       # 七套主题 Token 与组件装饰
-│   │   ├── js/
-│   │   │   └── theme.js         # 主题校验、切换与本地偏好
-│   │   ├── images/              # Logo 等本地品牌资源
-│   │   └── vendor/
-│   └── utils/
+├── src/
+│   ├── app.py                   # 源码开发与诊断入口
+│   ├── desktop_entry.py         # 正式桌面入口
+│   └── life_os/
+│       ├── __init__.py          # Flask app factory
+│       ├── runtime.py
+│       ├── settings.py
+│       ├── desktop/             # M4.5：窗口与 WSGI 生命周期
+│       ├── models/
+│       ├── routes/
+│       ├── services/
+│       ├── templates/
+│       └── static/
+├── packaging/                   # PyInstaller spec、图标和版本资源
+├── scripts/                     # 环境引导、图标和发行脚本
+├── assets/                      # 品牌原稿和设计试作
+├── docs/                        # 分类后的产品、架构、设计与阶段文档
 └── tests/
 ```
 
@@ -384,7 +379,7 @@ v0.1 不实现：AI 分析、财务预算/账单自动导入/投资收益分析�
 - 数据库：SQLite
 - 前端：HTML + CSS + Vanilla JavaScript
 - 界面主题：七套主题共用语义 DOM、业务脚本与 REST API，以 `data-theme`、CSS Custom Properties 和本地界面偏好切换
-- 项目 Logo：`design-assets/logo-concepts/life-os-logo-02a-ref-a-full-landscape-contained.png`
+- 项目 Logo：`assets/branding/logo-concepts/life-os-logo-02a-ref-a-full-landscape-contained.png`
 - 桌面宿主：pywebview；Windows 渲染运行时为 Microsoft Edge WebView2
 - 正式本地服务：Waitress；Flask 开发服务器仅用于源码调试
 - Windows 构建：PyInstaller `onedir`；不采用 `onefile` 作为 v0.1 默认发行形态

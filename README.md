@@ -2,7 +2,7 @@
 title: "Life OS"
 type: project-readme
 created: 2026-09-18T14:30:00+08:00
-updated: 2026-09-23T13:58:00+08:00
+updated: 2026-09-23T14:10:19+08:00
 status: completed
 related:
   - "[[项目说明]]"
@@ -12,7 +12,7 @@ related:
 ---
 
 <p align="center">
-  <img src="design-assets/logo-concepts/life-os-logo-02a-ref-a-full-landscape-contained.png" alt="Life OS Logo" width="760">
+  <img src="assets/branding/logo-concepts/life-os-logo-02a-ref-a-full-landscape-contained.png" alt="Life OS Logo" width="760">
 </p>
 
 <p align="center">
@@ -61,7 +61,7 @@ Life OS 以“某一天”为核心组织个人生活信息。“今日”提供
 
 ## Windows 便携版
 
-从 GitHub Releases 下载 `LifeOS-v0.1.0-windows-x64.zip`，解压后保持目录结构不变，双击 `LifeOS/LifeOS.exe` 即可。普通使用不需要安装 Python、Node.js、SQLite 服务或外部浏览器。
+项目目录内可直接双击最外层的 `LifeOS.exe`；它是无外部依赖目录的单文件桌面入口。正式分发仍使用体积更稳定、启动更快的目录型便携包：从 GitHub Releases 下载 `LifeOS-v0.1.0-windows-x64.zip`，解压后保持目录结构不变，双击 `LifeOS/LifeOS.exe` 即可。普通使用不需要安装 Python、Node.js、SQLite 服务或外部浏览器。
 
 目标环境：
 
@@ -76,7 +76,7 @@ Life OS 以“某一天”为核心组织个人生活信息。“今日”提供
 LifeOS.exe --home "D:\LifeOSData"
 ```
 
-完整的安装、迁移、备份和恢复步骤见[部署与迁移指南](部署与迁移指南.md)。
+完整的安装、迁移、备份和恢复步骤见[部署与迁移指南](docs/guides/部署与迁移指南.md)。
 
 ## 数据完全在本机
 
@@ -107,9 +107,9 @@ start.bat
 首次执行会创建项目内 `.venv` 并安装依赖。诊断命令：
 
 ```bat
-.venv\Scripts\python.exe app.py --check
-.venv\Scripts\python.exe app.py --no-browser
-.venv\Scripts\python.exe app.py --home "D:\LifeOSData"
+.venv\Scripts\python.exe src\app.py --check
+.venv\Scripts\python.exe src\app.py --no-browser
+.venv\Scripts\python.exe src\app.py --home "D:\LifeOSData"
 ```
 
 ## 测试与构建
@@ -121,7 +121,24 @@ build_desktop.bat
 .venv\Scripts\python.exe scripts\package_release.py --version 0.1.0
 ```
 
-最后两条命令分别生成 `dist/LifeOS/` 便携目录，以及带 SHA-256 校验文件的 `release/LifeOS-v0.1.0-windows-x64.zip`。GitHub Actions 会在 Windows + Python 3.12 环境执行完整测试套件。
+`build_desktop.bat` 同时生成项目根目录的单文件 `LifeOS.exe` 和 `dist/LifeOS/` 目录型便携包；最后一条命令生成带 SHA-256 校验文件的 `release/LifeOS-v0.1.0-windows-x64.zip`。GitHub Actions 会在 Windows + Python 3.12 环境执行完整测试套件。
+
+## 项目目录
+
+```text
+LifeOS.exe                  # 根目录直接启动入口（构建产物）
+src/                        # Python、模板、CSS 与 JavaScript 源码
+tests/                      # 自动化测试
+scripts/                    # 环境引导、图标和发行脚本
+packaging/                  # PyInstaller 与 Windows 版本资源
+assets/                     # 品牌原稿和设计试作
+docs/                       # 产品、架构、设计、指南和阶段记录
+dist/                       # 目录型桌面构建产物
+release/                    # 对外发布压缩包与校验文件
+life-os-data/               # 唯一可变数据目录
+```
+
+目录分类说明和全部文档入口见 [docs/README.md](docs/README.md)。
 
 ## 技术结构
 
@@ -131,7 +148,7 @@ build_desktop.bat
 - 发行：PyInstaller `onedir`，应用版本与 Windows 文件版本统一为 `0.1.0`。
 - 数据模型：schema v5，可从 schema v1–v4 原地升级。
 
-核心接口统一使用 `{"success": true, "data": ...}` 或 `{"success": false, "error": ...}`。接口字段与验收行为见[接口验收清单](接口验收清单.md)，数据库结构见[数据库模型](数据库模型.md)。
+核心接口统一使用 `{"success": true, "data": ...}` 或 `{"success": false, "error": ...}`。接口字段与验收行为见[接口验收清单](docs/product/接口验收清单.md)，数据库结构见[数据库模型](docs/architecture/数据库模型.md)。
 
 ## v0.1 边界
 
@@ -141,13 +158,14 @@ build_desktop.bat
 
 ## 文档
 
-- [部署与迁移指南](部署与迁移指南.md)
-- [工程需求提纲](个人生活管理系统%20Life%20OS%20v0.1%20工程需求提纲.md)
-- [里程碑计划](里程碑计划.md)
-- [数据库模型](数据库模型.md)
-- [接口验收清单](接口验收清单.md)
-- [界面主题设计规范](界面主题设计规范.md)
-- [M8 系统验收与 v0.1 发布记录](M8系统验收与v0.1发布记录.md)
+- [文档目录](docs/README.md)
+- [部署与迁移指南](docs/guides/部署与迁移指南.md)
+- [工程需求提纲](docs/product/个人生活管理系统%20Life%20OS%20v0.1%20工程需求提纲.md)
+- [里程碑计划](docs/product/里程碑计划.md)
+- [数据库模型](docs/architecture/数据库模型.md)
+- [接口验收清单](docs/product/接口验收清单.md)
+- [界面主题设计规范](docs/design/界面主题设计规范.md)
+- [M8 系统验收与 v0.1 发布记录](docs/milestones/M8系统验收与v0.1发布记录.md)
 
 ## 许可说明
 

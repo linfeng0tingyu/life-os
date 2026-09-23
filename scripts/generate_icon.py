@@ -10,7 +10,7 @@ ICON_CONTENT_SIZE = 1000
 VISIBLE_ALPHA_THRESHOLD = 8
 ICON_SIZES = (16, 24, 32, 48, 64, 128, 256)
 LOGO_SOURCE = (
-    "design-assets/logo-concepts/"
+    "assets/branding/logo-concepts/"
     "life-os-logo-02a-ref-a-full-landscape-contained.png"
 )
 

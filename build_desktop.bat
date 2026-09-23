@@ -28,20 +28,28 @@ if errorlevel 1 goto failed
 ".venv\Scripts\python.exe" "scripts\generate_icon.py"
 if errorlevel 1 goto failed
 
-".venv\Scripts\python.exe" -m PyInstaller --clean --noconfirm "LifeOS.spec"
+".venv\Scripts\python.exe" -m PyInstaller --clean --noconfirm "packaging\LifeOS.spec"
+if errorlevel 1 goto failed
+
+".venv\Scripts\python.exe" -m PyInstaller --clean --noconfirm --distpath "." --workpath "build\root-exe" "packaging\LifeOS-root.spec"
 if errorlevel 1 goto failed
 
 copy /Y "README.md" "dist\LifeOS\README.md" >nul
 if errorlevel 1 goto failed
-copy /Y "部署与迁移指南.md" "dist\LifeOS\部署与迁移指南.md" >nul
+copy /Y "docs\guides\部署与迁移指南.md" "dist\LifeOS\部署与迁移指南.md" >nul
 if errorlevel 1 goto failed
 copy /Y "CHANGELOG.md" "dist\LifeOS\CHANGELOG.md" >nul
 if errorlevel 1 goto failed
 copy /Y "LICENSE" "dist\LifeOS\LICENSE" >nul
 if errorlevel 1 goto failed
+xcopy /E /I /Y "docs" "dist\LifeOS\docs" >nul
+if errorlevel 2 goto failed
+xcopy /E /I /Y "assets\branding" "dist\LifeOS\assets\branding" >nul
+if errorlevel 2 goto failed
 
 echo.
-echo Life OS desktop package is ready: dist\LifeOS\LifeOS.exe
+echo Life OS root executable is ready: LifeOS.exe
+echo Life OS portable package is ready: dist\LifeOS\LifeOS.exe
 exit /b 0
 
 :no_python
