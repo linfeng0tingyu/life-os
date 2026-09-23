@@ -2,7 +2,7 @@
 title: "Life OS 文档目录"
 type: project-document-index
 created: 2026-09-23T14:10:19+08:00
-updated: 2026-09-23T14:10:19+08:00
+updated: 2026-09-23T16:21:16+08:00
 status: active
 related:
   - "[[项目说明]]"
@@ -30,6 +30,7 @@ related:
 
 - [[Life OS 前端界面设计规范（Codex 执行版）]]：原始视觉与交互设计基线。
 - [[界面主题设计规范]]：七套主题的设计与实现规则。
+- [[七套界面风格可复用前端设计提纲]]：面向其他软件的主题 Token、组件规则、移植步骤与验收基线。
 
 ## guides
 
