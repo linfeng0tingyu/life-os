@@ -24,7 +24,10 @@ from .journal_asset_service import JournalAssetService
 
 
 BACKUP_PATTERN = re.compile(
-    r"^life-os-(?:\d{8}-auto|\d{8}-\d{6}-\d{6}-manual)\.db$"
+    r"^life-os-(?:"
+    r"\d{8}(?:-\d{4})?-auto|"
+    r"\d{8}-(?:\d{4}(?:-\d{2,})?|\d{6}-\d{6})-manual"
+    r")\.db$"
 )
 RESTORE_CONFIRMATION = "恢复此备份"
 _operation_lock = threading.RLock()
@@ -159,19 +162,23 @@ class DataProtectionService:
         moment = now or datetime.now().astimezone()
         if moment.tzinfo is None:
             moment = moment.astimezone()
-        if kind == "auto":
-            filename = f"life-os-{moment:%Y%m%d}-auto.db"
-        else:
-            filename = f"life-os-{moment:%Y%m%d-%H%M%S-%f}-manual.db"
-        destination = paths.backups_dir / filename
 
         with _operation_lock:
-            if kind == "auto" and destination.is_file():
-                removed = DataProtectionService._prune(paths, retention_count)
-                return BackupResult(
-                    DataProtectionService._record(paths, destination),
-                    False,
-                    removed,
+            if kind == "auto":
+                existing = DataProtectionService._daily_auto_backup(paths, moment)
+                if existing is not None:
+                    removed = DataProtectionService._prune(paths, retention_count)
+                    return BackupResult(
+                        DataProtectionService._record(paths, existing),
+                        False,
+                        removed,
+                    )
+                destination = (
+                    paths.backups_dir / f"life-os-{moment:%Y%m%d-%H%M}-auto.db"
+                )
+            else:
+                destination = DataProtectionService._next_manual_backup_path(
+                    paths, moment
                 )
             try:
                 DataProtectionService._atomic_backup(
@@ -189,6 +196,41 @@ class DataProtectionService:
         return BackupResult(
             DataProtectionService._record(paths, destination), True, removed
         )
+
+    @staticmethod
+    def _daily_auto_backup(
+        paths: RuntimePaths, moment: datetime
+    ) -> Path | None:
+        prefix = f"life-os-{moment:%Y%m%d}"
+        candidates = [
+            path
+            for path in paths.backups_dir.iterdir()
+            if path.is_file()
+            and path.name.startswith(prefix)
+            and path.name.endswith("-auto.db")
+            and BACKUP_PATTERN.fullmatch(path.name)
+        ]
+        if not candidates:
+            return None
+        return max(
+            candidates,
+            key=lambda path: (path.stat().st_mtime_ns, path.name),
+        )
+
+    @staticmethod
+    def _next_manual_backup_path(
+        paths: RuntimePaths, moment: datetime
+    ) -> Path:
+        timestamp = f"{moment:%Y%m%d-%H%M}"
+        candidate = paths.backups_dir / f"life-os-{timestamp}-manual.db"
+        sequence = 2
+        while candidate.exists():
+            candidate = (
+                paths.backups_dir
+                / f"life-os-{timestamp}-{sequence:02d}-manual.db"
+            )
+            sequence += 1
+        return candidate
 
     @staticmethod
     def list_backups(paths: RuntimePaths) -> list[BackupRecord]:
@@ -468,6 +510,8 @@ class DataProtectionService:
     @staticmethod
     def _atomic_backup(source: Path, destination: Path) -> None:
         destination.parent.mkdir(parents=True, exist_ok=True)
+        if destination.exists():
+            raise FileExistsError(f"拒绝覆盖已有备份：{destination.name}")
         temporary: Path | None = None
         try:
             with tempfile.NamedTemporaryFile(
@@ -479,6 +523,8 @@ class DataProtectionService:
                 temporary = Path(handle.name)
             DataProtectionService._copy_database(source, temporary)
             DataProtectionService._validate_database(temporary)
+            if destination.exists():
+                raise FileExistsError(f"拒绝覆盖已有备份：{destination.name}")
             os.replace(temporary, destination)
         finally:
             if temporary is not None:

@@ -34,6 +34,17 @@ def test_release_version_and_metadata_are_final() -> None:
     ).read_text("utf-8")
 
 
+def test_development_and_build_rules_protect_runtime_backups() -> None:
+    gitignore = (PROJECT_ROOT / ".gitignore").read_text("utf-8")
+    build_script = (PROJECT_ROOT / "build_desktop.bat").read_text("utf-8").lower()
+    project_rules = (PROJECT_ROOT / "AGENTS.md").read_text("utf-8")
+
+    assert "/life-os-data/" in gitignore
+    assert "life-os-data" not in build_script
+    assert "life-os-data/backups/" in project_rules
+    assert "独立的临时" in project_rules
+
+
 def test_theme_preview_query_is_restricted_to_supported_themes() -> None:
     script = (PROJECT_ROOT / "src/life_os/static/js/theme.js").read_text("utf-8")
     assert 'new URLSearchParams(window.location.search).get("theme")' in script

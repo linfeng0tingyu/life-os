@@ -2,7 +2,7 @@
 title: "Life OS Changelog"
 type: changelog
 created: 2026-09-23T09:15:00+08:00
-updated: 2026-09-23T14:10:19+08:00
+updated: 2026-09-23T15:02:13+08:00
 status: completed
 ---
 
@@ -21,6 +21,11 @@ status: completed
 - 应用源码统一归入 `src/`，产品、架构、设计、指南和里程碑文档分别归档到 `docs/` 子目录。
 - 品牌素材和设计试作统一归入 `assets/`，PyInstaller 配置统一归入 `packaging/`。
 - 构建流程新增项目根目录单文件 `LifeOS.exe`，同时保留 `dist/LifeOS/` 目录型便携发行包。
+
+### 数据保护
+
+- 自动与手动数据库备份名称统一包含精确到分钟的 `YYYYMMDD-HHMM`，同一分钟重复手动备份使用顺序号且不覆盖已有文件。
+- 保持旧备份命名兼容；源码修改、测试、构建和打包流程明确禁止操作真实 `life-os-data/backups/`。
 
 ## 0.1.0 — 2026-09-23
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import sqlite3
 import zipfile
@@ -101,7 +102,10 @@ def test_consistent_backup_and_retention_policy(app, tmp_path: Path) -> None:
 
     backups = DataProtectionService.list_backups(paths)
     assert len(backups) == 2
-    assert backups[0].filename.startswith("life-os-20260922-080002")
+    assert [item.filename for item in backups] == [
+        "life-os-20260922-0800-03-manual.db",
+        "life-os-20260922-0800-02-manual.db",
+    ]
     for item in backups:
         with sqlite3.connect(paths.home / item.relative_path) as connection:
             assert connection.execute("PRAGMA integrity_check").fetchone() == ("ok",)
@@ -110,6 +114,27 @@ def test_consistent_backup_and_retention_policy(app, tmp_path: Path) -> None:
             ).fetchone() == ("阅读中文",)
     assert not list(paths.backups_dir.glob(".*.tmp-wal"))
     assert not list(paths.backups_dir.glob(".*.tmp-shm"))
+
+
+def test_same_minute_manual_backups_never_overwrite_existing_file(app) -> None:
+    paths = app.extensions["life_os_runtime"]
+    moment = datetime(2026, 9, 22, 8, 5, 42, tzinfo=timezone(timedelta(hours=8)))
+
+    first = DataProtectionService.create_backup(paths, 30, now=moment).backup
+    first_bytes = (paths.home / first.relative_path).read_bytes()
+    with app.app_context():
+        db.session.add(Habit(name="第二次备份新增记录"))
+        db.session.commit()
+    second = DataProtectionService.create_backup(paths, 30, now=moment).backup
+
+    assert first.filename == "life-os-20260922-0805-manual.db"
+    assert second.filename == "life-os-20260922-0805-02-manual.db"
+    assert (paths.home / first.relative_path).read_bytes() == first_bytes
+    with sqlite3.connect(paths.home / second.relative_path) as connection:
+        assert connection.execute(
+            "SELECT name FROM habits WHERE name = ?",
+            ("第二次备份新增记录",),
+        ).fetchone() == ("第二次备份新增记录",)
 
 
 def test_daily_backup_runs_only_once_per_date(tmp_path: Path) -> None:
@@ -121,7 +146,27 @@ def test_daily_backup_runs_only_once_per_date(tmp_path: Path) -> None:
 
     backups = list((runtime_home / "backups").glob("*-auto.db"))
     assert len(backups) == 1
+    assert re.fullmatch(r"life-os-\d{8}-\d{4}-auto\.db", backups[0].name)
     assert second.extensions["life_os_startup_backup"]["status"] == "current"
+
+
+def test_daily_backup_reuses_legacy_date_only_backup(app) -> None:
+    paths = app.extensions["life_os_runtime"]
+    legacy = paths.backups_dir / "life-os-20260922-auto.db"
+    DataProtectionService._atomic_backup(paths.database_file, legacy)
+
+    result = DataProtectionService.create_backup(
+        paths,
+        30,
+        kind="auto",
+        now=datetime(2026, 9, 22, 9, 15, tzinfo=timezone(timedelta(hours=8))),
+    )
+
+    assert result.created is False
+    assert result.backup.filename == legacy.name
+    assert [item.filename for item in DataProtectionService.list_backups(paths)] == [
+        legacy.name
+    ]
 
 
 def test_backup_failure_leaves_main_database_readable(
