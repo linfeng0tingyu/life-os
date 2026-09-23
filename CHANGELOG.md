@@ -2,11 +2,19 @@
 title: "Life OS Changelog"
 type: changelog
 created: 2026-09-23T09:15:00+08:00
-updated: 2026-09-23T10:43:00+08:00
+updated: 2026-09-23T13:58:00+08:00
 status: completed
 ---
 
 # Changelog
+
+## Unreleased
+
+### 新增
+
+- 信用卡负债账户支持 1–28 日的每月账单日，默认采用 18 日。
+- 财务页增加账期视图、信用卡消费与还款快捷入口；还款使用现有账户转账，账期在账单日次日自动滚动。
+- 数据库升级到 schema v5，原有信用账户安全补入默认账单日，账户 CSV 导出增加 `billing_day`。
 
 ## 0.1.0 — 2026-09-23
 

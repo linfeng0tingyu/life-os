@@ -33,6 +33,14 @@
         <div class="account-balance-list" data-account-balances></div>
       </section>
 
+      <section class="module credit-cycle-section" aria-labelledby="credit-cycle-title">
+        <div class="module-heading">
+          <div><p class="section-kicker">信用卡</p><h2 id="credit-cycle-title">账期与还款</h2></div>
+          <span class="state-label" data-credit-cycle-state role="status" aria-live="polite">加载中</span>
+        </div>
+        <div class="credit-cycle-grid" data-credit-card-cycles aria-busy="true"><p class="empty-state">正在读取信用卡账期…</p></div>
+      </section>
+
       <div class="finance-columns">
         <section class="module module-finance" aria-labelledby="transaction-list-title">
           <div class="module-heading"><div><p class="section-kicker">每日流水</p><h2 id="transaction-list-title">收支与转账</h2></div><span class="state-label" data-transaction-state>加载中</span></div>
@@ -56,8 +64,9 @@
             <label class="field"><span>账户名称</span><input type="text" name="name" maxlength="200" required placeholder="例如：工资卡"></label>
             <div class="field-grid">
               <label class="field"><span>账户性质</span><select name="kind"><option value="asset">资产</option><option value="liability">负债</option></select></label>
-              <label class="field"><span>账户类型</span><select name="account_type"><option value="cash">现金</option><option value="bank">银行卡</option><option value="credit">信用账户</option><option value="investment">投资</option><option value="other">其他</option></select></label>
+              <label class="field"><span>账户类型</span><select name="account_type"><option value="cash">现金</option><option value="bank">银行卡</option><option value="credit">信用卡</option><option value="investment">投资</option><option value="other">其他</option></select></label>
             </div>
+            <label class="field is-hidden" data-billing-day-field><span>每月账单日</span><input type="number" name="billing_day" min="1" max="28" step="1" value="18"><small>账单日后的次日自动进入下一账期；建议选择 1–28 日。</small></label>
             <label class="field"><span>期初余额（CNY）</span><input type="number" name="opening_balance" step="0.01" required value="0.00"><small>资产账户不得为负；负债账户请填写零或负数。</small></label>
             <div class="form-actions"><button class="button button-primary" type="submit">保存账户</button><button class="button button-quiet" type="button" data-action="cancel-account">取消</button></div>
           </form>

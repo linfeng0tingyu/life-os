@@ -76,7 +76,7 @@ def test_incompatible_schema_version_stops_startup(tmp_path: Path) -> None:
         create_app(runtime_home=runtime_home, testing=True)
 
 
-def test_schema_v1_is_migrated_to_v4_without_losing_data(tmp_path: Path) -> None:
+def test_schema_v1_is_migrated_to_v5_without_losing_data(tmp_path: Path) -> None:
     runtime_home = tmp_path / "runtime"
     first_app = create_app(runtime_home=runtime_home, testing=True)
     with first_app.app_context():
@@ -93,7 +93,7 @@ def test_schema_v1_is_migrated_to_v4_without_losing_data(tmp_path: Path) -> None
     with migrated_app.app_context():
         tables = set(inspect(db.engine).get_table_names())
         assert {"finance_accounts", "finance_transactions"} <= tables
-        assert db.session.get(SchemaMeta, "schema_version").value == "4"
+        assert db.session.get(SchemaMeta, "schema_version").value == "5"
         assert JournalService.get("2026-09-18").content == "keep me"
 
 
@@ -130,7 +130,7 @@ def test_schema_v2_migration_preserves_existing_category_values(
             text("SELECT scope, name FROM categories ORDER BY scope, name")
         ).all()
         assert rows == [("habit", "健康"), ("task", "工作")]
-        assert db.session.get(SchemaMeta, "schema_version").value == "4"
+        assert db.session.get(SchemaMeta, "schema_version").value == "5"
 
 
 def test_schema_v3_migration_adds_finance_scope_and_backfills_categories(
@@ -182,7 +182,7 @@ def test_schema_v3_migration_adds_finance_scope_and_backfills_categories(
             text("SELECT scope, name FROM categories ORDER BY scope, name")
         ).all()
         assert rows == [("finance", "餐饮")]
-        assert db.session.get(SchemaMeta, "schema_version").value == "4"
+        assert db.session.get(SchemaMeta, "schema_version").value == "5"
         db.session.execute(
             text(
                 "INSERT INTO categories "
@@ -191,6 +191,48 @@ def test_schema_v3_migration_adds_finance_scope_and_backfills_categories(
             )
         )
         db.session.commit()
+
+
+def test_schema_v4_migration_adds_credit_billing_day(tmp_path: Path) -> None:
+    runtime_home = tmp_path / "runtime"
+    first_app = create_app(runtime_home=runtime_home, testing=True)
+    with first_app.app_context():
+        db.session.execute(text("DROP TABLE finance_transactions"))
+        db.session.execute(text("DROP TABLE finance_accounts"))
+        db.session.execute(
+            text(
+                "CREATE TABLE finance_accounts ("
+                "id INTEGER NOT NULL PRIMARY KEY, name VARCHAR(200) NOT NULL, "
+                "kind VARCHAR(20) NOT NULL, account_type VARCHAR(20) NOT NULL, "
+                "currency VARCHAR(3) NOT NULL, opening_balance_minor INTEGER NOT NULL, "
+                "active BOOLEAN NOT NULL, sort_order INTEGER NOT NULL, "
+                "created_at VARCHAR(40) NOT NULL, updated_at VARCHAR(40) NOT NULL)"
+            )
+        )
+        db.session.execute(
+            text(
+                "INSERT INTO finance_accounts "
+                "(name, kind, account_type, currency, opening_balance_minor, active, "
+                "sort_order, created_at, updated_at) VALUES "
+                "('旧信用卡', 'liability', 'credit', 'CNY', -10000, 1, 0, 'now', 'now')"
+            )
+        )
+        db.session.execute(
+            text("UPDATE schema_meta SET value = '4' WHERE key = 'schema_version'")
+        )
+        db.session.commit()
+    checkpoint_database(first_app)
+
+    migrated_app = create_app(runtime_home=runtime_home, testing=True)
+    with migrated_app.app_context():
+        row = db.session.execute(
+            text(
+                "SELECT name, billing_day FROM finance_accounts "
+                "WHERE account_type = 'credit'"
+            )
+        ).one()
+        assert row == ("旧信用卡", 18)
+        assert db.session.get(SchemaMeta, "schema_version").value == "5"
 
 
 def test_existing_unversioned_database_stops_startup(tmp_path: Path) -> None:

@@ -20,6 +20,10 @@ class FinanceAccount(TimestampMixin, db.Model):
             "account_type IN ('cash', 'bank', 'credit', 'investment', 'other')",
             name="ck_finance_accounts_type",
         ),
+        CheckConstraint(
+            "billing_day IS NULL OR billing_day BETWEEN 1 AND 28",
+            name="ck_finance_accounts_billing_day",
+        ),
         CheckConstraint("currency = 'CNY'", name="ck_finance_accounts_currency"),
         Index("ix_finance_accounts_active_sort", "active", "sort_order", "id"),
     )
@@ -28,6 +32,7 @@ class FinanceAccount(TimestampMixin, db.Model):
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     kind: Mapped[str] = mapped_column(String(20), nullable=False)
     account_type: Mapped[str] = mapped_column(String(20), nullable=False)
+    billing_day: Mapped[int | None] = mapped_column(nullable=True)
     currency: Mapped[str] = mapped_column(String(3), nullable=False, default="CNY")
     opening_balance_minor: Mapped[int] = mapped_column(nullable=False, default=0)
     active: Mapped[bool] = mapped_column(

@@ -152,6 +152,80 @@
   background: var(--module-finance);
 }
 
+.credit-cycle-section {
+  margin-bottom: var(--space-5);
+  border-color: color-mix(in srgb, var(--finance-liability) 30%, var(--border));
+  background: color-mix(in srgb, var(--finance-account-surface) 88%, var(--surface));
+}
+
+.credit-cycle-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr));
+  gap: var(--space-4);
+}
+
+.credit-cycle-card {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid color-mix(in srgb, var(--finance-liability) 32%, var(--border));
+  border-left: 4px solid var(--finance-liability);
+  border-radius: var(--radius-control);
+  background: color-mix(in srgb, var(--surface) 82%, transparent);
+}
+
+.credit-cycle-head,
+.credit-cycle-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.credit-cycle-head h3,
+.credit-cycle-head p {
+  margin: 0;
+}
+
+.credit-cycle-status {
+  padding: 0.12rem 0.55rem;
+  border-radius: 999px;
+  color: var(--finance-liability);
+  background: color-mix(in srgb, var(--finance-liability) 12%, transparent);
+  font-weight: 750;
+  font-size: 0.76rem;
+}
+
+.credit-cycle-status.is-paid {
+  color: var(--finance-income);
+  background: color-mix(in srgb, var(--finance-income) 12%, transparent);
+}
+
+.credit-cycle-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.credit-cycle-metric {
+  display: grid;
+  gap: 0.1rem;
+  padding: var(--space-2) var(--space-3);
+  border-radius: calc(var(--radius-control) * 0.8);
+  background: color-mix(in srgb, var(--module-finance) 72%, transparent);
+}
+
+.credit-cycle-metric span,
+.credit-cycle-period {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.credit-cycle-metric strong {
+  font-variant-numeric: tabular-nums;
+}
+
 .finance-totals {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -332,5 +406,9 @@
   .topbar-actions .button,
   .period-filter .button {
     width: 100%;
+  }
+
+  .credit-cycle-metrics {
+    grid-template-columns: 1fr;
   }
 }

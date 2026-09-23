@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from datetime import date
+from calendar import monthrange
+from datetime import date, timedelta
 from decimal import Decimal, InvalidOperation
 
 from sqlalchemy import or_, select
@@ -25,6 +26,7 @@ ACCOUNT_KINDS = {"asset", "liability"}
 ACCOUNT_TYPES = {"cash", "bank", "credit", "investment", "other"}
 TRANSACTION_TYPES = {"income", "expense", "transfer"}
 MAX_MONEY_MINOR = 9_000_000_000_000_000
+DEFAULT_CREDIT_BILLING_DAY = 18
 
 
 def money_to_minor(value: object, field: str, *, positive: bool = False) -> int:
@@ -76,8 +78,14 @@ class FinanceService:
         opening_balance: object = "0.00",
         currency: str = "CNY",
         sort_order: int = 0,
+        billing_day: object = None,
     ) -> FinanceAccount:
         normalized_kind = choice(kind, "kind", ACCOUNT_KINDS)
+        normalized_type = choice(account_type, "account_type", ACCOUNT_TYPES)
+        normalized_billing_day = FinanceService._normalize_billing_day(
+            normalized_type, billing_day
+        )
+        FinanceService._validate_account_kind(normalized_kind, normalized_type)
         opening_minor = money_to_minor(opening_balance, "opening_balance")
         FinanceService._validate_opening_balance(normalized_kind, opening_minor)
         FinanceService._validate_currency(currency)
@@ -85,7 +93,8 @@ class FinanceService:
         account = FinanceAccount(
             name=required_text(name, "name", 200),
             kind=normalized_kind,
-            account_type=choice(account_type, "account_type", ACCOUNT_TYPES),
+            account_type=normalized_type,
+            billing_day=normalized_billing_day,
             currency=currency,
             opening_balance_minor=opening_minor,
             active=True,
@@ -106,6 +115,7 @@ class FinanceService:
         opening_balance: object = UNSET,
         active: object = UNSET,
         sort_order: object = UNSET,
+        billing_day: object = UNSET,
     ) -> FinanceAccount:
         account = FinanceService._get_account(account_id)
         normalized_kind = (
@@ -116,15 +126,26 @@ class FinanceService:
             if opening_balance is not UNSET
             else account.opening_balance_minor
         )
+        normalized_type = (
+            choice(account_type, "account_type", ACCOUNT_TYPES)
+            if account_type is not UNSET
+            else account.account_type
+        )
+        billing_value = billing_day if billing_day is not UNSET else (
+            account.billing_day if normalized_type == "credit" else None
+        )
+        normalized_billing_day = FinanceService._normalize_billing_day(
+            normalized_type, billing_value
+        )
+        FinanceService._validate_account_kind(normalized_kind, normalized_type)
         FinanceService._validate_opening_balance(normalized_kind, opening_minor)
         if name is not UNSET:
             account.name = required_text(name, "name", 200)
         if kind is not UNSET:
             account.kind = normalized_kind
         if account_type is not UNSET:
-            account.account_type = choice(
-                account_type, "account_type", ACCOUNT_TYPES
-            )
+            account.account_type = normalized_type
+        account.billing_day = normalized_billing_day
         if opening_balance is not UNSET:
             account.opening_balance_minor = opening_minor
         if active is not UNSET:
@@ -354,6 +375,86 @@ class FinanceService:
         }
 
     @staticmethod
+    def credit_card_cycle(
+        account_id: int, *, as_of: date | str | None = None
+    ) -> dict:
+        account = FinanceService._get_account(account_id)
+        if account.account_type != "credit":
+            raise ValidationError("只有信用卡账户可以查看账期。")
+        target = parse_life_date(as_of, "as_of") if as_of is not None else date.today()
+        billing_day = account.billing_day or DEFAULT_CREDIT_BILLING_DAY
+        candidate = _month_day(target.year, target.month, billing_day)
+        cycle_end = candidate if target <= candidate else _shift_month_day(candidate, 1)
+        previous_statement_date = _shift_month_day(cycle_end, -1)
+        cycle_start = previous_statement_date + timedelta(days=1)
+        previous_cycle_start = _shift_month_day(previous_statement_date, -1) + timedelta(
+            days=1
+        )
+        next_cycle_start = cycle_end + timedelta(days=1)
+
+        transactions = FinanceService.list_transactions(account_id=account.id)
+        statement_balance = FinanceService._account_balance_through(
+            account, transactions, previous_statement_date
+        )
+        balance = FinanceService._account_balance_through(account, transactions, target)
+        cycle_transactions = [
+            item for item in transactions if cycle_start <= item.date <= target
+        ]
+        current_spending = sum(
+            item.amount_minor
+            for item in cycle_transactions
+            if item.transaction_type == "expense"
+            and item.from_account_id == account.id
+        )
+        repayments = sum(
+            item.amount_minor
+            for item in cycle_transactions
+            if item.transaction_type == "transfer"
+            and item.to_account_id == account.id
+        )
+        credits = sum(
+            item.amount_minor
+            for item in cycle_transactions
+            if item.transaction_type == "income"
+            and item.to_account_id == account.id
+        )
+        statement_amount = max(-statement_balance, 0)
+        amount_due = max(statement_amount - repayments - credits, 0)
+        return {
+            "account": account,
+            "as_of": target,
+            "billing_day": billing_day,
+            "previous_cycle_start": previous_cycle_start,
+            "previous_statement_date": previous_statement_date,
+            "cycle_start": cycle_start,
+            "cycle_end": cycle_end,
+            "next_cycle_start": next_cycle_start,
+            "statement_amount_minor": statement_amount,
+            "repayments_minor": repayments,
+            "credits_minor": credits,
+            "amount_due_minor": amount_due,
+            "current_spending_minor": current_spending,
+            "outstanding_balance_minor": max(-balance, 0),
+            "status": "paid" if amount_due == 0 else "unpaid",
+        }
+
+    @staticmethod
+    def _account_balance_through(
+        account: FinanceAccount,
+        transactions: list[FinanceTransaction],
+        through_date: date,
+    ) -> int:
+        balance = account.opening_balance_minor
+        for item in transactions:
+            if item.date > through_date:
+                continue
+            if item.from_account_id == account.id:
+                balance -= item.amount_minor
+            if item.to_account_id == account.id:
+                balance += item.amount_minor
+        return balance
+
+    @staticmethod
     def _get_account(account_id: int, *, require_active: bool = False) -> FinanceAccount:
         normalized_id = FinanceService._validate_id(account_id, "account_id")
         account = db.session.get(FinanceAccount, normalized_id)
@@ -408,6 +509,23 @@ class FinanceService:
             raise ValidationError("负债账户的 opening_balance 必须为零或负数。")
 
     @staticmethod
+    def _validate_account_kind(kind: str, account_type: str) -> None:
+        if account_type == "credit" and kind != "liability":
+            raise ValidationError("信用卡必须使用负债账户性质。")
+
+    @staticmethod
+    def _normalize_billing_day(account_type: str, value: object) -> int | None:
+        if account_type != "credit":
+            if value is not None and value is not UNSET:
+                raise ValidationError("billing_day 仅适用于信用卡账户。")
+            return None
+        if value is None or value is UNSET:
+            return DEFAULT_CREDIT_BILLING_DAY
+        if isinstance(value, bool) or not isinstance(value, int) or not 1 <= value <= 28:
+            raise ValidationError("billing_day 必须是 1 到 28 的整数。")
+        return value
+
+    @staticmethod
     def _validate_currency(currency: object) -> None:
         if currency != "CNY":
             raise ValidationError("v0.1 只支持 CNY 汇总。")
@@ -422,3 +540,13 @@ class FinanceService:
         if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
             raise ValidationError(f"{field} 必须是正整数。")
         return value
+
+
+def _month_day(year: int, month: int, day: int) -> date:
+    return date(year, month, min(day, monthrange(year, month)[1]))
+
+
+def _shift_month_day(value: date, months: int) -> date:
+    index = value.year * 12 + value.month - 1 + months
+    year, zero_based_month = divmod(index, 12)
+    return _month_day(year, zero_based_month + 1, value.day)

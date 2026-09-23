@@ -5,6 +5,7 @@ from flask import Blueprint, request
 from life_os.api import json_object, query_bool, success_response
 from life_os.serializers import (
     finance_account_data,
+    finance_credit_cycle_data,
     finance_summary_data,
     finance_transaction_data,
 )
@@ -20,6 +21,7 @@ ACCOUNT_CREATE_FIELDS = {
     "opening_balance",
     "currency",
     "sort_order",
+    "billing_day",
 }
 ACCOUNT_UPDATE_FIELDS = (
     ACCOUNT_CREATE_FIELDS - {"currency"}
@@ -120,3 +122,11 @@ def get_summary():
         date_to=request.args.get("date_to"),
     )
     return success_response(finance_summary_data(summary))
+
+
+@blueprint.get("/api/finance/credit-cards/<int:account_id>/cycle")
+def get_credit_card_cycle(account_id: int):
+    cycle = FinanceService.credit_card_cycle(
+        account_id, as_of=request.args.get("as_of")
+    )
+    return success_response(finance_credit_cycle_data(cycle))

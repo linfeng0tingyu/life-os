@@ -139,6 +139,7 @@ def finance_account_data(
         "name": account.name,
         "kind": account.kind,
         "account_type": account.account_type,
+        "billing_day": account.billing_day,
         "currency": account.currency,
         "opening_balance": minor_to_money(account.opening_balance_minor),
         "active": account.active,
@@ -166,6 +167,28 @@ def finance_transaction_data(transaction: FinanceTransaction) -> dict[str, Any]:
         "archived_at": transaction.archived_at,
         "created_at": transaction.created_at,
         "updated_at": transaction.updated_at,
+    }
+
+
+def finance_credit_cycle_data(cycle: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "account": finance_account_data(cycle["account"]),
+        "as_of": cycle["as_of"].isoformat(),
+        "billing_day": cycle["billing_day"],
+        "previous_cycle_start": cycle["previous_cycle_start"].isoformat(),
+        "previous_statement_date": cycle["previous_statement_date"].isoformat(),
+        "cycle_start": cycle["cycle_start"].isoformat(),
+        "cycle_end": cycle["cycle_end"].isoformat(),
+        "next_cycle_start": cycle["next_cycle_start"].isoformat(),
+        "statement_amount": minor_to_money(cycle["statement_amount_minor"]),
+        "repayments": minor_to_money(cycle["repayments_minor"]),
+        "credits": minor_to_money(cycle["credits_minor"]),
+        "amount_due": minor_to_money(cycle["amount_due_minor"]),
+        "current_spending": minor_to_money(cycle["current_spending_minor"]),
+        "outstanding_balance": minor_to_money(
+            cycle["outstanding_balance_minor"]
+        ),
+        "status": cycle["status"],
     }
 
 

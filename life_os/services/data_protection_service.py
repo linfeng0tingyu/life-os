@@ -118,14 +118,15 @@ EXPORT_SPECS = (
     ),
     ExportSpec(
         "finance_accounts.csv",
-        "SELECT id, name, kind, account_type, currency, opening_balance_minor, "
+        "SELECT id, name, kind, account_type, billing_day, currency, "
+        "opening_balance_minor, "
         "active, sort_order, created_at, updated_at FROM finance_accounts "
         "ORDER BY sort_order, id",
         (
-            "id", "name", "kind", "account_type", "currency",
+            "id", "name", "kind", "account_type", "billing_day", "currency",
             "opening_balance", "active", "sort_order", "created_at", "updated_at",
         ),
-        lambda row: (*row[:5], _minor_to_amount(row[5]), *row[6:]),
+        lambda row: (*row[:6], _minor_to_amount(row[6]), *row[7:]),
     ),
     ExportSpec(
         "finance_transactions.csv",

@@ -12,7 +12,7 @@ from .models import SchemaMeta
 from .models.base import now_iso
 
 
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 5
 MINIMUM_MIGRATABLE_VERSION = 1
 
 
@@ -85,6 +85,8 @@ def initialize_database(app: Flask) -> None:
                     _migrate_categories_v4()
                 if stored_version_number < 4:
                     _backfill_finance_categories()
+                if stored_version_number < 5:
+                    _migrate_finance_accounts_v5()
                 version_record = db.session.get(SchemaMeta, "schema_version")
                 if version_record is None:
                     raise DatabaseVersionError(
@@ -170,6 +172,26 @@ def _backfill_finance_categories() -> None:
             "GROUP BY category"
         ),
         {"timestamp": timestamp},
+    )
+
+
+def _migrate_finance_accounts_v5() -> None:
+    columns = {
+        row[1]
+        for row in db.session.execute(text("PRAGMA table_info(finance_accounts)"))
+    }
+    if "billing_day" not in columns:
+        db.session.execute(
+            text(
+                "ALTER TABLE finance_accounts ADD COLUMN billing_day INTEGER "
+                "CHECK (billing_day IS NULL OR billing_day BETWEEN 1 AND 28)"
+            )
+        )
+    db.session.execute(
+        text(
+            "UPDATE finance_accounts SET billing_day = 18 "
+            "WHERE account_type = 'credit' AND billing_day IS NULL"
+        )
     )
 
 

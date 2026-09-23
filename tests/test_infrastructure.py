@@ -183,6 +183,9 @@ def test_m6_pages_expose_health_journal_and_finance_closed_loops(
     assert 'href="/journal" aria-current="page"' in journal_html
     assert 'data-page="finance"' in finance_html
     assert 'data-account-form' in finance_html
+    assert 'data-credit-card-cycles' in finance_html
+    assert 'name="billing_day"' in finance_html
+    assert '>信用卡</option>' in finance_html
     assert 'data-transaction-form' in finance_html
     assert 'data-finance-category-control' in finance_html
     assert 'name="category" data-category-select' in finance_html
@@ -215,6 +218,10 @@ def test_m6_frontend_uses_debounced_saves_and_explicit_finance_submit(
     assert "this.setDisabled(this.transactionForm, true)" in finance_script
     assert 'scope: "finance"' in finance_script
     assert 'api.delete(`/api/finance/transactions/${transaction.id}`)' in finance_script
+    assert 'loadCreditCardCycles()' in finance_script
+    assert '信用卡还款' in finance_script
+    assert 'fields.kind.value = "liability"' in finance_script
+    assert '账户已停用；历史账期保留为只读。' in finance_script
     assert '[this.nodes.healthLink, "/health"]' in summary_script
     assert '[this.nodes.journalLink, "/journal"]' in summary_script
     assert '[this.nodes.financeLink, "/finance"]' in summary_script

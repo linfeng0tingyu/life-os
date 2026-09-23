@@ -11,7 +11,7 @@ import pytest
 from sqlalchemy import select
 
 from life_os import create_app
-from life_os.database import checkpoint_database
+from life_os.database import SCHEMA_VERSION, checkpoint_database
 from life_os.extensions import db
 from life_os.models import (
     CalendarDay,
@@ -155,7 +155,7 @@ def test_export_failure_cleans_partial_files_and_preserves_database(
         DataProtectionService.export_all(
             paths,
             app_version="test-version",
-            schema_version=4,
+            schema_version=SCHEMA_VERSION,
         )
 
     assert list(paths.exports_dir.iterdir()) == []
@@ -173,7 +173,7 @@ def test_export_all_writes_bom_csv_markdown_manifest_and_zip(app) -> None:
     result = DataProtectionService.export_all(
         paths,
         app_version="test-version",
-        schema_version=4,
+        schema_version=SCHEMA_VERSION,
         include_zip=True,
         now=datetime(2026, 9, 22, 9, 30, tzinfo=timezone(timedelta(hours=8))),
     )
@@ -187,13 +187,14 @@ def test_export_all_writes_bom_csv_markdown_manifest_and_zip(app) -> None:
     transactions = (export_dir / "finance_transactions.csv").read_text(
         encoding="utf-8-sig"
     )
+    assert "billing_day" in accounts
     assert "123.45" in accounts
     assert "88.88" in transactions
     assert "# 今日记录" in (export_dir / "journal" / "2026-09-22.md").read_text(
         encoding="utf-8"
     )
     manifest = json.loads((export_dir / "manifest.json").read_text(encoding="utf-8"))
-    assert manifest["schema_version"] == 4
+    assert manifest["schema_version"] == SCHEMA_VERSION
     assert manifest["row_counts"]["journal"] == 1
     zip_path = paths.home / result["zip_relative_path"]
     with zipfile.ZipFile(zip_path) as archive:
