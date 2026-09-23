@@ -1,6 +1,16 @@
 import { api, ApiError } from "../api/client.js";
-import { longDateLabel, normalizeDate, toLocalDateString } from "../utils/date.js";
+import { element, replace } from "../components/dom.js";
 import { renderMarkdownPreview } from "../components/markdown-preview.js";
+import {
+  longDateLabel,
+  mondayOffset,
+  monthKey,
+  monthLabel,
+  normalizeDate,
+  parseLocalDate,
+  shiftMonth,
+  toLocalDateString,
+} from "../utils/date.js";
 
 function errorText(error) {
   const suffix = error?.requestId ? ` 请求编号：${error.requestId}` : "";
@@ -14,57 +24,133 @@ export class JournalPage {
     this.content = root.querySelector("[data-journal-content]");
     this.state = root.querySelector("[data-journal-state]");
     this.dateLabel = root.querySelector("[data-journal-date-label]");
+    this.editorTitle = root.querySelector("[data-journal-editor-title]");
+    this.editorPane = root.querySelector("[data-journal-editor-pane]");
+    this.workspace = root.querySelector(".journal-workspace");
     this.count = root.querySelector("[data-journal-count]");
     this.savedAt = root.querySelector("[data-journal-saved-at]");
     this.preview = root.querySelector("[data-journal-preview]");
     this.imageInput = root.querySelector("[data-journal-image]");
+    this.editActions = [...root.querySelectorAll("[data-journal-edit-action]")];
+    this.exportButton = root.querySelector('[data-action="export-journal"]');
+    this.retryButton = root.querySelector('[data-action="retry-journal"]');
+    this.calendar = root.querySelector("[data-journal-calendar]");
+    this.monthLabel = root.querySelector("[data-journal-month-label]");
     this.error = root.querySelector("[data-global-error]");
     this.errorMessage = root.querySelector("[data-global-error-message]");
+    this.today = toLocalDateString();
     this.date = normalizeDate(new URLSearchParams(window.location.search).get("date"));
+    this.visibleMonth = monthKey(this.date);
     this.timer = null;
     this.dirty = false;
     this.saving = false;
     this.request = null;
+    this.calendarRequest = null;
     this.hasRecord = false;
   }
 
   start() {
-    const today = toLocalDateString();
-    if (this.date > today) this.date = today;
-    this.dateInput.max = today;
     this.dateInput.value = this.date;
     this.replaceUrl();
-    this.dateInput.addEventListener("change", () => this.changeDate());
+    this.dateInput.addEventListener("change", () => this.selectDate(normalizeDate(this.dateInput.value, this.date)));
     this.content.addEventListener("input", () => this.markDirty());
     this.content.addEventListener("blur", () => {
       if (this.dirty) this.save();
     });
-    this.root.querySelector('[data-action="retry-journal"]').addEventListener("click", () => this.save());
+    this.retryButton.addEventListener("click", () => this.save());
     this.root.querySelector('[data-action="insert-time"]').addEventListener("click", () => this.insertCurrentTime());
     for (const level of [1, 2, 3]) {
       this.root.querySelector(`[data-action="heading-${level}"]`).addEventListener("click", () => this.applyHeading(level));
     }
     this.root.querySelector('[data-action="insert-image"]').addEventListener("click", () => this.imageInput.click());
-    this.root.querySelector('[data-action="export-journal"]').addEventListener("click", () => this.exportJournal());
+    this.exportButton.addEventListener("click", () => this.exportJournal());
     this.imageInput.addEventListener("change", () => this.uploadImage());
+    this.root.querySelector('[data-action="previous-journal-month"]').addEventListener("click", () => this.changeMonth(-1));
+    this.root.querySelector('[data-action="next-journal-month"]').addEventListener("click", () => this.changeMonth(1));
+    this.root.querySelector('[data-action="journal-today"]').addEventListener("click", () => this.selectDate(toLocalDateString()));
     window.addEventListener("beforeunload", (event) => {
       if (!this.dirty && !this.saving) return;
       event.preventDefault();
       event.returnValue = "";
     });
+    window.addEventListener("focus", () => {
+      const nextToday = toLocalDateString();
+      if (nextToday === this.today) return;
+      this.today = nextToday;
+      this.applyMode();
+      this.loadCalendar();
+    });
     this.load();
+    this.loadCalendar();
   }
 
-  async changeDate() {
-    const nextDate = normalizeDate(this.dateInput.value, this.date);
-    if (nextDate === this.date) return;
+  isEditable() {
+    return this.date === this.today;
+  }
+
+  async selectDate(nextDate) {
+    if (!nextDate || nextDate === this.date) return;
     if (this.dirty && !(await this.save())) {
       this.dateInput.value = this.date;
       return;
     }
     this.date = nextDate;
+    this.visibleMonth = monthKey(nextDate);
     this.replaceUrl();
-    await this.load();
+    await Promise.all([this.load(), this.loadCalendar()]);
+  }
+
+  changeMonth(amount) {
+    this.visibleMonth = shiftMonth(this.visibleMonth, amount);
+    this.loadCalendar();
+  }
+
+  async loadCalendar() {
+    this.calendarRequest?.abort();
+    const request = new AbortController();
+    this.calendarRequest = request;
+    this.monthLabel.textContent = monthLabel(this.visibleMonth);
+    this.calendar.setAttribute("aria-busy", "true");
+    try {
+      const data = await api.get(`/api/journal/month/${this.visibleMonth}`, { signal: request.signal });
+      if (this.calendarRequest !== request) return;
+      this.renderCalendar(data.entries || []);
+    } catch (error) {
+      if (error instanceof ApiError && error.code === "cancelled") return;
+      if (this.calendarRequest !== request) return;
+      replace(this.calendar, element("p", { className: "empty-state journal-calendar-error", text: errorText(error) }));
+    } finally {
+      if (this.calendarRequest === request) this.calendar.setAttribute("aria-busy", "false");
+    }
+  }
+
+  renderCalendar(entries) {
+    const [year, month] = this.visibleMonth.split("-").map(Number);
+    const days = new Date(year, month, 0).getDate();
+    const recorded = new Set(entries.map((entry) => entry.date));
+    const nodes = [];
+    for (let index = 0; index < mondayOffset(this.visibleMonth); index += 1) {
+      nodes.push(element("span", { className: "journal-calendar-blank", attrs: { "aria-hidden": "true" } }));
+    }
+    for (let day = 1; day <= days; day += 1) {
+      const value = `${this.visibleMonth}-${String(day).padStart(2, "0")}`;
+      const classes = ["journal-calendar-day"];
+      if (value === this.date) classes.push("is-selected");
+      if (value === this.today) classes.push("is-today");
+      if (recorded.has(value)) classes.push("has-record");
+      const button = element("button", {
+        className: classes.join(" "),
+        text: String(day),
+        attrs: {
+          type: "button",
+          "aria-label": `${longDateLabel(value)}${recorded.has(value) ? "，有记录" : "，无记录"}`,
+          "aria-pressed": String(value === this.date),
+        },
+      });
+      button.addEventListener("click", () => this.selectDate(value));
+      nodes.push(button);
+    }
+    replace(this.calendar, ...nodes);
   }
 
   async load() {
@@ -81,7 +167,7 @@ export class JournalPage {
       this.hasRecord = Boolean(journal);
       this.dirty = false;
       this.updateContext();
-      this.setState("saved", journal ? "已载入" : "尚无日记");
+      this.setState("saved", journal ? "已载入" : this.isEditable() ? "尚无日记" : "只读 · 无记录");
       this.savedAt.textContent = journal?.updated_at ? `上次保存 ${this.timeLabel(journal.updated_at)}` : "尚未保存";
     } catch (error) {
       if (error instanceof ApiError && error.code === "cancelled") return;
@@ -91,12 +177,25 @@ export class JournalPage {
     } finally {
       if (this.request === request) {
         this.content.disabled = false;
-        this.content.focus();
+        this.applyMode();
+        if (this.isEditable()) this.content.focus();
       }
     }
   }
 
+  applyMode() {
+    const editable = this.isEditable();
+    this.content.readOnly = !editable;
+    this.editActions.forEach((button) => { button.disabled = !editable; });
+    this.retryButton.disabled = !editable;
+    this.editorPane.classList.toggle("is-hidden", !editable);
+    this.workspace.classList.toggle("is-readonly", !editable);
+    this.editorTitle.textContent = editable ? "今日文字" : this.date < this.today ? "历史记录" : "未来日期";
+    this.exportButton.disabled = !this.hasRecord && !editable;
+  }
+
   markDirty() {
+    if (!this.isEditable()) return;
     this.dirty = true;
     this.updateCount();
     this.setState("saving", "等待保存");
@@ -106,6 +205,7 @@ export class JournalPage {
 
   async save() {
     window.clearTimeout(this.timer);
+    if (!this.isEditable()) return !this.dirty;
     if (this.saving) return false;
     if (!this.dirty) return true;
     const date = this.date;
@@ -121,7 +221,9 @@ export class JournalPage {
       shouldResave = this.dirty;
       this.savedAt.textContent = `已保存于 ${this.timeLabel(journal.updated_at)}`;
       this.hasRecord = true;
+      this.applyMode();
       this.setState(this.dirty ? "saving" : "saved", this.dirty ? "有新修改" : "已保存");
+      await this.loadCalendar();
       return true;
     } catch (error) {
       this.setState("save-failed", "保存失败");
@@ -138,6 +240,7 @@ export class JournalPage {
     this.dateLabel.textContent = label;
     document.title = `${label} · 日记 · Life OS`;
     this.updateCount();
+    this.applyMode();
   }
 
   updateCount() {
@@ -146,12 +249,14 @@ export class JournalPage {
   }
 
   insertCurrentTime() {
+    if (!this.isEditable()) return;
     const now = new Date();
     const time = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
     this.insertText(time);
   }
 
   applyHeading(level) {
+    if (!this.isEditable()) return;
     const start = this.content.selectionStart;
     const end = this.content.selectionEnd;
     const lineStart = this.content.value.lastIndexOf("\n", start - 1) + 1;
@@ -166,6 +271,7 @@ export class JournalPage {
   }
 
   insertText(text) {
+    if (!this.isEditable()) return;
     const start = this.content.selectionStart;
     const end = this.content.selectionEnd;
     this.content.setRangeText(text, start, end, "end");
@@ -174,6 +280,7 @@ export class JournalPage {
   }
 
   async uploadImage() {
+    if (!this.isEditable()) return;
     const file = this.imageInput.files?.[0];
     if (!file) return;
     if (file.size > 5 * 1024 * 1024) {
@@ -199,7 +306,10 @@ export class JournalPage {
   }
 
   async exportJournal() {
-    if (!this.hasRecord) this.dirty = true;
+    if (!this.hasRecord) {
+      if (!this.isEditable()) return;
+      this.dirty = true;
+    }
     if (this.dirty && !(await this.save())) return;
     const link = document.createElement("a");
     link.href = `/api/journal/${this.date}/export`;

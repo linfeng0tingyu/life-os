@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from flask import Blueprint
+from flask import Blueprint, request
 
 from life_os.api import json_object, query_bool, success_response
 from life_os.serializers import habit_data, habit_log_data
 from life_os.services.habit_service import HabitService
+from life_os.services.reporting_service import ReportingService
 
 
 blueprint = Blueprint("habits", __name__)
@@ -18,6 +19,16 @@ def get_habits():
     include_inactive = query_bool("include_inactive")
     habits = HabitService.list_habits(include_inactive=include_inactive)
     return success_response([habit_data(habit) for habit in habits])
+
+
+@blueprint.get("/api/habits/statistics")
+def get_habit_statistics():
+    return success_response(
+        ReportingService.habit_statistics(
+            request.args.get("period", "week"),
+            request.args.get("anchor"),
+        )
+    )
 
 
 @blueprint.post("/api/habits")

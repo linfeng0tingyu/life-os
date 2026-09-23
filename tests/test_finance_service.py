@@ -49,6 +49,30 @@ def test_accounts_and_overall_summary_use_exact_minor_units(app_context: None) -
     assert minor_to_money(summary["net_worth_minor"]) == "650.05"
 
 
+def test_summary_uses_database_aggregation_instead_of_loading_all_transactions(
+    app_context: None, monkeypatch
+) -> None:
+    account = FinanceService.create_account(
+        "Cash", kind="asset", account_type="cash", opening_balance="10.00"
+    )
+    FinanceService.create_transaction(
+        "2026-09-18",
+        transaction_type="expense",
+        amount="2.00",
+        from_account_id=account.id,
+    )
+
+    monkeypatch.setattr(
+        FinanceService,
+        "list_transactions",
+        staticmethod(lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("loaded all rows"))),
+    )
+
+    summary = FinanceService.summary()
+    assert summary["expense_minor"] == 200
+    assert summary["accounts"][0][1] == 800
+
+
 def test_daily_transactions_filter_and_archive(app_context: None) -> None:
     cash = FinanceService.create_account(
         "Cash", kind="asset", account_type="cash"

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import date
+
 from flask.testing import FlaskClient
 
 
@@ -30,7 +32,7 @@ def test_empty_day_has_stable_shape(client: FlaskClient) -> None:
     }
 
 
-def test_day_aggregates_only_target_date(client: FlaskClient) -> None:
+def test_day_aggregates_only_target_date(client: FlaskClient, monkeypatch) -> None:
     habit = client.post("/api/habits", json={"name": "Exercise"}).get_json()[
         "data"
     ]
@@ -52,7 +54,9 @@ def test_day_aggregates_only_target_date(client: FlaskClient) -> None:
         "/api/tasks", json={"title": "Late", "due_date": "2026-09-17"}
     )
     client.put("/api/health/2026-09-18", json={"energy_level": 4})
+    monkeypatch.setattr("life_os.routes.journal.local_today", lambda: date(2026, 9, 18))
     client.put("/api/journal/2026-09-18", json={"content": "Target"})
+    monkeypatch.setattr("life_os.routes.journal.local_today", lambda: date(2026, 9, 19))
     client.put("/api/journal/2026-09-19", json={"content": "Other"})
 
     data = client.get("/api/day/2026-09-18").get_json()["data"]

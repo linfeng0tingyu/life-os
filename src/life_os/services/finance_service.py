@@ -4,7 +4,7 @@ from calendar import monthrange
 from datetime import date, timedelta
 from decimal import Decimal, InvalidOperation
 
-from sqlalchemy import or_, select
+from sqlalchemy import case, func, or_, select
 
 from life_os.extensions import db
 from life_os.models import FinanceAccount, FinanceTransaction
@@ -332,28 +332,58 @@ class FinanceService:
 
         accounts = FinanceService.list_accounts(include_inactive=True)
         balances = {account.id: account.opening_balance_minor for account in accounts}
-        all_transactions = FinanceService.list_transactions()
-        for item in all_transactions:
-            if item.from_account_id is not None:
-                balances[item.from_account_id] -= item.amount_minor
-            if item.to_account_id is not None:
-                balances[item.to_account_id] += item.amount_minor
+        outgoing = db.session.execute(
+            select(
+                FinanceTransaction.from_account_id,
+                func.sum(FinanceTransaction.amount_minor),
+            )
+            .where(
+                FinanceTransaction.archived_at.is_(None),
+                FinanceTransaction.from_account_id.is_not(None),
+            )
+            .group_by(FinanceTransaction.from_account_id)
+        )
+        incoming = db.session.execute(
+            select(
+                FinanceTransaction.to_account_id,
+                func.sum(FinanceTransaction.amount_minor),
+            )
+            .where(
+                FinanceTransaction.archived_at.is_(None),
+                FinanceTransaction.to_account_id.is_not(None),
+            )
+            .group_by(FinanceTransaction.to_account_id)
+        )
+        for account_id, amount in outgoing:
+            balances[account_id] -= amount
+        for account_id, amount in incoming:
+            balances[account_id] += amount
 
-        period_transactions = [
-            item
-            for item in all_transactions
-            if (start is None or item.date >= start) and (end is None or item.date <= end)
-        ]
-        income = sum(
-            item.amount_minor
-            for item in period_transactions
-            if item.transaction_type == "income"
-        )
-        expense = sum(
-            item.amount_minor
-            for item in period_transactions
-            if item.transaction_type == "expense"
-        )
+        period_query = select(
+            func.coalesce(
+                func.sum(
+                    case(
+                        (FinanceTransaction.transaction_type == "income", FinanceTransaction.amount_minor),
+                        else_=0,
+                    )
+                ),
+                0,
+            ),
+            func.coalesce(
+                func.sum(
+                    case(
+                        (FinanceTransaction.transaction_type == "expense", FinanceTransaction.amount_minor),
+                        else_=0,
+                    )
+                ),
+                0,
+            ),
+        ).where(FinanceTransaction.archived_at.is_(None))
+        if start is not None:
+            period_query = period_query.where(FinanceTransaction.date >= start)
+        if end is not None:
+            period_query = period_query.where(FinanceTransaction.date <= end)
+        income, expense = db.session.execute(period_query).one()
         assets = sum(
             balances[account.id] for account in accounts if account.kind == "asset"
         )

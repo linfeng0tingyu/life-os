@@ -50,7 +50,6 @@
                 <button class="button button-quiet" type="button" data-action="cancel-category-creator">取消</button>
               </div>
             </div>
-            <label class="field"><span>图标类型</span><select name="icon"><option value="">通用</option><option value="book">阅读</option><option value="exercise">运动</option><option value="water">饮水</option><option value="sleep">睡眠</option><option value="health">健康</option></select></label>
             <div class="form-actions">
               <button class="button button-primary" type="submit">
                 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h12l2 2v14H5z"></path><path d="M8 4v6h8V4M8 20v-6h8v6"></path></svg>
@@ -70,6 +69,27 @@
             </div>
             <p class="management-help">点击完成按钮后立即保存；同一习惯同一天始终只保留一条记录。</p>
             <div data-habit-check-list aria-busy="true"><p class="empty-state">正在读取习惯…</p></div>
+          </section>
+
+          <section class="module report-panel" aria-labelledby="habit-report-title" data-habit-report>
+            <div class="module-heading">
+              <div><p class="section-kicker">趋势与坚持</p><h2 id="habit-report-title">习惯统计</h2></div>
+              <span class="state-label" role="status" aria-live="polite" data-habit-report-state>加载中</span>
+            </div>
+            <div class="report-controls" aria-label="习惯统计周期">
+              <div class="report-periods">
+                <button class="button button-secondary" type="button" data-report-period="week" aria-pressed="true">周</button>
+                <button class="button button-quiet" type="button" data-report-period="month" aria-pressed="false">月</button>
+                <button class="button button-quiet" type="button" data-report-period="year" aria-pressed="false">年</button>
+              </div>
+              <div class="report-navigation">
+                <button class="button button-quiet" type="button" data-action="previous-habit-report">上一周期</button>
+                <button class="button button-secondary" type="button" data-action="current-habit-report">回到本期</button>
+                <button class="button button-quiet" type="button" data-action="next-habit-report">下一周期</button>
+              </div>
+            </div>
+            <p class="report-range" data-habit-report-range></p>
+            <div data-habit-report-body aria-busy="true"><p class="empty-state">正在生成统计…</p></div>
           </section>
 
           <section class="module management-list" aria-labelledby="habit-list-title">

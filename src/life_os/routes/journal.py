@@ -1,15 +1,54 @@
 from __future__ import annotations
 
+import re
+from datetime import date
+
 from flask import Blueprint, current_app, request, send_file
 
 from life_os.api import json_object, success_response
 from life_os.serializers import journal_data
 from life_os.services.journal_service import JournalService
 from life_os.services.journal_asset_service import JournalAssetService
-from life_os.services.common import NotFoundError, ValidationError
+from life_os.services.common import (
+    ConflictError,
+    NotFoundError,
+    ValidationError,
+    parse_life_date,
+)
 
 
 blueprint = Blueprint("journal", __name__)
+MONTH_PATTERN = re.compile(r"^(\d{4})-(\d{2})$")
+
+
+def local_today() -> date:
+    return date.today()
+
+
+def require_today(value_date: str) -> None:
+    if parse_life_date(value_date) != local_today():
+        raise ConflictError("只有今天的日记可以修改，其他日期仅供阅读。")
+
+
+@blueprint.get("/api/journal/month/<year_month>")
+def get_journal_month(year_month: str):
+    match = MONTH_PATTERN.fullmatch(year_month)
+    if match is None:
+        raise ValidationError("month 必须使用 YYYY-MM 格式。")
+    year, month = (int(part) for part in match.groups())
+    entries = JournalService.list_month(year, month)
+    return success_response(
+        {
+            "month": year_month,
+            "entries": [
+                {
+                    "date": entry.date.isoformat(),
+                    "updated_at": entry.updated_at,
+                }
+                for entry in entries
+            ],
+        }
+    )
 
 
 @blueprint.get("/api/journal/<value_date>")
@@ -20,6 +59,7 @@ def get_journal(value_date: str):
 
 @blueprint.put("/api/journal/<value_date>")
 def put_journal(value_date: str):
+    require_today(value_date)
     payload = json_object(allowed={"content"}, required={"content"})
     journal = JournalService.upsert(value_date, payload["content"])
     return success_response(journal_data(journal))
@@ -27,6 +67,7 @@ def put_journal(value_date: str):
 
 @blueprint.post("/api/journal/<value_date>/assets")
 def post_journal_asset(value_date: str):
+    require_today(value_date)
     upload = request.files.get("image")
     if upload is None:
         raise ValidationError("image 为必填图片文件。")

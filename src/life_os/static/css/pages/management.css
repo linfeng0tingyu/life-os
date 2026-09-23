@@ -201,6 +201,16 @@
   font-size: 0.76rem;
 }
 
+.task-action-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(4.2rem, 1fr));
+  width: min(100%, 18rem);
+}
+
+.task-action-grid .button {
+  width: 100%;
+}
+
 .tag.priority-urgent,
 .tag.status-cancelled {
   color: var(--vermillion);

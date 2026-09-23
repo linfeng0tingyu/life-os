@@ -1,5 +1,5 @@
 .records-content {
-  max-width: 100rem;
+  max-width: none;
 }
 
 .date-switcher {
@@ -21,8 +21,19 @@
 .records-grid,
 .finance-columns {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(28rem, 100%), 1fr));
   gap: var(--space-5);
+}
+
+.records-grid {
+  align-items: stretch;
+}
+
+.records-grid > .module {
+  height: 100%;
+}
+
+.finance-columns {
   align-items: start;
 }
 
@@ -30,6 +41,134 @@
   color: var(--text-muted);
   font-size: 0.72rem;
   font-weight: 400;
+}
+
+.sleep-duration-summary {
+  margin: var(--space-3) 0 0;
+  padding: var(--space-3);
+  border-left: 3px solid var(--cyan);
+  border-radius: var(--radius-control);
+  background: color-mix(in srgb, var(--module-rhythm) 72%, transparent);
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.duration-inputs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.duration-inputs label {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.duration-inputs small {
+  color: var(--text-secondary);
+  font-weight: 700;
+}
+
+.journal-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-5);
+  align-items: start;
+}
+
+.journal-calendar-panel {
+  width: 100%;
+}
+
+.journal-calendar-navigation,
+.journal-calendar-weekdays,
+.journal-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: var(--space-1);
+}
+
+.journal-calendar-navigation {
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  margin-bottom: var(--space-3);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+.journal-calendar-weekdays {
+  margin-bottom: var(--space-1);
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  text-align: center;
+}
+
+.journal-calendar-grid {
+  min-height: 13rem;
+  align-content: start;
+}
+
+.journal-calendar-day,
+.journal-calendar-blank {
+  position: relative;
+  aspect-ratio: 1;
+}
+
+.journal-calendar-day {
+  border: 1px solid transparent;
+  border-radius: 0.45rem;
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+}
+
+.journal-calendar-day:hover {
+  background: var(--surface-muted);
+}
+
+.journal-calendar-day.is-selected {
+  border-color: var(--primary);
+  background: var(--primary-light);
+  color: var(--primary-hover);
+  font-weight: 800;
+}
+
+.journal-calendar-day.is-today::after,
+.journal-calendar-day.has-record::before {
+  position: absolute;
+  bottom: 0.18rem;
+  width: 0.28rem;
+  height: 0.28rem;
+  border-radius: 50%;
+  content: "";
+}
+
+.journal-calendar-day.has-record::before {
+  left: calc(50% - 0.35rem);
+  background: var(--primary);
+}
+
+.journal-calendar-day.is-today::after {
+  right: calc(50% - 0.35rem);
+  background: var(--gold);
+}
+
+.journal-calendar-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin: var(--space-3) 0 0;
+  color: var(--text-muted);
+  font-size: 0.7rem;
+}
+
+.journal-calendar-error {
+  grid-column: 1 / -1;
 }
 
 .journal-toolbar {
@@ -54,6 +193,14 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-4);
+}
+
+.journal-workspace.is-readonly {
+  grid-template-columns: 1fr;
+}
+
+.journal-workspace.is-readonly .journal-preview-pane {
+  min-width: 0;
 }
 
 .journal-pane {
@@ -160,7 +307,7 @@
 
 .credit-cycle-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(19rem, 100%), 1fr));
   gap: var(--space-4);
 }
 
@@ -373,8 +520,7 @@
 .money-negative { color: var(--finance-expense); }
 
 @media (max-width: 72rem) {
-  .records-grid,
-  .finance-columns,
+  .journal-layout,
   .journal-workspace {
     grid-template-columns: 1fr;
   }

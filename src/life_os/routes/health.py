@@ -1,17 +1,17 @@
 from __future__ import annotations
 
-from flask import Blueprint
+from flask import Blueprint, request
 
 from life_os.api import json_object, success_response
 from life_os.serializers import health_data
 from life_os.services.health_service import HealthService
+from life_os.services.reporting_service import ReportingService
 
 
 blueprint = Blueprint("health", __name__)
 HEALTH_FIELDS = {
     "weight_kg",
     "sleep_start",
-    "sleep_end",
     "sleep_duration_minutes",
     "sleep_quality",
     "energy_level",
@@ -20,6 +20,16 @@ HEALTH_FIELDS = {
     "exercise_minutes",
     "note",
 }
+
+
+@blueprint.get("/api/health/statistics")
+def get_health_statistics():
+    return success_response(
+        ReportingService.health_statistics(
+            request.args.get("period", "week"),
+            request.args.get("anchor"),
+        )
+    )
 
 
 @blueprint.get("/api/health/<value_date>")

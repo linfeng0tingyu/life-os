@@ -116,6 +116,29 @@ def test_finance_transactions_summary_and_day_aggregation(client: FlaskClient) -
     assert archived.get_json()["data"]["archived_at"] is not None
 
 
+def test_finance_update_without_note_preserves_legacy_note(client: FlaskClient) -> None:
+    bank = create_account(client, "Bank")
+    created = client.post(
+        "/api/finance/transactions",
+        json={
+            "date": "2026-09-18",
+            "type": "expense",
+            "amount": "12.00",
+            "from_account_id": bank["id"],
+            "description": "午餐",
+            "note": "旧版本备注",
+        },
+    ).get_json()["data"]
+
+    updated = client.put(
+        f"/api/finance/transactions/{created['id']}",
+        json={"description": "工作餐"},
+    ).get_json()["data"]
+
+    assert updated["description"] == "工作餐"
+    assert updated["note"] == "旧版本备注"
+
+
 def test_finance_api_rejects_invalid_transactions_and_ranges(
     client: FlaskClient,
 ) -> None:

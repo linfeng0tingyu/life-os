@@ -14,32 +14,49 @@
         <div><strong>日记未能保存</strong><p data-global-error-message></p></div>
         <button class="button button-secondary" type="button" data-action="retry-journal">重试保存</button>
       </div>
-      <section class="module module-notes journal-editor" aria-labelledby="journal-editor-title">
-        <div class="module-heading">
-          <div><p class="section-kicker" data-journal-date-label>所选日期</p><h2 id="journal-editor-title">今日文字</h2></div>
-          <span class="save-state" data-journal-state role="status" aria-live="polite">正在读取</span>
-        </div>
-        <div class="journal-toolbar" role="toolbar" aria-label="日记格式和插入工具">
-          <button class="button button-quiet" type="button" data-action="insert-time" title="插入当前系统时间">＋ 当前时间</button>
-          <button class="button button-quiet" type="button" data-action="heading-1" title="一级标题">H1</button>
-          <button class="button button-quiet" type="button" data-action="heading-2" title="二级标题">H2</button>
-          <button class="button button-quiet" type="button" data-action="heading-3" title="三级标题">H3</button>
-          <button class="button button-quiet" type="button" data-action="insert-image">插入图片</button>
-          <button class="button button-secondary toolbar-export" type="button" data-action="export-journal">导出 Markdown</button>
-          <input class="is-hidden" type="file" accept="image/png,image/jpeg,image/gif,image/webp" data-journal-image aria-label="选择日记图片">
-        </div>
-        <div class="journal-workspace">
-          <div class="journal-pane">
-            <p class="journal-pane-label">Markdown 编辑</p>
-            <textarea data-journal-content maxlength="500000" aria-label="日记内容" placeholder="# 今天\n\n写下发生的事、当时的感受，以及想留给未来自己的话。"></textarea>
+      <div class="journal-layout">
+        <section class="module module-notes journal-editor" aria-labelledby="journal-editor-title">
+          <div class="module-heading">
+            <div><p class="section-kicker" data-journal-date-label>所选日期</p><h2 id="journal-editor-title" data-journal-editor-title>今日文字</h2></div>
+            <span class="save-state" data-journal-state role="status" aria-live="polite">正在读取</span>
           </div>
-          <section class="journal-pane journal-preview-pane" aria-label="Markdown 预览">
-            <p class="journal-pane-label">实时预览</p>
-            <div class="markdown-preview" data-journal-preview></div>
-          </section>
-        </div>
-        <div class="editor-meta"><span data-journal-count>0 字符</span><span data-journal-saved-at>尚未保存</span></div>
-      </section>
+          <div class="journal-toolbar" role="toolbar" aria-label="日记格式和插入工具">
+            <button class="button button-quiet" type="button" data-action="insert-time" data-journal-edit-action title="插入当前系统时间">＋ 当前时间</button>
+            <button class="button button-quiet" type="button" data-action="heading-1" data-journal-edit-action title="一级标题">H1</button>
+            <button class="button button-quiet" type="button" data-action="heading-2" data-journal-edit-action title="二级标题">H2</button>
+            <button class="button button-quiet" type="button" data-action="heading-3" data-journal-edit-action title="三级标题">H3</button>
+            <button class="button button-quiet" type="button" data-action="insert-image" data-journal-edit-action>插入图片</button>
+            <button class="button button-secondary toolbar-export" type="button" data-action="export-journal">导出 Markdown</button>
+            <input class="is-hidden" type="file" accept="image/png,image/jpeg,image/gif,image/webp" data-journal-image aria-label="选择日记图片">
+          </div>
+          <div class="journal-workspace">
+            <div class="journal-pane" data-journal-editor-pane>
+              <p class="journal-pane-label">Markdown 编辑</p>
+              <textarea data-journal-content maxlength="500000" aria-label="日记内容" placeholder="# 今天\n\n写下发生的事、当时的感受，以及想留给未来自己的话。"></textarea>
+            </div>
+            <section class="journal-pane journal-preview-pane" aria-label="Markdown 预览">
+              <p class="journal-pane-label">实时预览</p>
+              <div class="markdown-preview" data-journal-preview></div>
+            </section>
+          </div>
+          <div class="editor-meta"><span data-journal-count>0 字符</span><span data-journal-saved-at>尚未保存</span></div>
+        </section>
+
+        <aside class="module journal-calendar-panel" aria-labelledby="journal-calendar-title">
+          <div class="module-heading compact">
+            <div><p class="section-kicker">日期索引</p><h2 id="journal-calendar-title" data-journal-month-label>月历</h2></div>
+            <button class="button button-secondary" type="button" data-action="journal-today">回到今天</button>
+          </div>
+          <div class="journal-calendar-navigation">
+            <button class="icon-button" type="button" data-action="previous-journal-month" aria-label="上一个月">‹</button>
+            <span>选择日期查看记录</span>
+            <button class="icon-button" type="button" data-action="next-journal-month" aria-label="下一个月">›</button>
+          </div>
+          <div class="journal-calendar-weekdays" aria-hidden="true"><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span></div>
+          <div class="journal-calendar-grid" data-journal-calendar aria-label="日记月历"></div>
+          <p class="journal-calendar-legend"><span>● 有记录</span><span>边框为所选日期</span></p>
+        </aside>
+      </div>
     </main>
   </div>
 {% endblock %}

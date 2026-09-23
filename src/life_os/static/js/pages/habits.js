@@ -1,9 +1,8 @@
 import { api, ApiError } from "../api/client.js";
 import { CategorySelect } from "../components/category-select.js";
 import { element, emptyMessage, replace } from "../components/dom.js";
+import { PERIOD_LABELS, reportRangeLabel, shiftReportAnchor } from "../components/reporting.js";
 import { normalizeDate, toLocalDateString } from "../utils/date.js";
-
-const ICON_LABELS = { book: "阅读", exercise: "运动", water: "饮水", sleep: "睡眠", health: "健康" };
 
 function errorText(error) {
   const suffix = error?.requestId ? ` 请求编号：${error.requestId}` : "";
@@ -30,6 +29,9 @@ export class HabitsPage {
     this.showInactive = root.querySelector("[data-habit-show-inactive]");
     this.globalError = root.querySelector("[data-global-error]");
     this.globalErrorMessage = root.querySelector("[data-global-error-message]");
+    this.reportBody = root.querySelector("[data-habit-report-body]");
+    this.reportState = root.querySelector("[data-habit-report-state]");
+    this.reportRange = root.querySelector("[data-habit-report-range]");
     this.today = toLocalDateString();
     this.selectedDate = this.today;
     this.habits = [];
@@ -38,6 +40,9 @@ export class HabitsPage {
     this.pending = new Set();
     this.request = null;
     this.formBusy = false;
+    this.reportPeriod = "week";
+    this.reportAnchor = this.today;
+    this.reportRequest = null;
     this.categoryControl = new CategorySelect(root.querySelector("[data-category-control]"), {
       scope: "habit",
       onError: (error) => this.showError(error),
@@ -67,8 +72,15 @@ export class HabitsPage {
     });
     this.search.addEventListener("input", () => this.renderList());
     this.showInactive.addEventListener("change", () => this.renderList());
+    for (const button of this.root.querySelectorAll("[data-report-period]")) {
+      button.addEventListener("click", () => this.changeReportPeriod(button.dataset.reportPeriod));
+    }
+    this.root.querySelector('[data-action="previous-habit-report"]').addEventListener("click", () => this.shiftReport(-1));
+    this.root.querySelector('[data-action="current-habit-report"]').addEventListener("click", () => this.resetReport());
+    this.root.querySelector('[data-action="next-habit-report"]').addEventListener("click", () => this.shiftReport(1));
     this.categoryControl.start();
     this.load();
+    this.loadReport();
   }
 
   async load(announcement = "") {
@@ -158,7 +170,6 @@ export class HabitsPage {
         habit.description ? element("p", { text: habit.description }) : null,
         element("div", { className: "item-details" }, [
           element("span", { text: habit.category || "未分类" }),
-          element("span", { text: ICON_LABELS[habit.icon] || "通用图标" }),
           element("span", { text: habit.active ? "启用中" : "已停用" }),
         ]),
       ].filter(Boolean));
@@ -178,13 +189,13 @@ export class HabitsPage {
       actions.append(button);
     };
     if (habit.active) {
-      add("编辑", () => this.editHabit(habit));
+      add("编辑", () => this.editHabit(habit), "button button-primary");
       add("上移", () => this.moveHabit(habit, -1));
       add("下移", () => this.moveHabit(habit, 1));
       add("停用", () => this.runMutation(habit.id, () => api.put(`/api/habits/${habit.id}`, { active: false }), "已停用"));
     } else {
       add("恢复", () => this.runMutation(habit.id, () => api.put(`/api/habits/${habit.id}`, { active: true }), "已恢复"), "button button-secondary");
-      add("编辑", () => this.editHabit(habit));
+      add("编辑", () => this.editHabit(habit), "button button-primary");
     }
     return actions;
   }
@@ -203,6 +214,7 @@ export class HabitsPage {
         note: log.note,
       });
       await this.load("完成状态已保存");
+      await this.loadReport();
     } catch (error) {
       this.showError(error);
     } finally {
@@ -228,17 +240,18 @@ export class HabitsPage {
     fields.name.value = habit.name;
     fields.description.value = habit.description || "";
     this.categoryControl.setValue(habit.category || "");
-    fields.icon.value = habit.icon || "";
     this.formTitle.textContent = "编辑习惯";
     this.formState.textContent = habit.active ? "正在编辑" : "正在编辑停用项";
     this.dialog.showModal();
     fields.name.focus();
+    this.categoryControl.load(habit.category || "");
   }
 
   openCreate() {
     this.resetForm();
     this.dialog.showModal();
     this.form.elements.name.focus();
+    this.categoryControl.load("");
   }
 
   closeEditor() {
@@ -264,7 +277,6 @@ export class HabitsPage {
       name: fields.name.value.trim(),
       description: fields.description.value.trim() || null,
       category: fields.category.value.trim() || null,
-      icon: fields.icon.value || null,
     };
     this.formBusy = true;
     this.setFormDisabled(true);
@@ -279,6 +291,7 @@ export class HabitsPage {
       this.formState.textContent = "已保存";
       this.formState.dataset.state = "saved";
       await this.load("已保存");
+      await this.loadReport();
     } catch (error) {
       this.formState.textContent = "保存失败";
       this.formState.dataset.state = "save-failed";
@@ -301,6 +314,7 @@ export class HabitsPage {
     try {
       await action();
       await this.load(announcement);
+      await this.loadReport();
     } catch (error) {
       this.showError(error);
     } finally {
@@ -316,5 +330,87 @@ export class HabitsPage {
 
   hideError() {
     this.globalError.classList.add("is-hidden");
+  }
+
+  changeReportPeriod(period) {
+    if (!PERIOD_LABELS[period] || period === this.reportPeriod) return;
+    this.reportPeriod = period;
+    this.updateReportButtons();
+    this.loadReport();
+  }
+
+  shiftReport(amount) {
+    this.reportAnchor = shiftReportAnchor(this.reportAnchor, this.reportPeriod, amount);
+    this.loadReport();
+  }
+
+  resetReport() {
+    this.reportAnchor = this.today;
+    this.loadReport();
+  }
+
+  updateReportButtons() {
+    for (const button of this.root.querySelectorAll("[data-report-period]")) {
+      const selected = button.dataset.reportPeriod === this.reportPeriod;
+      button.className = `button ${selected ? "button-secondary" : "button-quiet"}`;
+      button.setAttribute("aria-pressed", String(selected));
+    }
+  }
+
+  async loadReport() {
+    this.reportRequest?.abort();
+    const request = new AbortController();
+    this.reportRequest = request;
+    this.reportState.textContent = "加载中";
+    this.reportBody.setAttribute("aria-busy", "true");
+    try {
+      const report = await api.get(`/api/habits/statistics?period=${this.reportPeriod}&anchor=${this.reportAnchor}`, { signal: request.signal });
+      if (this.reportRequest !== request) return;
+      this.reportRange.textContent = `${PERIOD_LABELS[this.reportPeriod]}报 · ${reportRangeLabel(report)}`;
+      this.renderReport(report);
+      this.reportState.textContent = `${report.summary.completed_logs} 次完成`;
+    } catch (error) {
+      if (error instanceof ApiError && error.code === "cancelled") return;
+      if (this.reportRequest !== request) return;
+      replace(this.reportBody, emptyMessage("习惯统计暂时无法读取。"));
+      this.reportState.textContent = "读取失败";
+      this.showError(error);
+    } finally {
+      if (this.reportRequest === request) this.reportBody.setAttribute("aria-busy", "false");
+    }
+  }
+
+  renderReport(report) {
+    const summary = element("div", { className: "report-summary" }, [
+      this.reportMetric(report.summary.tracked_habits, "统计习惯"),
+      this.reportMetric(report.summary.completed_logs, "完成次数"),
+      this.reportMetric(report.summary.days_with_completion, "有完成的天数"),
+    ]);
+    const values = report.series.map((point) => point.completed ?? 0);
+    const maximum = Math.max(1, ...values);
+    const chart = element("div", { className: "report-chart", attrs: { role: "img", "aria-label": "所选周期每日或每月习惯完成次数" } }, report.series.map((point) => {
+      const value = point.completed;
+      const label = point.date ? point.date.slice(5) : point.month.slice(5);
+      const bar = element("span", {
+        className: `report-bar${value == null ? " is-future" : ""}`,
+        attrs: { style: `--bar-size: ${value == null ? 0 : Math.max(6, value * 100 / maximum)}%`, title: `${label}：${value == null ? "未来日期" : `${value} 次`}` },
+      }, [element("i"), element("small", { text: label })]);
+      return bar;
+    }));
+    const table = element("table", { className: "report-table" }, [
+      element("thead", {}, [element("tr", {}, ["习惯", "完成", "坚持率", "当前连续", "区间最长"].map((text) => element("th", { text, attrs: { scope: "col" } })))]),
+      element("tbody", {}, report.habits.map((habit) => element("tr", {}, [
+        element("th", { text: habit.name, attrs: { scope: "row" } }),
+        element("td", { text: `${habit.completed_days} 天` }),
+        element("td", { text: habit.completion_rate == null ? "—" : `${habit.completion_rate}%` }),
+        element("td", { text: `${habit.current_streak} 天` }),
+        element("td", { text: `${habit.longest_streak} 天` }),
+      ]))),
+    ]);
+    replace(this.reportBody, summary, chart, table, element("p", { className: "report-note", text: report.completion_rate_note }));
+  }
+
+  reportMetric(value, label) {
+    return element("div", { className: "metric" }, [element("strong", { text: value }), element("span", { text: label })]);
   }
 }

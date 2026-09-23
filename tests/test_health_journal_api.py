@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+from datetime import date
 from io import BytesIO
 
 from flask.testing import FlaskClient
@@ -22,23 +23,34 @@ def test_health_get_and_partial_upsert(client: FlaskClient) -> None:
     assert data["mood_level"] == 5
 
 
-def test_health_sleep_calculation_and_manual_override(client: FlaskClient) -> None:
+def test_health_accepts_previous_day_sleep_start_and_direct_duration(
+    client: FlaskClient,
+) -> None:
     path = "/api/health/2026-09-18"
-    calculated = client.put(
+    recorded = client.put(
         path,
         json={
             "sleep_start": "2026-09-17T23:30:00+08:00",
-            "sleep_end": "2026-09-18T07:00:00+08:00",
+            "sleep_duration_minutes": 450,
         },
     ).get_json()["data"]
-    assert calculated["sleep_duration_minutes"] == 450
-    assert calculated["sleep_duration_manual"] is False
+    assert recorded["sleep_start"] == "2026-09-17T23:30+08:00"
+    assert recorded["sleep_duration_minutes"] == 450
+    assert recorded["sleep_end"] == "2026-09-18T07:00+08:00"
+    assert recorded["sleep_duration_manual"] is True
 
-    manual = client.put(path, json={"sleep_duration_minutes": 420}).get_json()[
+    updated = client.put(path, json={"sleep_duration_minutes": 420}).get_json()[
         "data"
     ]
-    assert manual["sleep_duration_minutes"] == 420
-    assert manual["sleep_duration_manual"] is True
+    assert updated["sleep_duration_minutes"] == 420
+    assert updated["sleep_end"] == "2026-09-18T06:30+08:00"
+
+    cleared = client.put(path, json={"sleep_duration_minutes": None}).get_json()[
+        "data"
+    ]
+    assert cleared["sleep_duration_minutes"] is None
+    assert cleared["sleep_end"] is None
+    assert cleared["sleep_duration_manual"] is False
 
 
 def test_health_validation(client: FlaskClient) -> None:
@@ -59,9 +71,24 @@ def test_health_validation(client: FlaskClient) -> None:
         ).status_code
         == 400
     )
+    assert (
+        client.put(
+            "/api/health/2026-09-18",
+            json={"sleep_start": "2026-09-18T23:00:00+08:00"},
+        ).status_code
+        == 400
+    )
+    assert (
+        client.put(
+            "/api/health/2026-09-18",
+            json={"sleep_end": "2026-09-18T07:00:00+08:00"},
+        ).status_code
+        == 400
+    )
 
 
-def test_journal_unicode_markdown_round_trip_and_upsert(client: FlaskClient) -> None:
+def test_journal_unicode_markdown_round_trip_and_upsert(client: FlaskClient, monkeypatch) -> None:
+    monkeypatch.setattr("life_os.routes.journal.local_today", lambda: date(2026, 9, 18))
     path = "/api/journal/2026-09-18"
     assert client.get(path).get_json()["data"] is None
     content = "# 今日\n\n- 完成 API 🎉\n**保留 Markdown**"
@@ -82,6 +109,7 @@ def test_journal_unexpected_failure_rolls_back_and_hides_content(
     from life_os.routes.journal import JournalService
 
     path = "/api/journal/2026-09-18"
+    monkeypatch.setattr("life_os.routes.journal.local_today", lambda: date(2026, 9, 18))
     client.put(path, json={"content": "Original"})
     original_upsert = JournalService.upsert
 
@@ -103,8 +131,9 @@ def test_journal_unexpected_failure_rolls_back_and_hides_content(
 
 
 def test_journal_image_upload_preview_asset_and_self_contained_export(
-    client: FlaskClient, app
+    client: FlaskClient, app, monkeypatch
 ) -> None:
+    monkeypatch.setattr("life_os.routes.journal.local_today", lambda: date(2026, 9, 21))
     image = b"\x89PNG\r\n\x1a\n" + b"test-image"
     uploaded = client.post(
         "/api/journal/2026-09-21/assets",
@@ -131,7 +160,8 @@ def test_journal_image_upload_preview_asset_and_self_contained_export(
     assert (paths.attachments_dir / "journal" / "2026-09-21" / asset["filename"]).is_file()
 
 
-def test_journal_image_upload_validation_and_missing_export(client: FlaskClient) -> None:
+def test_journal_image_upload_validation_and_missing_export(client: FlaskClient, monkeypatch) -> None:
+    monkeypatch.setattr("life_os.routes.journal.local_today", lambda: date(2026, 9, 21))
     invalid = client.post(
         "/api/journal/2026-09-21/assets",
         data={"image": (BytesIO(b"not-an-image"), "bad.txt")},
@@ -139,3 +169,19 @@ def test_journal_image_upload_validation_and_missing_export(client: FlaskClient)
     )
     assert invalid.status_code == 400
     assert client.get("/api/journal/2026-09-22/export").status_code == 404
+
+
+def test_journal_month_index_and_non_today_writes_are_blocked(
+    client: FlaskClient, monkeypatch
+) -> None:
+    monkeypatch.setattr("life_os.routes.journal.local_today", lambda: date(2026, 9, 21))
+    assert client.put("/api/journal/2026-09-21", json={"content": "历史内容"}).status_code == 200
+    monkeypatch.setattr("life_os.routes.journal.local_today", lambda: date(2026, 9, 23))
+
+    month = client.get("/api/journal/month/2026-09")
+    assert month.status_code == 200
+    assert [item["date"] for item in month.get_json()["data"]["entries"]] == ["2026-09-21"]
+    assert client.put("/api/journal/2026-09-21", json={"content": "试图修改"}).status_code == 409
+    assert client.put("/api/journal/2026-09-24", json={"content": "未来规划"}).status_code == 409
+    assert client.post("/api/journal/2026-09-21/assets", data={}).status_code == 409
+    assert client.get("/api/journal/2026-09-21").get_json()["data"]["content"] == "历史内容"

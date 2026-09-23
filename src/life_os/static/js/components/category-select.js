@@ -11,6 +11,7 @@ export class CategorySelect {
     this.state = root.querySelector("[data-category-state]");
     this.categories = [];
     this.busy = false;
+    this.loadRevision = 0;
   }
 
   start() {
@@ -28,12 +29,16 @@ export class CategorySelect {
   }
 
   async load(selected = null) {
+    const revision = ++this.loadRevision;
     this.setState("正在读取分类…");
     try {
-      this.categories = await api.get(`/api/categories?scope=${this.scope}`);
+      const categories = await api.get(`/api/categories?scope=${this.scope}`);
+      if (revision !== this.loadRevision) return;
+      this.categories = categories;
       this.render(selected ?? this.select.value);
       this.setState(this.categories.length ? `${this.categories.length} 个分类` : "尚未创建分类");
     } catch (error) {
+      if (revision !== this.loadRevision) return;
       this.setState("分类读取失败");
       this.onError(error);
     }
@@ -73,6 +78,7 @@ export class CategorySelect {
     this.setState("正在创建分类…");
     try {
       const category = await api.post("/api/categories", { scope: this.scope, name });
+      this.loadRevision += 1;
       this.categories.push(category);
       this.categories.sort((left, right) => left.sort_order - right.sort_order || left.name.localeCompare(right.name, "zh-CN"));
       this.render(category.name);

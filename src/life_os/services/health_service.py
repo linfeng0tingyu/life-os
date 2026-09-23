@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
 
 from sqlalchemy import select
 
@@ -34,7 +34,6 @@ class HealthService:
         *,
         weight_kg: object = UNSET,
         sleep_start: object = UNSET,
-        sleep_end: object = UNSET,
         sleep_duration_minutes: object = UNSET,
         sleep_quality: object = UNSET,
         energy_level: object = UNSET,
@@ -52,11 +51,9 @@ class HealthService:
         if weight_kg is not UNSET:
             record.weight_kg = optional_float(weight_kg, "weight_kg", minimum=0.000001)
         if sleep_start is not UNSET:
-            record.sleep_start = HealthService._normalize_datetime(
-                sleep_start, "sleep_start"
+            record.sleep_start = HealthService._normalize_sleep_start(
+                sleep_start, target
             )
-        if sleep_end is not UNSET:
-            record.sleep_end = HealthService._normalize_datetime(sleep_end, "sleep_end")
         if sleep_quality is not UNSET:
             record.sleep_quality = HealthService._optional_rating(
                 sleep_quality, "sleep_quality"
@@ -83,25 +80,21 @@ class HealthService:
                 sleep_duration_minutes, "sleep_duration_minutes", 0, 1440
             )
             record.sleep_duration_manual = sleep_duration_minutes is not None
-            if sleep_duration_minutes is None:
-                record.sleep_duration_minutes = HealthService._calculate_sleep_duration(
-                    record.sleep_start, record.sleep_end
-                )
-        elif not record.sleep_duration_manual and (
-            sleep_start is not UNSET or sleep_end is not UNSET
-        ):
-            record.sleep_duration_minutes = HealthService._calculate_sleep_duration(
-                record.sleep_start, record.sleep_end
+        if sleep_start is not UNSET or sleep_duration_minutes is not UNSET:
+            record.sleep_end = HealthService._derived_sleep_end(
+                record.sleep_start, record.sleep_duration_minutes
             )
 
         db.session.flush()
         return record
 
     @staticmethod
-    def _normalize_datetime(value: object, field: str) -> str | None:
+    def _normalize_sleep_start(value: object, record_date: date) -> str | None:
         if value is None:
             return None
-        parsed = parse_aware_datetime(value, field)  # type: ignore[arg-type]
+        parsed = parse_aware_datetime(value, "sleep_start")  # type: ignore[arg-type]
+        if parsed.date() != record_date - timedelta(days=1):
+            raise ValidationError("入睡时间必须属于记录日期的前一天。")
         return parsed.isoformat(timespec="minutes")
 
     @staticmethod
@@ -119,14 +112,10 @@ class HealthService:
         return integer_range(value, field, minimum, maximum)
 
     @staticmethod
-    def _calculate_sleep_duration(
-        start_value: str | None, end_value: str | None
-    ) -> int | None:
-        if start_value is None or end_value is None:
+    def _derived_sleep_end(
+        start_value: str | None, duration_minutes: int | None
+    ) -> str | None:
+        if start_value is None or duration_minutes is None:
             return None
         start = parse_aware_datetime(start_value, "sleep_start")
-        end = parse_aware_datetime(end_value, "sleep_end")
-        minutes = int((end - start).total_seconds() // 60)
-        if not 0 <= minutes <= 1440:
-            raise ValidationError("睡眠结束时间必须晚于开始时间且间隔不超过 24 小时。")
-        return minutes
+        return (start + timedelta(minutes=duration_minutes)).isoformat(timespec="minutes")

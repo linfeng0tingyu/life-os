@@ -125,6 +125,8 @@ def test_m5_task_and_habit_pages_expose_complete_management_controls(
     assert 'data-habit-check-list' in habit_html
     assert 'data-habit-list' in habit_html
     assert 'data-habit-date' in habit_html
+    assert 'data-habit-report' in habit_html
+    assert 'name="icon"' not in habit_html
     assert 'href="/habits" aria-current="page"' in habit_html
     assert "/static/css/pages/management.css?v=0.1.0" in task_html
     assert "http://" not in task_html + habit_html
@@ -144,6 +146,9 @@ def test_m5_frontend_guards_repeated_actions_and_uses_existing_apis(
     category_script = client.get(
         "/static/js/components/category-select.js"
     ).get_data(as_text=True)
+    management_styles = client.get(
+        "/static/css/pages/management.css"
+    ).get_data(as_text=True)
 
     assert "this.pending = new Set()" in tasks_script
     assert "this.pending = new Set()" in habits_script
@@ -153,8 +158,12 @@ def test_m5_frontend_guards_repeated_actions_and_uses_existing_apis(
     assert "onTaskStatusChange" in summary_script
     assert "onHabitStatusChange" in summary_script
     assert 'api.post("/api/categories"' in category_script
+    assert "this.loadRevision" in category_script
     assert "this.dialog.showModal()" in tasks_script
     assert "this.dialog.showModal()" in habits_script
+    assert 'className: "item-actions task-action-grid"' in tasks_script
+    assert 'closed ? "重新打开" : "完成"' in tasks_script
+    assert ".task-action-grid" in management_styles
 
 
 def test_m6_pages_expose_health_journal_and_finance_closed_loops(
@@ -170,7 +179,13 @@ def test_m6_pages_expose_health_journal_and_finance_closed_loops(
     assert 'data-page="health"' in health_html
     assert 'data-health-form' in health_html
     assert 'name="sleep_start"' in health_html
-    assert 'data-manual-sleep' in health_html
+    assert 'type="time" name="sleep_start"' in health_html
+    assert 'name="sleep_end"' not in health_html
+    assert 'data-manual-sleep' not in health_html
+    assert 'name="sleep_duration_hours"' in health_html
+    assert 'name="sleep_duration_remainder"' in health_html
+    assert '记录日前一天' in health_html
+    assert 'data-health-report' in health_html
     assert 'href="/health" aria-current="page"' in health_html
     assert 'data-page="journal"' in journal_html
     assert 'data-journal-content' in journal_html
@@ -180,6 +195,9 @@ def test_m6_pages_expose_health_journal_and_finance_closed_loops(
     assert 'data-action="insert-image"' in journal_html
     assert 'data-action="export-journal"' in journal_html
     assert 'data-journal-preview' in journal_html
+    assert 'data-journal-calendar' in journal_html
+    assert 'data-action="journal-today"' in journal_html
+    assert journal_html.index('data-journal-content') < journal_html.index('data-journal-calendar')
     assert 'href="/journal" aria-current="page"' in journal_html
     assert 'data-page="finance"' in finance_html
     assert 'data-account-form' in finance_html
@@ -189,6 +207,7 @@ def test_m6_pages_expose_health_journal_and_finance_closed_loops(
     assert 'data-transaction-form' in finance_html
     assert 'data-finance-category-control' in finance_html
     assert 'name="category" data-category-select' in finance_html
+    assert 'name="note"' not in finance_html
     assert 'data-show-inactive' not in finance_html
     assert 'data-finance-totals' in finance_html
     assert 'href="/finance" aria-current="page"' in finance_html
@@ -207,16 +226,24 @@ def test_m6_frontend_uses_debounced_saves_and_explicit_finance_submit(
 
     assert "window.setTimeout(() => this.save(), 800)" in health_script
     assert "sleep_duration_minutes" in health_script
+    assert "sleep_duration_hours" in health_script
+    assert "previousDaySleepTimestamp" in health_script
+    assert "sleep_end" not in health_script
+    assert "manualSleep" not in health_script
+    assert "/api/health/statistics" in health_script
     assert "window.setTimeout(() => this.save(), 1200)" in journal_script
     assert 'window.addEventListener("beforeunload"' in journal_script
     assert "insertCurrentTime()" in journal_script
     assert "applyHeading(level)" in journal_script
     assert "api.upload(`/api/journal/${this.date}/assets`" in journal_script
     assert "renderMarkdownPreview" in journal_script
+    assert "/api/journal/month/" in journal_script
+    assert "isEditable()" in journal_script
     assert 'this.accountForm.addEventListener("submit"' in finance_script
     assert 'this.transactionForm.addEventListener("submit"' in finance_script
     assert "this.setDisabled(this.transactionForm, true)" in finance_script
     assert 'scope: "finance"' in finance_script
+    assert "fields.note" not in finance_script
     assert 'api.delete(`/api/finance/transactions/${transaction.id}`)' in finance_script
     assert 'loadCreditCardCycles()' in finance_script
     assert '信用卡还款' in finance_script
@@ -333,6 +360,27 @@ def test_heritage_palettes_and_finance_semantic_colors_are_explicit(
     assert "font-weight: 800;" in layout
 
 
+def test_primary_page_modules_adapt_to_available_width(tmp_path: Path) -> None:
+    app = create_app(runtime_home=tmp_path / "runtime", testing=True)
+    client = app.test_client()
+    components = client.get("/static/css/components.css").get_data(as_text=True)
+    records = client.get("/static/css/pages/records.css").get_data(as_text=True)
+    management = client.get("/static/css/pages/management.css").get_data(as_text=True)
+    calendar = client.get("/static/css/pages/calendar.css").get_data(as_text=True)
+    settings = client.get("/static/css/pages/settings.css").get_data(as_text=True)
+
+    assert "padding: clamp(var(--space-4), 1.6vw, var(--space-6));" in components
+    assert "repeat(auto-fit, minmax(min(28rem, 100%), 1fr))" in records
+    assert ".records-grid {\n  align-items: stretch;\n}" in records
+    assert ".records-grid > .module {\n  height: 100%;\n}" in records
+    assert ".records-content {\n  max-width: none;\n}" in records
+    assert "minmax(min(19rem, 100%), 1fr)" in records
+    assert "@media (max-width: 78rem)" in management
+    assert "@media (max-width: 72rem)" in calendar
+    assert "repeat(auto-fit, minmax(min(28rem, 100%), 1fr))" in settings
+    assert ".settings-content {\n  max-width: none;\n}" in settings
+
+
 def test_selected_logo_is_served_as_local_png(tmp_path: Path) -> None:
     app = create_app(runtime_home=tmp_path / "runtime", testing=True)
     response = app.test_client().get("/static/images/life-os-logo.png")
@@ -395,6 +443,7 @@ def test_future_date_plan_is_visible_in_day_aggregation(tmp_path: Path) -> None:
         "js/components/category-select.js",
         "js/components/day-summary.js",
         "js/components/markdown-preview.js",
+        "js/components/reporting.js",
         "js/features/calendar.js",
         "js/pages/calendar.js",
         "js/pages/habits.js",

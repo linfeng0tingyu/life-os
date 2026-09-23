@@ -24,11 +24,17 @@
         <section class="module module-rhythm" aria-labelledby="sleep-title">
           <div class="module-heading"><div><p class="section-kicker">睡眠</p><h2 id="sleep-title">休息与恢复</h2></div><span class="save-state" data-health-state role="status" aria-live="polite">正在读取</span></div>
           <div class="field-grid">
-            <label class="field"><span>入睡时间</span><input type="datetime-local" name="sleep_start"></label>
-            <label class="field"><span>醒来时间</span><input type="datetime-local" name="sleep_end"></label>
+            <label class="field"><span>入睡时间 <small>记录日前一天</small></span><input type="time" name="sleep_start" step="60"></label>
+            <div class="field sleep-duration-fields">
+              <span>睡眠时长</span>
+              <div class="duration-inputs">
+                <label><input type="number" name="sleep_duration_hours" aria-label="睡眠时长小时" min="0" max="24" step="1" placeholder="0"><small>小时</small></label>
+                <label><input type="number" name="sleep_duration_remainder" aria-label="睡眠时长分钟" min="0" max="59" step="1" placeholder="0"><small>分钟</small></label>
+              </div>
+            </div>
           </div>
-          <label class="check-field"><input type="checkbox" data-manual-sleep>手动修正睡眠时长</label>
-          <label class="field"><span>睡眠时长（分钟）</span><input type="number" name="sleep_duration_minutes" min="0" max="1440" step="1" disabled><small data-sleep-hint>填写起止时间后自动计算，支持跨午夜。</small></label>
+          <div class="sleep-duration-summary" data-sleep-duration-display>尚未记录睡眠时长</div>
+          <p class="field-hint" data-sleep-hint>入睡时间按所选记录日期的前一天保存；睡眠时长直接按小时和分钟填写。</p>
           <label class="field"><span>睡眠质量</span><select name="sleep_quality"><option value="">未记录</option><option value="1">1 · 很差</option><option value="2">2 · 较差</option><option value="3">3 · 一般</option><option value="4">4 · 良好</option><option value="5">5 · 很好</option></select></label>
         </section>
 
@@ -44,6 +50,27 @@
           <label class="field"><span>补充备注</span><textarea name="note" maxlength="2000" rows="4" placeholder="药物、症状或训练感受等"></textarea></label>
         </section>
       </form>
+
+      <section class="module report-panel health-report" aria-labelledby="health-report-title" data-health-report>
+        <div class="module-heading">
+          <div><p class="section-kicker">长期变化</p><h2 id="health-report-title">生活节律统计</h2></div>
+          <span class="state-label" role="status" aria-live="polite" data-health-report-state>加载中</span>
+        </div>
+        <div class="report-controls" aria-label="生活节律统计周期">
+          <div class="report-periods">
+            <button class="button button-secondary" type="button" data-report-period="week" aria-pressed="true">周</button>
+            <button class="button button-quiet" type="button" data-report-period="month" aria-pressed="false">月</button>
+            <button class="button button-quiet" type="button" data-report-period="year" aria-pressed="false">年</button>
+          </div>
+          <div class="report-navigation">
+            <button class="button button-quiet" type="button" data-action="previous-health-report">上一周期</button>
+            <button class="button button-secondary" type="button" data-action="current-health-report">回到本期</button>
+            <button class="button button-quiet" type="button" data-action="next-health-report">下一周期</button>
+          </div>
+        </div>
+        <p class="report-range" data-health-report-range></p>
+        <div data-health-report-body aria-busy="true"><p class="empty-state">正在生成统计…</p></div>
+      </section>
     </main>
   </div>
 {% endblock %}

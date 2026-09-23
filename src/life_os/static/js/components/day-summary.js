@@ -1,4 +1,5 @@
 import { element, emptyMessage, replace } from "./dom.js";
+import { formatDuration } from "./reporting.js";
 
 function metric(value, label) {
   return element("div", { className: "metric" }, [
@@ -93,7 +94,7 @@ function renderTasks(day, container, onStatusChange) {
 function renderRhythm(day, container) {
   const health = day.health;
   const values = health ? [
-    [health.sleep_duration_minutes ? `${Math.floor(health.sleep_duration_minutes / 60)}时${health.sleep_duration_minutes % 60}分` : "未记录", "睡眠时长"],
+    [formatDuration(health.sleep_duration_minutes), "睡眠时长"],
     [health.weight_kg != null ? `${health.weight_kg} kg` : "未记录", "体重"],
     [health.exercise_minutes != null ? `${health.exercise_minutes} 分钟` : "未记录", "运动"],
     [health.body_status || "未记录", "身体健康"],

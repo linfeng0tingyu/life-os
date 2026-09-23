@@ -243,7 +243,6 @@ export class FinancePage {
             element("span", { text: route }),
             item.category ? element("span", { text: item.category }) : null,
           ].filter(Boolean)),
-          item.note ? element("p", { text: item.note }) : null,
         ].filter(Boolean)),
         element("div", { className: "item-actions" }, [
           button("编辑", () => this.openTransaction(item)),
@@ -381,7 +380,6 @@ export class FinancePage {
     fields.amount.value = preset.amount || transaction?.amount || "";
     this.categoryControl.setValue(transaction?.category || "");
     fields.description.value = preset.description || transaction?.description || "";
-    fields.note.value = transaction?.note || "";
     this.fillAccountOptions(transaction);
     const fromAccountId = preset.from_account_id ?? transaction?.from_account_id;
     const toAccountId = preset.to_account_id ?? transaction?.to_account_id;
@@ -448,7 +446,6 @@ export class FinancePage {
       to_account_id: fields.to_account_id.value ? Number(fields.to_account_id.value) : null,
       category: fields.category.value.trim() || null,
       description: fields.description.value.trim() || null,
-      note: fields.note.value.trim() || null,
     };
     this.transactionBusy = true;
     this.setDisabled(this.transactionForm, true);

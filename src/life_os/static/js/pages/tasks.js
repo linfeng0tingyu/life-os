@@ -142,25 +142,27 @@ export class TasksPage {
   }
 
   taskActions(task) {
-    const actions = element("div", { className: "item-actions" });
-    const add = (label, handler, className) => {
+    const actions = element("div", { className: "item-actions task-action-grid" });
+    const add = (label, handler, className = "button button-quiet", disabled = false) => {
       const button = actionButton(label, className);
-      button.disabled = this.pending.has(task.id);
+      button.disabled = disabled || this.pending.has(task.id);
       button.addEventListener("click", handler);
       actions.append(button);
     };
     if (task.archived_at) {
+      actions.classList.remove("task-action-grid");
       add("恢复", () => this.runMutation(task.id, () => api.post(`/api/tasks/${task.id}/restore`, {}), "已恢复"), "button button-secondary");
       return actions;
     }
-    if (task.status === "todo") add("开始", () => this.setStatus(task.id, "doing"));
-    if (!["done", "cancelled"].includes(task.status)) add("完成", () => this.setStatus(task.id, "done"), "button button-primary");
-    if (task.status === "doing") add("退回待办", () => this.setStatus(task.id, "todo"));
-    if (["done", "cancelled"].includes(task.status)) add("重新打开", () => this.setStatus(task.id, "todo"));
-    if (!["done", "cancelled"].includes(task.status)) add("取消", () => this.setStatus(task.id, "cancelled"));
-    add("编辑", () => this.editTask(task));
-    add("上移", () => this.moveTask(task, -1));
-    add("下移", () => this.moveTask(task, 1));
+    const active = this.tasks.filter((item) => !item.archived_at)
+      .sort((left, right) => left.sort_order - right.sort_order || left.id - right.id);
+    const index = active.findIndex((item) => item.id === task.id);
+    const closed = ["done", "cancelled"].includes(task.status);
+    add(closed ? "重新打开" : "完成", () => this.setStatus(task.id, closed ? "todo" : "done"), "button button-primary");
+    add("上移", () => this.moveTask(task, -1), "button button-quiet", index <= 0);
+    add("下移", () => this.moveTask(task, 1), "button button-quiet", index < 0 || index >= active.length - 1);
+    add("编辑", () => this.editTask(task), "button button-primary");
+    add("取消", () => this.setStatus(task.id, "cancelled"), "button button-quiet", closed);
     add("归档", () => this.runMutation(task.id, () => api.delete(`/api/tasks/${task.id}`), "已归档"));
     return actions;
   }
