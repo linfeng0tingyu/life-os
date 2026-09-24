@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
+from datetime import date
 import hashlib
 import http.client
 from pathlib import Path
@@ -120,6 +121,7 @@ def test_waitress_serves_concurrent_loopback_requests(tmp_path: Path) -> None:
 def test_m8_core_journey_reaches_backup_and_open_export(
     client: FlaskClient,
 ) -> None:
+    today = date.today().isoformat()
     task_category = client.post(
         "/api/categories", json={"scope": "task", "name": "发布"}
     )
@@ -129,21 +131,21 @@ def test_m8_core_journey_reaches_backup_and_open_export(
         json={
             "title": "发布 v0.1",
             "category": "发布",
-            "scheduled_date": "2026-09-23",
+            "scheduled_date": today,
         },
     )
     assert task.status_code == 201
 
     habit = client.post("/api/habits", json={"name": "复盘"}).get_json()["data"]
     assert client.put(
-        f"/api/habits/{habit['id']}/log/2026-09-23", json={"status": True}
+        f"/api/habits/{habit['id']}/log/{today}", json={"status": True}
     ).status_code == 200
     assert client.put(
-        "/api/health/2026-09-23",
+        f"/api/health/{today}",
         json={"sleep_duration_minutes": 450, "energy_level": 4},
     ).status_code == 200
     assert client.put(
-        "/api/journal/2026-09-23", json={"content": "# v0.1 发布日"}
+        f"/api/journal/{today}", json={"content": "# v0.1 发布日"}
     ).status_code == 200
 
     account = client.post(
@@ -158,14 +160,14 @@ def test_m8_core_journey_reaches_backup_and_open_export(
     assert client.post(
         "/api/finance/transactions",
         json={
-            "date": "2026-09-23",
+            "date": today,
             "type": "income",
             "amount": "50.00",
             "to_account_id": account["id"],
         },
     ).status_code == 201
 
-    day = client.get("/api/day/2026-09-23").get_json()["data"]
+    day = client.get(f"/api/day/{today}").get_json()["data"]
     assert day["tasks"]["scheduled"][0]["title"] == "发布 v0.1"
     assert day["habits"][0]["log"]["status"] is True
     assert day["health"]["sleep_duration_minutes"] == 450

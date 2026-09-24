@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "partials/category-control.html" import category_control %}
 
 {% block title %}任务 · Life OS{% endblock %}
 
@@ -42,21 +43,17 @@
               <label class="field"><span>状态</span><select name="status"><option value="todo">待办</option><option value="doing">进行中</option><option value="done">已完成</option><option value="cancelled">已取消</option></select></label>
               <label class="field"><span>优先级</span><select name="priority"><option value="normal">普通</option><option value="high">重要</option><option value="urgent">紧急</option><option value="low">低</option></select></label>
             </div>
-            <div class="category-control" data-category-control>
-              <label class="field"><span>分类</span><select name="category" data-category-select><option value="">未分类</option></select></label>
-              <div class="category-control-meta">
-                <span role="status" aria-live="polite" data-category-state>正在读取分类…</span>
-                <button class="text-button" type="button" data-action="show-category-creator">＋ 新建分类</button>
-              </div>
-              <div class="category-creator is-hidden" data-category-creator>
-                <input type="text" maxlength="100" data-category-name aria-label="新任务分类名称" placeholder="输入分类名称">
-                <button class="button button-secondary" type="button" data-action="save-category">创建并选中</button>
-                <button class="button button-quiet" type="button" data-action="cancel-category-creator">取消</button>
-              </div>
-            </div>
+            {{ category_control("新任务分类名称") }}
             <div class="field-grid">
               <label class="field"><span>计划日期</span><input type="date" name="scheduled_date"></label>
               <label class="field"><span>截止日期</span><input type="date" name="due_date"></label>
+            </div>
+            <div class="date-shortcuts" aria-label="截止日期快捷增加">
+              <span>截止日期增加</span>
+              <button class="button button-quiet" type="button" data-deadline-days="3">三天</button>
+              <button class="button button-quiet" type="button" data-deadline-days="7">一周</button>
+              <button class="button button-quiet" type="button" data-deadline-months="1">一月</button>
+              <small>首次以计划日期为基准，之后可继续累加。</small>
             </div>
             <label class="field"><span>父任务</span><select name="parent_id" data-task-parent><option value="">无父任务</option></select></label>
             <div class="form-actions">
@@ -64,6 +61,7 @@
                 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h12l2 2v14H5z"></path><path d="M8 4v6h8V4M8 20v-6h8v6"></path></svg>
                 保存任务
               </button>
+              <button class="button button-secondary" type="button" data-action="save-and-new-task">再建一个</button>
               <button class="button button-quiet" type="button" data-action="cancel-task-edit">取消</button>
             </div>
           </form>

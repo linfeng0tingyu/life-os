@@ -46,6 +46,7 @@ export class FinancePage {
     this.transactionDialog = root.querySelector("[data-transaction-dialog]");
     this.transactionForm = root.querySelector("[data-transaction-form]");
     this.transactionFormTitle = root.querySelector("[data-transaction-form-title]");
+    this.saveAndNewTransaction = root.querySelector('[data-action="save-and-new-transaction"]');
     this.date = normalizeDate(new URLSearchParams(window.location.search).get("date"));
     this.accounts = [];
     this.transactions = [];
@@ -77,7 +78,8 @@ export class FinancePage {
     this.transactionDialog.addEventListener("cancel", (event) => this.transactionBusy ? event.preventDefault() : this.resetTransactionForm());
     this.accountForm.addEventListener("submit", (event) => { event.preventDefault(); this.saveAccount(); });
     this.accountForm.elements.account_type.addEventListener("change", () => this.syncAccountTypeFields());
-    this.transactionForm.addEventListener("submit", (event) => { event.preventDefault(); this.saveTransaction(); });
+    this.transactionForm.addEventListener("submit", (event) => { event.preventDefault(); this.saveTransaction(false); });
+    this.saveAndNewTransaction.addEventListener("click", () => this.saveTransaction(true));
     this.transactionForm.elements.type.addEventListener("change", () => this.syncAccountFields());
     this.dateFilter.addEventListener("change", () => {
       this.date = normalizeDate(this.dateFilter.value, this.date);
@@ -374,6 +376,7 @@ export class FinancePage {
     this.resetTransactionForm();
     this.editingTransactionId = transaction?.id ?? null;
     this.transactionFormTitle.textContent = transaction ? "编辑流水" : "记一笔";
+    this.saveAndNewTransaction.classList.toggle("is-hidden", Boolean(transaction));
     const fields = this.transactionForm.elements;
     fields.date.value = preset.date || transaction?.date || this.date;
     fields.type.value = preset.type || transaction?.type || "expense";
@@ -418,8 +421,21 @@ export class FinancePage {
     this.transactionForm.elements.type.value = "expense";
     this.transactionForm.elements.date.value = this.date;
     this.transactionFormTitle.textContent = "记一笔";
+    this.saveAndNewTransaction.classList.remove("is-hidden");
     this.categoryControl.setValue("");
     this.fillAccountOptions();
+    this.syncAccountFields();
+  }
+
+  resetForNextTransaction(retained) {
+    this.resetTransactionForm();
+    const fields = this.transactionForm.elements;
+    fields.date.value = retained.date;
+    fields.type.value = retained.type;
+    this.fillAccountOptions();
+    fields.from_account_id.value = retained.fromAccountId;
+    fields.to_account_id.value = retained.toAccountId;
+    this.categoryControl.setValue(retained.category);
     this.syncAccountFields();
   }
 
@@ -429,7 +445,7 @@ export class FinancePage {
     this.resetTransactionForm();
   }
 
-  async saveTransaction() {
+  async saveTransaction(continueCreating = false) {
     if (this.transactionBusy || !this.transactionForm.reportValidity()) return;
     const fields = this.transactionForm.elements;
     if (fields.type.value === "transfer" && fields.from_account_id.value === fields.to_account_id.value) {
@@ -438,6 +454,14 @@ export class FinancePage {
       fields.to_account_id.setCustomValidity("");
       return;
     }
+    const creating = this.editingTransactionId == null;
+    const retained = {
+      date: fields.date.value,
+      type: fields.type.value,
+      fromAccountId: fields.from_account_id.value,
+      toAccountId: fields.to_account_id.value,
+      category: fields.category.value.trim(),
+    };
     const payload = {
       date: fields.date.value,
       type: fields.type.value,
@@ -450,20 +474,27 @@ export class FinancePage {
     this.transactionBusy = true;
     this.setDisabled(this.transactionForm, true);
     this.hideError();
+    let savedForNext = false;
     try {
-      if (this.editingTransactionId == null) await api.post("/api/finance/transactions", payload);
+      if (creating) await api.post("/api/finance/transactions", payload);
       else await api.put(`/api/finance/transactions/${this.editingTransactionId}`, payload);
       this.date = payload.date;
       this.dateFilter.value = this.date;
       this.replaceUrl();
-      this.transactionDialog.close();
-      this.resetTransactionForm();
       await this.loadAll();
+      if (continueCreating && creating) {
+        this.resetForNextTransaction(retained);
+        savedForNext = true;
+      } else {
+        this.transactionDialog.close();
+        this.resetTransactionForm();
+      }
     } catch (error) {
       this.showError(error);
     } finally {
       this.transactionBusy = false;
       this.setDisabled(this.transactionForm, false);
+      if (savedForNext) this.transactionForm.elements.amount.focus();
     }
   }
 

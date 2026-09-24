@@ -87,6 +87,8 @@ def test_calendar_page_owns_history_and_day_markers(tmp_path: Path) -> None:
     assert "data-day-marker-form" in html
     assert "data-future-planner" in html
     assert "data-planner-form" in html
+    assert 'data-action="show-category-manager"' in html
+    assert 'data-category-manager-search' in html
     assert "data-month-picker" in html
     assert "选择任意日期" in html
     assert 'href="/calendar" aria-current="page"' in html
@@ -112,9 +114,15 @@ def test_m5_task_and_habit_pages_expose_complete_management_controls(
     assert 'data-action="new-task" aria-haspopup="dialog"' in task_html
     assert 'name="category" data-category-select' in task_html
     assert 'data-action="show-category-creator"' in task_html
+    assert 'data-action="show-category-manager"' in task_html
+    assert 'data-category-manager-search' in task_html
     assert 'data-task-list' in task_html
     assert 'name="scheduled_date"' in task_html
     assert 'name="due_date"' in task_html
+    assert 'data-action="save-and-new-task"' in task_html
+    assert 'data-deadline-days="3"' in task_html
+    assert 'data-deadline-days="7"' in task_html
+    assert 'data-deadline-months="1"' in task_html
     assert 'name="parent_id"' in task_html
     assert 'href="/tasks" aria-current="page"' in task_html
     assert 'data-page="habits"' in habit_html
@@ -122,6 +130,7 @@ def test_m5_task_and_habit_pages_expose_complete_management_controls(
     assert '<dialog class="editor-dialog" data-habit-dialog' in habit_html
     assert 'data-action="new-habit" aria-haspopup="dialog"' in habit_html
     assert 'name="category" data-category-select' in habit_html
+    assert 'data-action="show-category-manager"' in habit_html
     assert 'data-habit-check-list' in habit_html
     assert 'data-habit-list' in habit_html
     assert 'data-habit-date' in habit_html
@@ -158,11 +167,22 @@ def test_m5_frontend_guards_repeated_actions_and_uses_existing_apis(
     assert "onTaskStatusChange" in summary_script
     assert "onHabitStatusChange" in summary_script
     assert 'api.post("/api/categories"' in category_script
+    assert 'api.put("/api/categories/order"' in category_script
+    assert "api.delete(`/api/categories/${category.id}`)" in category_script
+    assert "renderPickerOptions()" in category_script
+    assert ".category-option-list" in management_styles
+    assert "max-height: 13.5rem" in management_styles
+    assert "overflow-y: auto" in management_styles
     assert "this.loadRevision" in category_script
     assert "this.dialog.showModal()" in tasks_script
     assert "this.dialog.showModal()" in habits_script
     assert 'className: "item-actions task-action-grid"' in tasks_script
     assert 'closed ? "重新打开" : "完成"' in tasks_script
+    assert "this.saveTask(true)" in tasks_script
+    assert "fields.due_date.value || fields.scheduled_date.value" in tasks_script
+    assert "Math.min(day, lastDay)" in tasks_script
+    assert "this.form.elements.scheduled_date.value = toLocalDateString()" in tasks_script
+    assert "this.resetForNextTask(retainedStatus, retainedPriority)" in tasks_script
     assert ".task-action-grid" in management_styles
 
 
@@ -205,7 +225,9 @@ def test_m6_pages_expose_health_journal_and_finance_closed_loops(
     assert 'name="billing_day"' in finance_html
     assert '>信用卡</option>' in finance_html
     assert 'data-transaction-form' in finance_html
+    assert 'data-action="save-and-new-transaction"' in finance_html
     assert 'data-finance-category-control' in finance_html
+    assert 'data-action="show-category-manager"' in finance_html
     assert 'name="category" data-category-select' in finance_html
     assert 'name="note"' not in finance_html
     assert 'data-show-inactive' not in finance_html
@@ -241,6 +263,10 @@ def test_m6_frontend_uses_debounced_saves_and_explicit_finance_submit(
     assert "isEditable()" in journal_script
     assert 'this.accountForm.addEventListener("submit"' in finance_script
     assert 'this.transactionForm.addEventListener("submit"' in finance_script
+    assert "this.saveTransaction(true)" in finance_script
+    assert "this.resetForNextTransaction(retained)" in finance_script
+    assert "fromAccountId: fields.from_account_id.value" in finance_script
+    assert "this.categoryControl.setValue(retained.category)" in finance_script
     assert "this.setDisabled(this.transactionForm, true)" in finance_script
     assert 'scope: "finance"' in finance_script
     assert "fields.note" not in finance_script

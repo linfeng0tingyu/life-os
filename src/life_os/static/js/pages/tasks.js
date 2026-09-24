@@ -1,6 +1,7 @@
 import { api, ApiError } from "../api/client.js";
 import { CategorySelect } from "../components/category-select.js";
 import { element, emptyMessage, replace } from "../components/dom.js";
+import { parseLocalDate, toLocalDateString } from "../utils/date.js";
 
 const STATUS_LABELS = { todo: "待办", doing: "进行中", done: "已完成", cancelled: "已取消" };
 const PRIORITY_LABELS = { low: "低", normal: "普通", high: "重要", urgent: "紧急" };
@@ -14,6 +15,19 @@ function actionButton(label, className = "button button-quiet") {
   return element("button", { className, text: label, attrs: { type: "button" } });
 }
 
+function shiftDate(value, { days = 0, months = 0 } = {}) {
+  const current = parseLocalDate(value) || new Date();
+  if (months) {
+    const day = current.getDate();
+    current.setDate(1);
+    current.setMonth(current.getMonth() + months);
+    const lastDay = new Date(current.getFullYear(), current.getMonth() + 1, 0).getDate();
+    current.setDate(Math.min(day, lastDay));
+  }
+  if (days) current.setDate(current.getDate() + days);
+  return toLocalDateString(current);
+}
+
 export class TasksPage {
   constructor(root) {
     this.root = root;
@@ -22,6 +36,7 @@ export class TasksPage {
     this.formTitle = root.querySelector("[data-task-form-title]");
     this.formState = root.querySelector("[data-task-form-state]");
     this.cancelEdit = root.querySelector('[data-action="cancel-task-edit"]');
+    this.saveAndNew = root.querySelector('[data-action="save-and-new-task"]');
     this.parentSelect = root.querySelector("[data-task-parent]");
     this.list = root.querySelector("[data-task-list]");
     this.listState = root.querySelector("[data-task-list-state]");
@@ -53,7 +68,11 @@ export class TasksPage {
     });
     this.form.addEventListener("submit", (event) => {
       event.preventDefault();
-      this.saveTask();
+      this.saveTask(false);
+    });
+    this.saveAndNew.addEventListener("click", () => this.saveTask(true));
+    this.root.querySelectorAll("[data-deadline-days], [data-deadline-months]").forEach((button) => {
+      button.addEventListener("click", () => this.extendDeadline(button));
     });
     for (const control of [this.search, this.statusFilter, this.dateFilter, this.showArchived]) {
       control.addEventListener(control === this.search ? "input" : "change", () => this.render());
@@ -196,6 +215,7 @@ export class TasksPage {
     fields.parent_id.value = task.parent_id == null ? "" : String(task.parent_id);
     this.formTitle.textContent = "编辑任务";
     this.formState.textContent = "正在编辑";
+    this.saveAndNew.classList.add("is-hidden");
     this.dialog.showModal();
     fields.title.focus();
   }
@@ -218,11 +238,31 @@ export class TasksPage {
     this.form.elements.task_id.value = "";
     this.form.elements.status.value = "todo";
     this.form.elements.priority.value = "normal";
+    this.form.elements.scheduled_date.value = toLocalDateString();
     this.updateParentOptions();
     this.formTitle.textContent = "新建任务";
     this.formState.textContent = "可编辑";
     this.formState.dataset.state = "ready";
+    this.saveAndNew.classList.remove("is-hidden");
     this.categoryControl.setValue("");
+  }
+
+  resetForNextTask(status, priority) {
+    this.resetForm();
+    this.form.elements.status.value = status;
+    this.form.elements.priority.value = priority;
+    this.formState.textContent = "上一项已保存，可继续新建";
+    this.formState.dataset.state = "saved";
+  }
+
+  extendDeadline(button) {
+    if (this.formBusy) return;
+    const fields = this.form.elements;
+    const base = fields.due_date.value || fields.scheduled_date.value || toLocalDateString();
+    fields.due_date.value = shiftDate(base, {
+      days: Number(button.dataset.deadlineDays || 0),
+      months: Number(button.dataset.deadlineMonths || 0),
+    });
   }
 
   updateParentOptions(excludedId = null) {
@@ -235,9 +275,12 @@ export class TasksPage {
     if ([...this.parentSelect.options].some((option) => option.value === current)) this.parentSelect.value = current;
   }
 
-  async saveTask() {
+  async saveTask(continueCreating = false) {
     if (this.formBusy || !this.form.reportValidity()) return;
     const fields = this.form.elements;
+    const creating = this.editingId == null;
+    const retainedStatus = fields.status.value;
+    const retainedPriority = fields.priority.value;
     const payload = {
       title: fields.title.value.trim(),
       description: fields.description.value.trim() || null,
@@ -253,14 +296,18 @@ export class TasksPage {
     this.formState.textContent = "保存中";
     this.formState.dataset.state = "saving";
     this.hideError();
+    let savedForNext = false;
     try {
-      if (this.editingId == null) await api.post("/api/tasks", payload);
+      if (creating) await api.post("/api/tasks", payload);
       else await api.put(`/api/tasks/${this.editingId}`, payload);
-      this.dialog.close();
-      this.resetForm();
-      this.formState.textContent = "已保存";
-      this.formState.dataset.state = "saved";
-      await this.loadTasks("已保存");
+      await this.loadTasks(continueCreating && creating ? "已保存，可继续新建" : "已保存");
+      if (continueCreating && creating) {
+        this.resetForNextTask(retainedStatus, retainedPriority);
+        savedForNext = true;
+      } else {
+        this.dialog.close();
+        this.resetForm();
+      }
     } catch (error) {
       this.formState.textContent = "保存失败";
       this.formState.dataset.state = "save-failed";
@@ -268,6 +315,7 @@ export class TasksPage {
     } finally {
       this.formBusy = false;
       this.setFormDisabled(false);
+      if (savedForNext) this.form.elements.title.focus();
     }
   }
 

@@ -28,3 +28,19 @@ def post_category():
     )
     category = CategoryService.create(**payload)
     return success_response(category_data(category), status=201)
+
+
+@blueprint.put("/api/categories/order")
+def put_category_order():
+    payload = json_object(
+        allowed={"scope", "category_ids"},
+        required={"scope", "category_ids"},
+    )
+    categories = CategoryService.reorder(**payload)
+    return success_response([category_data(category) for category in categories])
+
+
+@blueprint.delete("/api/categories/<int:category_id>")
+def delete_category(category_id: int):
+    deleted_id = CategoryService.delete(category_id)
+    return success_response({"id": deleted_id, "deleted": True})

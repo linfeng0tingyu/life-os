@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "partials/category-control.html" import category_control %}
 
 {% block title %}日历 · Life OS{% endblock %}
 
@@ -93,18 +94,7 @@
             <p class="planner-copy">事项会直接安排到所选日期，并出现在下方“当日重要事项”中。</p>
             <form data-planner-form>
               <label class="field"><span>事项名称</span><input type="text" name="title" maxlength="200" required placeholder="例如：准备周末采购清单"></label>
-              <div class="category-control" data-category-control>
-                <label class="field"><span>分类</span><select name="category" data-category-select><option value="">未分类</option></select></label>
-                <div class="category-control-meta">
-                  <span role="status" aria-live="polite" data-category-state>正在读取分类…</span>
-                  <button class="text-button" type="button" data-action="show-category-creator">＋ 新建分类</button>
-                </div>
-                <div class="category-creator is-hidden" data-category-creator>
-                  <input type="text" maxlength="100" data-category-name aria-label="新任务分类名称" placeholder="输入分类名称">
-                  <button class="button button-secondary" type="button" data-action="save-category">创建并选中</button>
-                  <button class="button button-quiet" type="button" data-action="cancel-category-creator">取消</button>
-                </div>
-              </div>
+              {{ category_control("新任务分类名称") }}
               <label class="field"><span>优先级</span><select name="priority"><option value="normal">普通</option><option value="high">重要</option><option value="low">低</option></select></label>
               <label class="check-field"><input type="checkbox" name="due_on_date" value="true">同时设为当天截止</label>
               <button class="button button-primary" type="submit">

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "partials/category-control.html" import category_control %}
 
 {% block title %}习惯 · Life OS{% endblock %}
 
@@ -38,18 +39,7 @@
             <input type="hidden" name="habit_id">
             <label class="field"><span>名称</span><input type="text" name="name" maxlength="200" required placeholder="例如：晨间拉伸"></label>
             <label class="field"><span>说明</span><textarea name="description" maxlength="2000" rows="3" placeholder="说明目标、频率或完成标准"></textarea></label>
-            <div class="category-control" data-category-control>
-              <label class="field"><span>分类</span><select name="category" data-category-select><option value="">未分类</option></select></label>
-              <div class="category-control-meta">
-                <span role="status" aria-live="polite" data-category-state>正在读取分类…</span>
-                <button class="text-button" type="button" data-action="show-category-creator">＋ 新建分类</button>
-              </div>
-              <div class="category-creator is-hidden" data-category-creator>
-                <input type="text" maxlength="100" data-category-name aria-label="新习惯分类名称" placeholder="输入分类名称">
-                <button class="button button-secondary" type="button" data-action="save-category">创建并选中</button>
-                <button class="button button-quiet" type="button" data-action="cancel-category-creator">取消</button>
-              </div>
-            </div>
+            {{ category_control("新习惯分类名称") }}
             <div class="form-actions">
               <button class="button button-primary" type="submit">
                 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h12l2 2v14H5z"></path><path d="M8 4v6h8V4M8 20v-6h8v6"></path></svg>

@@ -1,0 +1,29 @@
+{% macro category_control(input_label, finance=false) -%}
+  <div class="category-control" {% if finance %}data-finance-category-control{% else %}data-category-control{% endif %}>
+    <div class="field">
+      <span>分类</span>
+      <select name="category" data-category-select aria-label="分类"><option value="">未分类</option></select>
+    </div>
+    <div class="category-control-meta">
+      <span role="status" aria-live="polite" data-category-state>正在读取分类…</span>
+      <div class="category-control-actions">
+        <button class="text-button" type="button" data-action="show-category-creator">＋ 新建分类</button>
+        <button class="text-button" type="button" data-action="show-category-manager">管理分类</button>
+      </div>
+    </div>
+    <div class="category-creator is-hidden" data-category-creator>
+      <input type="text" maxlength="100" data-category-name aria-label="{{ input_label }}" placeholder="输入分类名称">
+      <button class="button button-secondary" type="button" data-action="save-category">创建并选中</button>
+      <button class="button button-quiet" type="button" data-action="cancel-category-creator">取消</button>
+    </div>
+    <section class="category-manager is-hidden" data-category-manager aria-label="分类管理">
+      <div class="category-manager-heading">
+        <strong>管理分类</strong>
+        <button class="text-button" type="button" data-action="close-category-manager">关闭</button>
+      </div>
+      <label class="field category-manager-search"><span>搜索分类</span><input type="search" data-category-manager-search placeholder="输入分类名称筛选"></label>
+      <div class="category-manager-list" data-category-manager-list></div>
+      <p class="category-manager-note">可上下调整顺序；正在被历史或当前记录使用的分类不能删除。</p>
+    </section>
+  </div>
+{%- endmacro %}
