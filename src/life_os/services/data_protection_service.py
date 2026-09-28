@@ -133,15 +133,17 @@ EXPORT_SPECS = (
     ),
     ExportSpec(
         "finance_transactions.csv",
-        "SELECT id, date, transaction_type, amount_minor, 'CNY', category, "
+        "SELECT id, date, transaction_type, is_adjustment, amount_minor, 'CNY', "
+        "category, "
         "description, note, from_account_id, to_account_id, archived_at, "
         "created_at, updated_at FROM finance_transactions ORDER BY date, id",
         (
-            "id", "date", "transaction_type", "amount", "currency", "category",
+            "id", "date", "transaction_type", "is_adjustment", "amount", "currency",
+            "category",
             "description", "note", "from_account_id", "to_account_id",
             "archived_at", "created_at", "updated_at",
         ),
-        lambda row: (*row[:3], _minor_to_amount(row[3]), *row[4:]),
+        lambda row: (*row[:4], _minor_to_amount(row[4]), *row[5:]),
     ),
 )
 

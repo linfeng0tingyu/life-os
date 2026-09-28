@@ -13,7 +13,7 @@ from life_os import create_app
 from life_os.database import DatabaseVersionError, SCHEMA_VERSION, checkpoint_database
 from life_os.extensions import db
 from life_os.models import DailyHealth, HabitLog, SchemaMeta
-from life_os.services import HabitService, JournalService
+from life_os.services import FinanceService, HabitService, JournalService
 
 
 EXPECTED_TABLES = {
@@ -76,7 +76,7 @@ def test_incompatible_schema_version_stops_startup(tmp_path: Path) -> None:
         create_app(runtime_home=runtime_home, testing=True)
 
 
-def test_schema_v1_is_migrated_to_v5_without_losing_data(tmp_path: Path) -> None:
+def test_schema_v1_is_migrated_to_v6_without_losing_data(tmp_path: Path) -> None:
     runtime_home = tmp_path / "runtime"
     first_app = create_app(runtime_home=runtime_home, testing=True)
     with first_app.app_context():
@@ -93,7 +93,7 @@ def test_schema_v1_is_migrated_to_v5_without_losing_data(tmp_path: Path) -> None
     with migrated_app.app_context():
         tables = set(inspect(db.engine).get_table_names())
         assert {"finance_accounts", "finance_transactions"} <= tables
-        assert db.session.get(SchemaMeta, "schema_version").value == "5"
+        assert db.session.get(SchemaMeta, "schema_version").value == "6"
         assert JournalService.get("2026-09-18").content == "keep me"
 
 
@@ -130,7 +130,7 @@ def test_schema_v2_migration_preserves_existing_category_values(
             text("SELECT scope, name FROM categories ORDER BY scope, name")
         ).all()
         assert rows == [("habit", "健康"), ("task", "工作")]
-        assert db.session.get(SchemaMeta, "schema_version").value == "5"
+        assert db.session.get(SchemaMeta, "schema_version").value == "6"
 
 
 def test_schema_v3_migration_adds_finance_scope_and_backfills_categories(
@@ -182,7 +182,7 @@ def test_schema_v3_migration_adds_finance_scope_and_backfills_categories(
             text("SELECT scope, name FROM categories ORDER BY scope, name")
         ).all()
         assert rows == [("finance", "餐饮")]
-        assert db.session.get(SchemaMeta, "schema_version").value == "5"
+        assert db.session.get(SchemaMeta, "schema_version").value == "6"
         db.session.execute(
             text(
                 "INSERT INTO categories "
@@ -232,7 +232,57 @@ def test_schema_v4_migration_adds_credit_billing_day(tmp_path: Path) -> None:
             )
         ).one()
         assert row == ("旧信用卡", 18)
-        assert db.session.get(SchemaMeta, "schema_version").value == "5"
+        assert db.session.get(SchemaMeta, "schema_version").value == "6"
+
+
+def test_schema_v5_migration_marks_existing_transactions_as_not_adjustments(
+    tmp_path: Path,
+) -> None:
+    runtime_home = tmp_path / "runtime"
+    first_app = create_app(runtime_home=runtime_home, testing=True)
+    with first_app.app_context():
+        account = FinanceService.create_account(
+            "旧银行卡", kind="asset", account_type="bank", opening_balance="100.00"
+        )
+        db.session.execute(text("DROP TABLE finance_transactions"))
+        db.session.execute(
+            text(
+                "CREATE TABLE finance_transactions ("
+                "id INTEGER NOT NULL PRIMARY KEY, date DATE NOT NULL, "
+                "transaction_type VARCHAR(20) NOT NULL, amount_minor INTEGER NOT NULL, "
+                "category VARCHAR(100), description VARCHAR(300), note VARCHAR(2000), "
+                "from_account_id INTEGER, to_account_id INTEGER, archived_at VARCHAR(40), "
+                "created_at VARCHAR(40) NOT NULL, updated_at VARCHAR(40) NOT NULL, "
+                "FOREIGN KEY(from_account_id) REFERENCES finance_accounts(id), "
+                "FOREIGN KEY(to_account_id) REFERENCES finance_accounts(id))"
+            )
+        )
+        db.session.execute(
+            text(
+                "INSERT INTO finance_transactions "
+                "(date, transaction_type, amount_minor, from_account_id, created_at, updated_at) "
+                "VALUES ('2026-09-27', 'expense', 1000, :account_id, 'now', 'now')"
+            ),
+            {"account_id": account.id},
+        )
+        db.session.execute(
+            text("UPDATE schema_meta SET value = '5' WHERE key = 'schema_version'")
+        )
+        db.session.commit()
+    checkpoint_database(first_app)
+
+    migrated_app = create_app(runtime_home=runtime_home, testing=True)
+    with migrated_app.app_context():
+        columns = {
+            row[1]
+            for row in db.session.execute(text("PRAGMA table_info(finance_transactions)"))
+        }
+        assert "is_adjustment" in columns
+        assert db.session.execute(
+            text("SELECT is_adjustment FROM finance_transactions")
+        ).scalar_one() == 0
+        assert db.session.get(SchemaMeta, "schema_version").value == "6"
+        assert FinanceService.summary()["accounts"][0][1] == 9000
 
 
 def test_existing_unversioned_database_stops_startup(tmp_path: Path) -> None:

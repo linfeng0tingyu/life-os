@@ -12,6 +12,7 @@ from life_os.models.base import now_iso
 
 from .common import (
     UNSET,
+    ConflictError,
     NotFoundError,
     ValidationError,
     choice,
@@ -25,6 +26,7 @@ from .common import (
 ACCOUNT_KINDS = {"asset", "liability"}
 ACCOUNT_TYPES = {"cash", "bank", "credit", "investment", "other"}
 TRANSACTION_TYPES = {"income", "expense", "transfer"}
+TRANSACTION_FILTER_TYPES = TRANSACTION_TYPES | {"adjustment"}
 MAX_MONEY_MINOR = 9_000_000_000_000_000
 DEFAULT_CREDIT_BILLING_DAY = 18
 
@@ -174,10 +176,16 @@ class FinanceService:
                 FinanceTransaction.date == parse_life_date(value_date)
             )
         if transaction_type is not None:
-            statement = statement.where(
-                FinanceTransaction.transaction_type
-                == choice(transaction_type, "type", TRANSACTION_TYPES)
+            normalized_type = choice(
+                transaction_type, "type", TRANSACTION_FILTER_TYPES
             )
+            if normalized_type == "adjustment":
+                statement = statement.where(FinanceTransaction.is_adjustment.is_(True))
+            else:
+                statement = statement.where(
+                    FinanceTransaction.transaction_type == normalized_type,
+                    FinanceTransaction.is_adjustment.is_(False),
+                )
         if account_id is not None:
             normalized_account_id = FinanceService._validate_id(
                 account_id, "account_id"
@@ -217,6 +225,7 @@ class FinanceService:
             date=parse_life_date(value_date),
             transaction_type=normalized_type,
             amount_minor=money_to_minor(amount, "amount", positive=True),
+            is_adjustment=False,
             from_account=from_account,
             to_account=to_account,
             category=optional_text(category, "category", 100),
@@ -246,6 +255,8 @@ class FinanceService:
             raise NotFoundError("财务流水不存在。")
         if transaction.archived_at is not None:
             raise ValidationError("已归档财务流水不能编辑。")
+        if transaction.is_adjustment:
+            raise ValidationError("余额调整流水不能编辑；如需撤销，请先归档后重新调整。")
 
         normalized_type = (
             choice(transaction_type, "type", TRANSACTION_TYPES)
@@ -295,18 +306,54 @@ class FinanceService:
         return transaction
 
     @staticmethod
+    @transactional
+    def adjust_account_balance(account_id: int, *, target_balance: object) -> dict:
+        account = FinanceService._get_account(account_id, require_active=True)
+        target_minor = money_to_minor(target_balance, "target_balance")
+        current_minor = FinanceService._account_balance_minor(account.id)
+        difference = target_minor - current_minor
+        if difference == 0:
+            raise ConflictError("目标余额与当前余额相同，无需生成调整流水。")
+        if abs(difference) > MAX_MONEY_MINOR:
+            raise ValidationError("账户余额调整差额超出支持范围。")
+
+        transaction_type = "income" if difference > 0 else "expense"
+        transaction = FinanceTransaction(
+            date=date.today(),
+            transaction_type=transaction_type,
+            amount_minor=abs(difference),
+            is_adjustment=True,
+            from_account=account if difference < 0 else None,
+            to_account=account if difference > 0 else None,
+            description="账户金额调整",
+            note=(
+                f"系统自动生成：调整前余额 {minor_to_money(current_minor)}；"
+                f"调整后余额 {minor_to_money(target_minor)}。"
+            ),
+        )
+        db.session.add(transaction)
+        db.session.flush()
+        return {
+            "account": account,
+            "previous_balance_minor": current_minor,
+            "target_balance_minor": target_minor,
+            "difference_minor": difference,
+            "transaction": transaction,
+        }
+
+    @staticmethod
     def day(value: date | str) -> dict:
         target = parse_life_date(value)
         transactions = FinanceService.list_transactions(value_date=target)
         income = sum(
             item.amount_minor
             for item in transactions
-            if item.transaction_type == "income"
+            if item.transaction_type == "income" and not item.is_adjustment
         )
         expense = sum(
             item.amount_minor
             for item in transactions
-            if item.transaction_type == "expense"
+            if item.transaction_type == "expense" and not item.is_adjustment
         )
         return {
             "income_minor": income,
@@ -363,7 +410,11 @@ class FinanceService:
             func.coalesce(
                 func.sum(
                     case(
-                        (FinanceTransaction.transaction_type == "income", FinanceTransaction.amount_minor),
+                        (
+                            (FinanceTransaction.transaction_type == "income")
+                            & FinanceTransaction.is_adjustment.is_(False),
+                            FinanceTransaction.amount_minor,
+                        ),
                         else_=0,
                     )
                 ),
@@ -372,7 +423,11 @@ class FinanceService:
             func.coalesce(
                 func.sum(
                     case(
-                        (FinanceTransaction.transaction_type == "expense", FinanceTransaction.amount_minor),
+                        (
+                            (FinanceTransaction.transaction_type == "expense")
+                            & FinanceTransaction.is_adjustment.is_(False),
+                            FinanceTransaction.amount_minor,
+                        ),
                         else_=0,
                     )
                 ),
@@ -434,6 +489,7 @@ class FinanceService:
             item.amount_minor
             for item in cycle_transactions
             if item.transaction_type == "expense"
+            and not item.is_adjustment
             and item.from_account_id == account.id
         )
         repayments = sum(
@@ -446,6 +502,7 @@ class FinanceService:
             item.amount_minor
             for item in cycle_transactions
             if item.transaction_type == "income"
+            and not item.is_adjustment
             and item.to_account_id == account.id
         )
         statement_amount = max(-statement_balance, 0)
@@ -483,6 +540,23 @@ class FinanceService:
             if item.to_account_id == account.id:
                 balance += item.amount_minor
         return balance
+
+    @staticmethod
+    def _account_balance_minor(account_id: int) -> int:
+        account = FinanceService._get_account(account_id)
+        outgoing = db.session.scalar(
+            select(func.coalesce(func.sum(FinanceTransaction.amount_minor), 0)).where(
+                FinanceTransaction.archived_at.is_(None),
+                FinanceTransaction.from_account_id == account.id,
+            )
+        )
+        incoming = db.session.scalar(
+            select(func.coalesce(func.sum(FinanceTransaction.amount_minor), 0)).where(
+                FinanceTransaction.archived_at.is_(None),
+                FinanceTransaction.to_account_id == account.id,
+            )
+        )
+        return account.opening_balance_minor - int(outgoing or 0) + int(incoming or 0)
 
     @staticmethod
     def _get_account(account_id: int, *, require_active: bool = False) -> FinanceAccount:

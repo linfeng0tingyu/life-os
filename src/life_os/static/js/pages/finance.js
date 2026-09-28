@@ -3,7 +3,7 @@ import { element, emptyMessage, replace } from "../components/dom.js";
 import { CategorySelect } from "../components/category-select.js";
 import { normalizeDate, toLocalDateString } from "../utils/date.js";
 
-const TYPE_LABELS = { income: "收入", expense: "支出", transfer: "转账" };
+const TYPE_LABELS = { income: "收入", expense: "支出", transfer: "转账", adjustment: "余额调整" };
 const KIND_LABELS = { asset: "资产", liability: "负债" };
 const ACCOUNT_TYPE_LABELS = { cash: "现金", bank: "银行卡", credit: "信用卡", investment: "投资", other: "其他" };
 
@@ -43,6 +43,12 @@ export class FinancePage {
     this.accountDialog = root.querySelector("[data-account-dialog]");
     this.accountForm = root.querySelector("[data-account-form]");
     this.accountFormTitle = root.querySelector("[data-account-form-title]");
+    this.balanceDialog = root.querySelector("[data-balance-dialog]");
+    this.balanceForm = root.querySelector("[data-balance-form]");
+    this.balanceAccountName = root.querySelector("[data-balance-account-name]");
+    this.currentBalance = root.querySelector("[data-current-balance]");
+    this.balanceDate = root.querySelector("[data-balance-date]");
+    this.balanceDifference = root.querySelector("[data-balance-difference]");
     this.transactionDialog = root.querySelector("[data-transaction-dialog]");
     this.transactionForm = root.querySelector("[data-transaction-form]");
     this.transactionFormTitle = root.querySelector("[data-transaction-form-title]");
@@ -54,6 +60,8 @@ export class FinancePage {
     this.editingAccountId = null;
     this.editingTransactionId = null;
     this.accountBusy = false;
+    this.balanceBusy = false;
+    this.adjustingAccount = null;
     this.transactionBusy = false;
     this.categoryControl = new CategorySelect(root.querySelector("[data-finance-category-control]"), {
       scope: "finance",
@@ -72,11 +80,16 @@ export class FinancePage {
     this.root.querySelector('[data-action="apply-period"]').addEventListener("click", () => this.loadSummary());
     this.root.querySelector('[data-action="close-account"]').addEventListener("click", () => this.closeAccount());
     this.root.querySelector('[data-action="cancel-account"]').addEventListener("click", () => this.closeAccount());
+    this.root.querySelector('[data-action="close-balance-adjustment"]').addEventListener("click", () => this.closeBalanceAdjustment());
+    this.root.querySelector('[data-action="cancel-balance-adjustment"]').addEventListener("click", () => this.closeBalanceAdjustment());
     this.root.querySelector('[data-action="close-transaction"]').addEventListener("click", () => this.closeTransaction());
     this.root.querySelector('[data-action="cancel-transaction"]').addEventListener("click", () => this.closeTransaction());
     this.accountDialog.addEventListener("cancel", (event) => this.accountBusy ? event.preventDefault() : this.resetAccountForm());
+    this.balanceDialog.addEventListener("cancel", (event) => this.balanceBusy ? event.preventDefault() : this.resetBalanceAdjustment());
     this.transactionDialog.addEventListener("cancel", (event) => this.transactionBusy ? event.preventDefault() : this.resetTransactionForm());
     this.accountForm.addEventListener("submit", (event) => { event.preventDefault(); this.saveAccount(); });
+    this.balanceForm.addEventListener("submit", (event) => { event.preventDefault(); this.saveBalanceAdjustment(); });
+    this.balanceForm.elements.target_balance.addEventListener("input", () => this.updateBalanceDifference());
     this.accountForm.elements.account_type.addEventListener("change", () => this.syncAccountTypeFields());
     this.transactionForm.addEventListener("submit", (event) => { event.preventDefault(); this.saveTransaction(false); });
     this.saveAndNewTransaction.addEventListener("click", () => this.saveTransaction(true));
@@ -230,26 +243,27 @@ export class FinancePage {
     }
     const accountNames = new Map(this.accounts.map((item) => [item.id, item.name]));
     replace(this.transactionList, element("ul", { className: "management-items" }, this.transactions.map((item) => {
+      const displayType = item.is_adjustment ? "adjustment" : item.type;
       const route = item.type === "income"
         ? `进入 ${accountNames.get(item.to_account_id) || "账户"}`
         : item.type === "expense"
           ? `来自 ${accountNames.get(item.from_account_id) || "账户"}`
           : `${accountNames.get(item.from_account_id) || "账户"} → ${accountNames.get(item.to_account_id) || "账户"}`;
       const amountClass = item.type === "income" ? "money-positive" : item.type === "expense" ? "money-negative" : "";
-      return element("li", { className: `management-item finance-transaction transaction-${item.type}` }, [
+      return element("li", { className: `management-item finance-transaction transaction-${displayType}` }, [
         element("div", {}, [
           element("h3", { text: item.description || item.category || TYPE_LABELS[item.type] }),
           element("div", { className: "item-details" }, [
             element("span", { className: `finance-value ${amountClass}`, text: `${item.type === "income" ? "+" : item.type === "expense" ? "−" : ""}${money(item.amount)}` }),
-            element("span", { className: `finance-type finance-type-${item.type}`, text: TYPE_LABELS[item.type] }),
+            element("span", { className: `finance-type finance-type-${displayType}`, text: TYPE_LABELS[displayType] }),
             element("span", { text: route }),
             item.category ? element("span", { text: item.category }) : null,
           ].filter(Boolean)),
         ].filter(Boolean)),
         element("div", { className: "item-actions" }, [
-          button("编辑", () => this.openTransaction(item)),
+          item.is_adjustment ? null : button("编辑", () => this.openTransaction(item)),
           button("归档", () => this.archiveTransaction(item)),
-        ]),
+        ].filter(Boolean)),
       ]);
     })));
   }
@@ -277,10 +291,13 @@ export class FinancePage {
       const activeBalances = summary.accounts.filter((account) => account.active || Number(account.balance) !== 0);
       replace(this.balanceList, activeBalances.length
         ? element("ul", { className: "balance-items" }, activeBalances.map((account) => element("li", { className: `finance-account-${account.kind}` }, [
-          element("span", { text: account.name }),
-          element("span", { className: "muted", text: `${KIND_LABELS[account.kind]} · ${account.active ? "使用中" : "已停用"}` }),
+          element("div", { className: "balance-account-copy" }, [
+            element("span", { text: account.name }),
+            element("span", { className: "muted", text: `${KIND_LABELS[account.kind]} · ${account.active ? "使用中" : "已停用"}` }),
+          ]),
           element("strong", { text: money(account.balance) }),
-        ])))
+          account.active ? button("调整余额", () => this.openBalanceAdjustment(account), "button button-quiet balance-adjustment-button") : null,
+        ].filter(Boolean))))
         : emptyMessage("暂无账户余额。"));
     } catch (error) {
       replace(this.totals, emptyMessage("统计暂时不可用。"));
@@ -356,6 +373,66 @@ export class FinancePage {
       await this.loadAll();
     } catch (error) {
       this.showError(error);
+    }
+  }
+
+  openBalanceAdjustment(account) {
+    this.resetBalanceAdjustment();
+    this.adjustingAccount = account;
+    this.balanceAccountName.textContent = account.name;
+    this.currentBalance.textContent = money(account.balance);
+    this.balanceDate.textContent = toLocalDateString();
+    this.balanceForm.elements.target_balance.value = account.balance;
+    this.updateBalanceDifference();
+    this.balanceDialog.showModal();
+    this.balanceForm.elements.target_balance.select();
+  }
+
+  resetBalanceAdjustment() {
+    this.adjustingAccount = null;
+    this.balanceForm.reset();
+    this.balanceAccountName.textContent = "—";
+    this.currentBalance.textContent = money(0);
+    this.balanceDate.textContent = "—";
+    this.balanceDifference.textContent = `调整差额：${money(0)}`;
+  }
+
+  updateBalanceDifference() {
+    const current = Number(this.adjustingAccount?.balance || 0);
+    const target = Number(this.balanceForm.elements.target_balance.value);
+    const difference = Number.isFinite(target) ? target - current : 0;
+    const prefix = difference > 0 ? "+" : "";
+    this.balanceDifference.textContent = `调整差额：${prefix}${money(difference)}`;
+  }
+
+  closeBalanceAdjustment() {
+    if (this.balanceBusy) return;
+    this.balanceDialog.close();
+    this.resetBalanceAdjustment();
+  }
+
+  async saveBalanceAdjustment() {
+    if (this.balanceBusy || !this.adjustingAccount || !this.balanceForm.reportValidity()) return;
+    this.balanceBusy = true;
+    this.setDisabled(this.balanceForm, true);
+    this.hideError();
+    try {
+      const result = await api.post(
+        `/api/finance/accounts/${this.adjustingAccount.id}/balance-adjustments`,
+        { target_balance: this.balanceForm.elements.target_balance.value },
+      );
+      this.date = result.transaction.date;
+      this.dateFilter.value = this.date;
+      this.replaceUrl();
+      this.balanceDialog.close();
+      this.resetBalanceAdjustment();
+      await this.loadAll();
+      this.state.textContent = "余额已调整";
+    } catch (error) {
+      this.showError(error);
+    } finally {
+      this.balanceBusy = false;
+      this.setDisabled(this.balanceForm, false);
     }
   }
 

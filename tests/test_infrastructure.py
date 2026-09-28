@@ -221,6 +221,9 @@ def test_m6_pages_expose_health_journal_and_finance_closed_loops(
     assert 'href="/journal" aria-current="page"' in journal_html
     assert 'data-page="finance"' in finance_html
     assert 'data-account-form' in finance_html
+    assert 'data-balance-form' in finance_html
+    assert 'name="target_balance"' in finance_html
+    assert 'data-action="close-balance-adjustment"' in finance_html
     assert 'data-credit-card-cycles' in finance_html
     assert 'name="billing_day"' in finance_html
     assert '>信用卡</option>' in finance_html
@@ -381,7 +384,9 @@ def test_heritage_palettes_and_finance_semantic_colors_are_explicit(
     assert ".finance-transaction.transaction-expense" in records
     assert "linear-gradient" not in records
     assert "finance-account-${account.kind}" in finance_script
-    assert "transaction-${item.type}" in finance_script
+    assert "transaction-${displayType}" in finance_script
+    assert 'adjustment: "余额调整"' in finance_script
+    assert ".finance-transaction.transaction-adjustment" in records
     assert "font-size: 1.02rem;" in layout
     assert "font-weight: 800;" in layout
 

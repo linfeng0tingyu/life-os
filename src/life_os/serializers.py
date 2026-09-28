@@ -158,6 +158,7 @@ def finance_transaction_data(transaction: FinanceTransaction) -> dict[str, Any]:
         "date": transaction.date.isoformat(),
         "type": transaction.transaction_type,
         "amount": minor_to_money(transaction.amount_minor),
+        "is_adjustment": transaction.is_adjustment,
         "currency": "CNY",
         "from_account_id": transaction.from_account_id,
         "to_account_id": transaction.to_account_id,
@@ -167,6 +168,18 @@ def finance_transaction_data(transaction: FinanceTransaction) -> dict[str, Any]:
         "archived_at": transaction.archived_at,
         "created_at": transaction.created_at,
         "updated_at": transaction.updated_at,
+    }
+
+
+def finance_balance_adjustment_data(result: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "account": finance_account_data(
+            result["account"], balance_minor=result["target_balance_minor"]
+        ),
+        "previous_balance": minor_to_money(result["previous_balance_minor"]),
+        "target_balance": minor_to_money(result["target_balance_minor"]),
+        "difference": minor_to_money(result["difference_minor"]),
+        "transaction": finance_transaction_data(result["transaction"]),
     }
 
 

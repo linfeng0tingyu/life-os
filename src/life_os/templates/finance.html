@@ -47,7 +47,7 @@
           <div class="module-heading"><div><p class="section-kicker">每日流水</p><h2 id="transaction-list-title">收支与转账</h2></div><span class="state-label" data-transaction-state>加载中</span></div>
           <div class="finance-filter">
             <label class="field"><span>查看日期</span><input type="date" data-transaction-date></label>
-            <label class="field"><span>类型</span><select data-transaction-type-filter><option value="">全部</option><option value="income">收入</option><option value="expense">支出</option><option value="transfer">转账</option></select></label>
+            <label class="field"><span>类型</span><select data-transaction-type-filter><option value="">全部</option><option value="income">收入</option><option value="expense">支出</option><option value="transfer">转账</option><option value="adjustment">余额调整</option></select></label>
           </div>
           <div data-transaction-list aria-busy="true"><p class="empty-state">正在读取流水…</p></div>
         </section>
@@ -70,6 +70,23 @@
             <label class="field is-hidden" data-billing-day-field><span>每月账单日</span><input type="number" name="billing_day" min="1" max="28" step="1" value="18"><small>账单日后的次日自动进入下一账期；建议选择 1–28 日。</small></label>
             <label class="field"><span>期初余额（CNY）</span><input type="number" name="opening_balance" step="0.01" required value="0.00"><small>资产账户不得为负；负债账户请填写零或负数。</small></label>
             <div class="form-actions"><button class="button button-primary" type="submit">保存账户</button><button class="button button-quiet" type="button" data-action="cancel-account">取消</button></div>
+          </form>
+        </section>
+      </dialog>
+
+      <dialog class="editor-dialog" data-balance-dialog aria-labelledby="balance-form-title">
+        <section class="module dialog-panel balance-adjustment-panel">
+          <div class="module-heading compact"><div><p class="section-kicker">账户校准</p><h2 id="balance-form-title">调整当前余额</h2></div><button class="icon-button" type="button" data-action="close-balance-adjustment" aria-label="关闭余额调整窗口"><svg class="icon" viewBox="0 0 24 24"><path d="m7 7 10 10M17 7 7 17"></path></svg></button></div>
+          <form data-balance-form>
+            <div class="balance-adjustment-context">
+              <div><span>账户</span><strong data-balance-account-name>—</strong></div>
+              <div><span>当前余额</span><strong data-current-balance>¥0.00</strong></div>
+              <div><span>流水日期</span><strong data-balance-date>—</strong></div>
+            </div>
+            <label class="field"><span>调整后余额（CNY）</span><input type="number" name="target_balance" step="0.01" required inputmode="decimal" placeholder="0.00"><small>请输入账户实际余额；负债可填写负数。</small></label>
+            <p class="balance-adjustment-difference" data-balance-difference>调整差额：¥0.00</p>
+            <p class="form-note">保存后自动生成“账户金额调整”流水。该流水改变账户余额，但不计入期间收入、支出或净现金流。</p>
+            <div class="form-actions"><button class="button button-primary" type="submit">确认调整并生成流水</button><button class="button button-quiet" type="button" data-action="cancel-balance-adjustment">取消</button></div>
           </form>
         </section>
       </dialog>

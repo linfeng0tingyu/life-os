@@ -234,6 +234,7 @@ def test_export_all_writes_bom_csv_markdown_manifest_and_zip(app) -> None:
     )
     assert "billing_day" in accounts
     assert "123.45" in accounts
+    assert "is_adjustment" in transactions
     assert "88.88" in transactions
     assert "# 今日记录" in (export_dir / "journal" / "2026-09-22.md").read_text(
         encoding="utf-8"

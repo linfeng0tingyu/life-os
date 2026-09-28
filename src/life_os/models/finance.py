@@ -85,6 +85,12 @@ class FinanceTransaction(TimestampMixin, db.Model):
     date: Mapped[date] = mapped_column(Date, nullable=False)
     transaction_type: Mapped[str] = mapped_column(String(20), nullable=False)
     amount_minor: Mapped[int] = mapped_column(nullable=False)
+    is_adjustment: Mapped[bool] = mapped_column(
+        Boolean(create_constraint=True, name="ck_finance_transactions_adjustment"),
+        nullable=False,
+        default=False,
+        server_default="0",
+    )
     category: Mapped[str | None] = mapped_column(String(100), nullable=True)
     description: Mapped[str | None] = mapped_column(String(300), nullable=True)
     note: Mapped[str | None] = mapped_column(String(2000), nullable=True)

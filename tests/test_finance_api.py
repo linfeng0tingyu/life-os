@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import date
+
 from flask.testing import FlaskClient
 
 
@@ -114,6 +116,107 @@ def test_finance_transactions_summary_and_day_aggregation(client: FlaskClient) -
     archived = client.delete(f"/api/finance/transactions/{expense['id']}")
     assert archived.status_code == 200
     assert archived.get_json()["data"]["archived_at"] is not None
+
+
+def test_balance_adjustment_creates_auditable_non_cashflow_transaction(
+    client: FlaskClient,
+) -> None:
+    bank = create_account(client, "对账银行卡", opening_balance="100.00")
+    assert client.post(
+        "/api/finance/transactions",
+        json={
+            "date": "2026-09-27",
+            "type": "expense",
+            "amount": "20.00",
+            "from_account_id": bank["id"],
+        },
+    ).status_code == 201
+
+    adjusted = client.post(
+        f"/api/finance/accounts/{bank['id']}/balance-adjustments",
+        json={"target_balance": "125.50"},
+    )
+    assert adjusted.status_code == 201
+    data = adjusted.get_json()["data"]
+    assert data["previous_balance"] == "80.00"
+    assert data["target_balance"] == "125.50"
+    assert data["difference"] == "45.50"
+    assert data["account"]["balance"] == "125.50"
+    assert data["transaction"]["date"] == date.today().isoformat()
+    assert data["transaction"]["type"] == "income"
+    assert data["transaction"]["amount"] == "45.50"
+    assert data["transaction"]["is_adjustment"] is True
+    assert data["transaction"]["description"] == "账户金额调整"
+    adjustment_id = data["transaction"]["id"]
+
+    summary = client.get(
+        "/api/finance/summary?date_from=2026-01-01&date_to=2026-12-31"
+    ).get_json()["data"]
+    assert summary["income"] == "0.00"
+    assert summary["expense"] == "20.00"
+    assert summary["net_cashflow"] == "-20.00"
+    assert summary["accounts"][0]["balance"] == "125.50"
+
+    filtered = client.get(
+        "/api/finance/transactions?type=adjustment"
+    ).get_json()["data"]
+    assert [item["id"] for item in filtered] == [adjustment_id]
+    assert client.get(
+        "/api/finance/transactions?type=income"
+    ).get_json()["data"] == []
+    assert client.put(
+        f"/api/finance/transactions/{adjustment_id}",
+        json={"amount": "1.00"},
+    ).status_code == 400
+    assert client.post(
+        f"/api/finance/accounts/{bank['id']}/balance-adjustments",
+        json={"target_balance": "125.50"},
+    ).status_code == 409
+
+    assert client.delete(
+        f"/api/finance/transactions/{adjustment_id}"
+    ).status_code == 200
+    reverted = client.get("/api/finance/summary").get_json()["data"]
+    assert reverted["accounts"][0]["balance"] == "80.00"
+
+
+def test_balance_adjustment_validates_account_and_target(client: FlaskClient) -> None:
+    account = create_account(client, "停用账户", opening_balance="50.00")
+    endpoint = f"/api/finance/accounts/{account['id']}/balance-adjustments"
+    assert client.post(endpoint, json={"target_balance": "1.001"}).status_code == 400
+    assert client.put(
+        f"/api/finance/accounts/{account['id']}", json={"active": False}
+    ).status_code == 200
+    assert client.post(endpoint, json={"target_balance": "40.00"}).status_code == 400
+    assert client.post(
+        "/api/finance/accounts/999/balance-adjustments",
+        json={"target_balance": "1.00"},
+    ).status_code == 404
+
+
+def test_balance_adjustment_supports_signed_liability_balances(
+    client: FlaskClient,
+) -> None:
+    liability = create_account(
+        client,
+        "其他负债",
+        kind="liability",
+        account_type="other",
+        opening_balance="-100.00",
+    )
+    endpoint = f"/api/finance/accounts/{liability['id']}/balance-adjustments"
+    increased_debt = client.post(endpoint, json={"target_balance": "-150.00"})
+    assert increased_debt.status_code == 201
+    assert increased_debt.get_json()["data"]["difference"] == "-50.00"
+    assert increased_debt.get_json()["data"]["transaction"]["type"] == "expense"
+
+    reduced_debt = client.post(endpoint, json={"target_balance": "-40.00"})
+    assert reduced_debt.status_code == 201
+    assert reduced_debt.get_json()["data"]["difference"] == "110.00"
+    assert reduced_debt.get_json()["data"]["transaction"]["type"] == "income"
+    summary = client.get("/api/finance/summary").get_json()["data"]
+    assert summary["total_liabilities"] == "40.00"
+    assert summary["income"] == summary["expense"] == "0.00"
 
 
 def test_finance_update_without_note_preserves_legacy_note(client: FlaskClient) -> None:
