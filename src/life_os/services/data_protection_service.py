@@ -110,13 +110,27 @@ EXPORT_SPECS = (
         "health.csv",
         "SELECT id, date, weight_kg, sleep_start, sleep_end, "
         "sleep_duration_minutes, sleep_duration_manual, sleep_quality, "
-        "energy_level, mood_level, body_status, exercise_minutes, note, "
+        "energy_level, mood_level, body_status, exercise_minutes, note, sleep_status, "
         "created_at, updated_at FROM daily_health ORDER BY date, id",
         (
             "id", "date", "weight_kg", "sleep_start", "sleep_end",
             "sleep_duration_minutes", "sleep_duration_manual", "sleep_quality",
             "energy_level", "mood_level", "body_status", "exercise_minutes",
-            "note", "created_at", "updated_at",
+            "note", "sleep_status", "created_at", "updated_at",
+        ),
+    ),
+    ExportSpec(
+        "exercise_types.csv",
+        "SELECT id, name, sort_order, created_at, updated_at "
+        "FROM exercise_types ORDER BY sort_order, name, id",
+        ("id", "name", "sort_order", "created_at", "updated_at"),
+    ),
+    ExportSpec(
+        "daily_health_exercise_types.csv",
+        "SELECT id, daily_health_id, exercise_type_id, created_at, updated_at "
+        "FROM daily_health_exercise_types ORDER BY daily_health_id, exercise_type_id",
+        (
+            "id", "daily_health_id", "exercise_type_id", "created_at", "updated_at",
         ),
     ),
     ExportSpec(

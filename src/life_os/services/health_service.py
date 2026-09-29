@@ -10,6 +10,7 @@ from life_os.models import DailyHealth
 from .common import (
     UNSET,
     ValidationError,
+    choice,
     integer_range,
     optional_float,
     optional_text,
@@ -41,6 +42,8 @@ class HealthService:
         body_status: object = UNSET,
         exercise_minutes: object = UNSET,
         note: object = UNSET,
+        sleep_status: object = UNSET,
+        exercise_type_ids: object = UNSET,
     ) -> DailyHealth:
         target = parse_life_date(value)
         record = HealthService.get(target)
@@ -74,6 +77,28 @@ class HealthService:
             )
         if note is not UNSET:
             record.note = optional_text(note, "note", 2000)
+        if sleep_status is not UNSET:
+            record.sleep_status = (
+                None
+                if sleep_status is None
+                else choice(
+                    sleep_status,
+                    "sleep_status",
+                    {
+                        "under_4_5",
+                        "between_4_5_6",
+                        "between_6_7_5",
+                        "over_7_5",
+                        "over_9",
+                    },
+                )
+            )
+        if exercise_type_ids is not UNSET:
+            from .exercise_type_service import ExerciseTypeService
+
+            record.exercise_types = ExerciseTypeService.resolve_ids(
+                exercise_type_ids
+            )
 
         if sleep_duration_minutes is not UNSET:
             record.sleep_duration_minutes = HealthService._optional_integer(

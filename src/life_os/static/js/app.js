@@ -1,11 +1,13 @@
-import { CalendarPage } from "./pages/calendar.js";
-import { HabitsPage } from "./pages/habits.js";
-import { HealthPage } from "./pages/health.js";
-import { JournalPage } from "./pages/journal.js";
-import { FinancePage } from "./pages/finance.js";
-import { TasksPage } from "./pages/tasks.js";
-import { TodayPage } from "./pages/today.js";
-import { SettingsPage } from "./pages/settings.js";
+const PAGE_LOADERS = {
+  calendar: () => import("./pages/calendar.js").then((module) => module.CalendarPage),
+  habits: () => import("./pages/habits.js").then((module) => module.HabitsPage),
+  health: () => import("./pages/health.js").then((module) => module.HealthPage),
+  journal: () => import("./pages/journal.js").then((module) => module.JournalPage),
+  finance: () => import("./pages/finance.js").then((module) => module.FinancePage),
+  tasks: () => import("./pages/tasks.js").then((module) => module.TasksPage),
+  today: () => import("./pages/today.js").then((module) => module.TodayPage),
+  settings: () => import("./pages/settings.js").then((module) => module.SettingsPage),
+};
 
 function showStartupError(root) {
   const notice = root.querySelector("[data-global-error]");
@@ -15,24 +17,19 @@ function showStartupError(root) {
   notice.classList.remove("is-hidden");
 }
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
   const root = document.querySelector("[data-app-root]");
   if (!root) return;
   try {
-    const pages = {
-      calendar: CalendarPage,
-      habits: HabitsPage,
-      health: HealthPage,
-      journal: JournalPage,
-      finance: FinancePage,
-      tasks: TasksPage,
-      today: TodayPage,
-      settings: SettingsPage,
-    };
-    const Page = pages[root.dataset.page] || TodayPage;
+    const loadPage = PAGE_LOADERS[root.dataset.page] || PAGE_LOADERS.today;
+    const Page = await loadPage();
     const page = new Page(root);
     page.start();
-  } catch (_error) {
+  } catch (error) {
+    console.error("Life OS page initialization failed", error);
+    window.dispatchEvent(new CustomEvent("lifeos:frontend-error", {
+      detail: { message: error?.message || "页面初始化失败" },
+    }));
     showStartupError(root);
   }
 });

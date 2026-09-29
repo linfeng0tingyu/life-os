@@ -6,7 +6,7 @@ import sqlite3
 
 import pytest
 from flask import Flask
-from sqlalchemy import inspect, text
+from sqlalchemy import inspect, select, text
 from sqlalchemy.exc import IntegrityError
 
 from life_os import create_app
@@ -20,6 +20,8 @@ EXPECTED_TABLES = {
     "calendar_days",
     "categories",
     "daily_health",
+    "daily_health_exercise_types",
+    "exercise_types",
     "finance_accounts",
     "finance_transactions",
     "habit_logs",
@@ -76,7 +78,7 @@ def test_incompatible_schema_version_stops_startup(tmp_path: Path) -> None:
         create_app(runtime_home=runtime_home, testing=True)
 
 
-def test_schema_v1_is_migrated_to_v6_without_losing_data(tmp_path: Path) -> None:
+def test_schema_v1_is_migrated_to_v7_without_losing_data(tmp_path: Path) -> None:
     runtime_home = tmp_path / "runtime"
     first_app = create_app(runtime_home=runtime_home, testing=True)
     with first_app.app_context():
@@ -93,7 +95,7 @@ def test_schema_v1_is_migrated_to_v6_without_losing_data(tmp_path: Path) -> None
     with migrated_app.app_context():
         tables = set(inspect(db.engine).get_table_names())
         assert {"finance_accounts", "finance_transactions"} <= tables
-        assert db.session.get(SchemaMeta, "schema_version").value == "6"
+        assert db.session.get(SchemaMeta, "schema_version").value == "7"
         assert JournalService.get("2026-09-18").content == "keep me"
 
 
@@ -130,7 +132,7 @@ def test_schema_v2_migration_preserves_existing_category_values(
             text("SELECT scope, name FROM categories ORDER BY scope, name")
         ).all()
         assert rows == [("habit", "健康"), ("task", "工作")]
-        assert db.session.get(SchemaMeta, "schema_version").value == "6"
+        assert db.session.get(SchemaMeta, "schema_version").value == "7"
 
 
 def test_schema_v3_migration_adds_finance_scope_and_backfills_categories(
@@ -182,7 +184,7 @@ def test_schema_v3_migration_adds_finance_scope_and_backfills_categories(
             text("SELECT scope, name FROM categories ORDER BY scope, name")
         ).all()
         assert rows == [("finance", "餐饮")]
-        assert db.session.get(SchemaMeta, "schema_version").value == "6"
+        assert db.session.get(SchemaMeta, "schema_version").value == "7"
         db.session.execute(
             text(
                 "INSERT INTO categories "
@@ -232,7 +234,7 @@ def test_schema_v4_migration_adds_credit_billing_day(tmp_path: Path) -> None:
             )
         ).one()
         assert row == ("旧信用卡", 18)
-        assert db.session.get(SchemaMeta, "schema_version").value == "6"
+        assert db.session.get(SchemaMeta, "schema_version").value == "7"
 
 
 def test_schema_v5_migration_marks_existing_transactions_as_not_adjustments(
@@ -281,8 +283,58 @@ def test_schema_v5_migration_marks_existing_transactions_as_not_adjustments(
         assert db.session.execute(
             text("SELECT is_adjustment FROM finance_transactions")
         ).scalar_one() == 0
-        assert db.session.get(SchemaMeta, "schema_version").value == "6"
+        assert db.session.get(SchemaMeta, "schema_version").value == "7"
         assert FinanceService.summary()["accounts"][0][1] == 9000
+
+
+def test_schema_v6_migration_preserves_legacy_sleep_and_adds_rhythm_fields(
+    tmp_path: Path,
+) -> None:
+    runtime_home = tmp_path / "runtime"
+    first_app = create_app(runtime_home=runtime_home, testing=True)
+    with first_app.app_context():
+        db.session.execute(text("DROP TABLE daily_health_exercise_types"))
+        db.session.execute(text("DROP TABLE exercise_types"))
+        db.session.execute(text("DROP TABLE daily_health"))
+        db.session.execute(
+            text(
+                "CREATE TABLE daily_health ("
+                "id INTEGER NOT NULL PRIMARY KEY, date DATE NOT NULL UNIQUE, "
+                "weight_kg FLOAT, sleep_start VARCHAR(40), sleep_end VARCHAR(40), "
+                "sleep_duration_minutes INTEGER, sleep_duration_manual BOOLEAN NOT NULL, "
+                "sleep_quality INTEGER, energy_level INTEGER, mood_level INTEGER, "
+                "body_status VARCHAR(500), exercise_minutes INTEGER, note VARCHAR(2000), "
+                "created_at VARCHAR(40) NOT NULL, updated_at VARCHAR(40) NOT NULL)"
+            )
+        )
+        db.session.execute(
+            text(
+                "INSERT INTO daily_health "
+                "(date, sleep_start, sleep_end, sleep_duration_minutes, "
+                "sleep_duration_manual, sleep_quality, created_at, updated_at) "
+                "VALUES ('2026-09-18', '2026-09-17T23:30+08:00', "
+                "'2026-09-18T07:00+08:00', 450, 1, 4, 'now', 'now')"
+            )
+        )
+        db.session.execute(
+            text("UPDATE schema_meta SET value = '6' WHERE key = 'schema_version'")
+        )
+        db.session.commit()
+    checkpoint_database(first_app)
+
+    migrated_app = create_app(runtime_home=runtime_home, testing=True)
+    with migrated_app.app_context():
+        record = db.session.scalar(
+            select(DailyHealth).where(DailyHealth.date == date(2026, 9, 18))
+        )
+        assert record.sleep_start == "2026-09-17T23:30+08:00"
+        assert record.sleep_duration_minutes == 450
+        assert record.sleep_quality == 4
+        assert record.sleep_status is None
+        assert {"exercise_types", "daily_health_exercise_types"} <= set(
+            inspect(db.engine).get_table_names()
+        )
+        assert db.session.get(SchemaMeta, "schema_version").value == "7"
 
 
 def test_existing_unversioned_database_stops_startup(tmp_path: Path) -> None:

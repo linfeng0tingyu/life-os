@@ -18,6 +18,7 @@ from life_os.models import (
     CalendarDay,
     Category,
     DailyHealth,
+    ExerciseType,
     FinanceAccount,
     FinanceTransaction,
     Habit,
@@ -43,6 +44,14 @@ def _seed_all_domains(app) -> None:
             opening_balance_minor=12345,
             active=True,
         )
+        exercise_type = ExerciseType(name="力量训练", sort_order=10)
+        health = DailyHealth(
+            date=datetime(2026, 9, 22).date(),
+            weight_kg=65.5,
+            sleep_duration_minutes=450,
+            sleep_status="between_6_7_5",
+        )
+        health.exercise_types.append(exercise_type)
         db.session.add_all(
             [
                 Category(scope="habit", name="成长"),
@@ -55,11 +64,7 @@ def _seed_all_domains(app) -> None:
                     source="manual",
                 ),
                 Task(title="整理资料", scheduled_date=datetime(2026, 9, 22).date()),
-                DailyHealth(
-                    date=datetime(2026, 9, 22).date(),
-                    weight_kg=65.5,
-                    sleep_duration_minutes=450,
-                ),
+                health,
                 Journal(
                     date=datetime(2026, 9, 22).date(),
                     content="# 今日记录\n\n一切顺利。",
@@ -236,6 +241,10 @@ def test_export_all_writes_bom_csv_markdown_manifest_and_zip(app) -> None:
     assert "123.45" in accounts
     assert "is_adjustment" in transactions
     assert "88.88" in transactions
+    assert "力量训练" in (export_dir / "exercise_types.csv").read_text(
+        encoding="utf-8-sig"
+    )
+    assert (export_dir / "daily_health_exercise_types.csv").is_file()
     assert "# 今日记录" in (export_dir / "journal" / "2026-09-22.md").read_text(
         encoding="utf-8"
     )

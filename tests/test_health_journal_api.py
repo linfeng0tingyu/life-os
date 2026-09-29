@@ -23,41 +23,36 @@ def test_health_get_and_partial_upsert(client: FlaskClient) -> None:
     assert data["mood_level"] == 5
 
 
-def test_health_accepts_previous_day_sleep_start_and_direct_duration(
+def test_health_accepts_sleep_status_and_managed_exercise_types(
     client: FlaskClient,
 ) -> None:
     path = "/api/health/2026-09-18"
+    strength = client.post("/api/exercise-types", json={"name": "力量训练"})
+    walking = client.post("/api/exercise-types", json={"name": "步行"})
+    strength_id = strength.get_json()["data"]["id"]
+    walking_id = walking.get_json()["data"]["id"]
     recorded = client.put(
         path,
         json={
-            "sleep_start": "2026-09-17T23:30:00+08:00",
-            "sleep_duration_minutes": 450,
+            "sleep_status": "between_6_7_5",
+            "exercise_minutes": 45,
+            "exercise_type_ids": [strength_id, walking_id],
         },
     ).get_json()["data"]
-    assert recorded["sleep_start"] == "2026-09-17T23:30+08:00"
-    assert recorded["sleep_duration_minutes"] == 450
-    assert recorded["sleep_end"] == "2026-09-18T07:00+08:00"
-    assert recorded["sleep_duration_manual"] is True
+    assert recorded["sleep_status"] == "between_6_7_5"
+    assert [item["name"] for item in recorded["exercise_types"]] == ["力量训练", "步行"]
+    assert client.delete(f"/api/exercise-types/{strength_id}").status_code == 409
 
-    updated = client.put(path, json={"sleep_duration_minutes": 420}).get_json()[
-        "data"
-    ]
-    assert updated["sleep_duration_minutes"] == 420
-    assert updated["sleep_end"] == "2026-09-18T06:30+08:00"
-
-    cleared = client.put(path, json={"sleep_duration_minutes": None}).get_json()[
-        "data"
-    ]
-    assert cleared["sleep_duration_minutes"] is None
-    assert cleared["sleep_end"] is None
-    assert cleared["sleep_duration_manual"] is False
+    updated = client.put(path, json={"exercise_type_ids": [walking_id]}).get_json()["data"]
+    assert [item["id"] for item in updated["exercise_types"]] == [walking_id]
+    assert client.delete(f"/api/exercise-types/{strength_id}").status_code == 200
 
 
 def test_health_validation(client: FlaskClient) -> None:
     assert client.put("/api/health/2026-09-18", json={}).status_code == 400
     assert (
         client.put(
-            "/api/health/2026-09-18", json={"sleep_quality": 6}
+            "/api/health/2026-09-18", json={"sleep_status": "unknown"}
         ).status_code
         == 400
     )
@@ -74,7 +69,7 @@ def test_health_validation(client: FlaskClient) -> None:
     assert (
         client.put(
             "/api/health/2026-09-18",
-            json={"sleep_start": "2026-09-18T23:00:00+08:00"},
+            json={"sleep_start": "2026-09-17T23:00:00+08:00"},
         ).status_code
         == 400
     )
@@ -85,6 +80,12 @@ def test_health_validation(client: FlaskClient) -> None:
         ).status_code
         == 400
     )
+    assert client.put(
+        "/api/health/2026-09-18", json={"exercise_type_ids": [999999]}
+    ).status_code == 400
+    assert client.put(
+        "/api/health/2026-09-18", json={"exercise_type_ids": [1, 1]}
+    ).status_code == 400
 
 
 def test_journal_unicode_markdown_round_trip_and_upsert(client: FlaskClient, monkeypatch) -> None:

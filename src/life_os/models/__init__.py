@@ -1,5 +1,6 @@
 from .calendar import CalendarDay
 from .category import Category
+from .exercise import DailyHealthExerciseType, ExerciseType
 from .finance import FinanceAccount, FinanceTransaction
 from .habit import Habit, HabitLog
 from .health import DailyHealth
@@ -11,6 +12,8 @@ __all__ = [
     "CalendarDay",
     "Category",
     "DailyHealth",
+    "DailyHealthExerciseType",
+    "ExerciseType",
     "FinanceAccount",
     "FinanceTransaction",
     "Habit",

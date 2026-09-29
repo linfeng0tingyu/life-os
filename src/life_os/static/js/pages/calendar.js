@@ -117,10 +117,10 @@ export class CalendarPage {
     this.detailHeading.textContent = label;
     this.detailKicker.textContent = isFuture ? "未来规划" : isPast ? "历史回顾" : "今天";
     this.detailDescription.textContent = isFuture
-      ? "查看这一天已经安排的事项和习惯，并继续补充未来计划。睡眠、日记与财务会在产生记录后显示。"
+      ? "查看这一天已经安排的事项和习惯，并继续补充未来计划。生活节律、日记与财务会在产生记录后显示。"
       : isPast
-        ? "完整回看这一天的事项、习惯、睡眠、日记和财务记录。"
-        : "完整呈现今天的事项、习惯、睡眠、日记和财务情况。";
+        ? "完整回看这一天的事项、习惯、生活节律、日记和财务记录。"
+        : "完整呈现今天的事项、习惯、生活节律、日记和财务情况。";
     this.subtitle.textContent = isFuture
       ? `正在规划 ${label}。`
       : isPast

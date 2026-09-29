@@ -45,5 +45,29 @@
     </select>
     <span class="theme-hint" id="theme-hint" data-theme-status aria-live="polite">只改变外观，不改变数据</span>
   </div>
+  <section class="system-status" data-system-status data-state="loading" aria-label="后台状态">
+    <button class="system-status-toggle" type="button" data-system-status-toggle aria-expanded="false" aria-controls="system-status-panel">
+      <span class="system-status-dot" aria-hidden="true"></span>
+      <span class="system-status-copy"><strong data-system-status-label>正在连接后台</strong><small data-system-status-brief>等待状态检查</small></span>
+      <svg class="icon system-status-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m8 10 4 4 4-4"></path></svg>
+    </button>
+    <div class="system-status-panel" id="system-status-panel" data-system-status-panel hidden>
+      <div class="system-status-heading">
+        <div><p class="section-kicker">本机诊断</p><h2>后台信息</h2></div>
+        <button class="text-button" type="button" data-action="refresh-system-status">刷新</button>
+      </div>
+      <dl class="system-status-facts">
+        <div><dt>服务</dt><dd data-system-service>检查中</dd></div>
+        <div><dt>数据库</dt><dd data-system-database>检查中</dd></div>
+        <div><dt>备份</dt><dd data-system-backup>检查中</dd></div>
+        <div><dt>最近请求</dt><dd data-system-request>尚无</dd></div>
+      </dl>
+      <div class="system-status-log-heading"><strong>最近信息与错误</strong><span data-system-log-count>0 条</span></div>
+      <ol class="system-status-log" data-system-status-log aria-live="polite">
+        <li data-level="INFO"><time>现在</time><span>正在读取后台日志…</span></li>
+      </ol>
+      <p class="system-status-path">日志保存在 <code>life-os-data/logs/app.log</code></p>
+    </div>
+  </section>
   <div class="sidebar-foot"><span class="privacy-dot" aria-hidden="true"></span>数据仅保存在本机运行目录</div>
 </aside>

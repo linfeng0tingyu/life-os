@@ -56,7 +56,7 @@ def test_habit_statistics_include_rate_streak_and_future_nulls(app_context) -> N
 def test_health_statistics_keep_missing_values_and_aggregate_recorded_values(app_context) -> None:
     HealthService.upsert(
         "2026-09-21",
-        sleep_duration_minutes=420,
+        sleep_status="between_6_7_5",
         weight_kg=65.5,
         exercise_minutes=30,
         energy_level=3,
@@ -64,7 +64,7 @@ def test_health_statistics_keep_missing_values_and_aggregate_recorded_values(app
     HealthService.upsert("2026-09-22", exercise_minutes=0, body_status="肩颈紧")
     HealthService.upsert(
         "2026-09-23",
-        sleep_duration_minutes=480,
+        sleep_status="over_7_5",
         weight_kg=65,
         exercise_minutes=60,
         energy_level=5,
@@ -74,13 +74,17 @@ def test_health_statistics_keep_missing_values_and_aggregate_recorded_values(app
         "week", "2026-09-23", today=date(2026, 9, 23)
     )
 
-    assert report["summary"]["sleep"]["average_minutes"] == 450
+    assert report["summary"]["sleep_status"]["recorded_days"] == 2
+    assert report["summary"]["sleep_status"]["counts"] == {
+        "between_6_7_5": 1,
+        "over_7_5": 1,
+    }
     assert report["summary"]["exercise"]["total_minutes"] == 90
     assert report["summary"]["weight"]["change_kg"] == -0.5
     assert report["summary"]["energy"]["average"] == 4
-    assert report["series"][1]["sleep_minutes"] is None
+    assert report["series"][1]["sleep_status"] is None
     assert report["series"][3]["recorded"] is False
-    assert report["series"][3]["sleep_minutes"] is None
+    assert report["series"][3]["sleep_status"] is None
 
 
 def test_reporting_endpoints_and_validation(client: FlaskClient) -> None:

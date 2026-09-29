@@ -1,0 +1,39 @@
+{% macro exercise_type_control(compact=false, manageable=true) -%}
+  <div class="exercise-type-control{% if compact %} is-compact{% endif %}" data-exercise-type-control>
+    {% if compact %}
+    <details class="exercise-type-dropdown" data-exercise-type-dropdown>
+      <summary data-exercise-type-summary>正在读取运动种类…</summary>
+      <div class="exercise-type-dropdown-menu">
+        <div class="exercise-type-options" data-exercise-type-options aria-label="运动种类多选"></div>
+      </div>
+    </details>
+    {% else %}
+    <div class="exercise-type-options" data-exercise-type-options aria-label="运动种类多选"></div>
+    {% endif %}
+    {% if manageable %}
+    <div class="category-control-meta">
+      <span role="status" aria-live="polite" data-exercise-type-state>正在读取运动种类…</span>
+      <div class="category-control-actions">
+        <button class="text-button" type="button" data-action="show-exercise-type-creator">新建</button>
+        <button class="text-button" type="button" data-action="show-exercise-type-manager">管理</button>
+      </div>
+    </div>
+    <div class="category-creator is-hidden" data-exercise-type-creator>
+      <input type="text" maxlength="100" data-exercise-type-name aria-label="运动种类名称" placeholder="例如：力量训练">
+      <div class="category-control-actions">
+        <button class="button button-primary" type="button" data-action="save-exercise-type">保存</button>
+        <button class="button button-quiet" type="button" data-action="cancel-exercise-type-creator">取消</button>
+      </div>
+    </div>
+    <section class="category-manager is-hidden" data-exercise-type-manager aria-label="运动种类管理">
+      <div class="category-manager-heading">
+        <strong>运动种类管理</strong>
+        <button class="text-button" type="button" data-action="close-exercise-type-manager">关闭</button>
+      </div>
+      <label class="field category-manager-search"><span>搜索运动种类</span><input type="search" data-exercise-type-search placeholder="输入名称筛选"></label>
+      <div class="category-manager-list" data-exercise-type-manager-list></div>
+      <p class="category-manager-note">可上下调整顺序；已经用于历史节律记录的种类不能删除。</p>
+    </section>
+    {% endif %}
+  </div>
+{%- endmacro %}

@@ -12,7 +12,7 @@ from .models import SchemaMeta
 from .models.base import now_iso
 
 
-SCHEMA_VERSION = 6
+SCHEMA_VERSION = 7
 MINIMUM_MIGRATABLE_VERSION = 1
 
 
@@ -89,6 +89,8 @@ def initialize_database(app: Flask) -> None:
                     _migrate_finance_accounts_v5()
                 if stored_version_number < 6:
                     _migrate_finance_transactions_v6()
+                if stored_version_number < 7:
+                    _migrate_daily_health_v7()
                 version_record = db.session.get(SchemaMeta, "schema_version")
                 if version_record is None:
                     raise DatabaseVersionError(
@@ -207,6 +209,22 @@ def _migrate_finance_transactions_v6() -> None:
             text(
                 "ALTER TABLE finance_transactions ADD COLUMN is_adjustment BOOLEAN "
                 "NOT NULL DEFAULT 0 CHECK (is_adjustment IN (0, 1))"
+            )
+        )
+
+
+def _migrate_daily_health_v7() -> None:
+    columns = {
+        row[1]
+        for row in db.session.execute(text("PRAGMA table_info(daily_health)"))
+    }
+    if "sleep_status" not in columns:
+        db.session.execute(
+            text(
+                "ALTER TABLE daily_health ADD COLUMN sleep_status VARCHAR(24) "
+                "CHECK (sleep_status IS NULL OR sleep_status IN "
+                "('under_4_5', 'between_4_5_6', 'between_6_7_5', "
+                "'over_7_5', 'over_9'))"
             )
         )
 

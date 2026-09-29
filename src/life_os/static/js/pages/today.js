@@ -1,5 +1,6 @@
 import { api, ApiError } from "../api/client.js";
 import { DaySummary } from "../components/day-summary.js";
+import { ExerciseTypePicker } from "../components/exercise-type-picker.js";
 import { dateHeading, longDateLabel, toLocalDateString } from "../utils/date.js";
 
 function errorText(error) {
@@ -20,6 +21,16 @@ export class TodayPage {
     });
     this.today = toLocalDateString();
     this.dayRequest = null;
+    this.healthForm = root.querySelector("[data-today-health-form]");
+    this.healthState = root.querySelector("[data-today-health-state]");
+    this.healthDirty = false;
+    this.healthSaving = false;
+    this.healthRevision = 0;
+    this.healthTimer = null;
+    this.exerciseTypes = new ExerciseTypePicker(root.querySelector("[data-exercise-type-control]"), {
+      onChange: () => this.markHealthDirty(),
+      onError: (error) => this.showMutationError(error),
+    });
   }
 
   start() {
@@ -27,6 +38,12 @@ export class TodayPage {
     this.heading.textContent = dateHeading(this.today);
     this.subtitle.textContent = longDateLabel(this.today);
     document.title = `${dateHeading(this.today)} · Life OS`;
+    this.healthForm.addEventListener("input", () => this.markHealthDirty());
+    this.healthForm.addEventListener("change", () => this.markHealthDirty());
+    this.healthForm.addEventListener("focusout", () => {
+      if (this.healthDirty) this.saveHealth();
+    });
+    this.exerciseTypes.start();
     this.loadDay();
   }
 
@@ -40,6 +57,7 @@ export class TodayPage {
       const day = await api.get(`/api/day/${this.today}`, { signal: request.signal });
       if (this.dayRequest !== request) return;
       this.summary.ready(day);
+      if (!this.healthDirty) this.fillHealth(day.health);
     } catch (error) {
       if (error instanceof ApiError && error.code === "cancelled") return;
       if (this.dayRequest !== request) return;
@@ -47,6 +65,67 @@ export class TodayPage {
       this.globalErrorMessage.textContent = errorText(error);
       this.globalError.classList.remove("is-hidden");
     }
+  }
+
+  fillHealth(record) {
+    const fields = this.healthForm.elements;
+    fields.sleep_status.value = record?.sleep_status ?? "";
+    fields.energy_level.value = record?.energy_level ?? "";
+    fields.mood_level.value = record?.mood_level ?? "";
+    this.exerciseTypes.setValue((record?.exercise_types || []).map((item) => item.id));
+    this.setHealthState("saved", record ? "已同步当天节律" : "尚无记录");
+  }
+
+  markHealthDirty() {
+    this.healthDirty = true;
+    this.healthRevision += 1;
+    this.setHealthState("saving", "等待保存");
+    window.clearTimeout(this.healthTimer);
+    this.healthTimer = window.setTimeout(() => this.saveHealth(), 800);
+  }
+
+  healthPayload() {
+    const fields = this.healthForm.elements;
+    const optionalNumber = (value) => value === "" ? null : Number(value);
+    return {
+      sleep_status: fields.sleep_status.value || null,
+      exercise_type_ids: this.exerciseTypes.getValue(),
+      energy_level: optionalNumber(fields.energy_level.value),
+      mood_level: optionalNumber(fields.mood_level.value),
+    };
+  }
+
+  async saveHealth() {
+    window.clearTimeout(this.healthTimer);
+    if (this.healthSaving || !this.healthDirty) return;
+    if (!this.healthForm.reportValidity()) {
+      this.setHealthState("save-failed", "请检查输入");
+      return;
+    }
+    const revision = this.healthRevision;
+    this.healthSaving = true;
+    this.setHealthState("saving", "保存中");
+    try {
+      const record = await api.put(`/api/health/${this.today}`, this.healthPayload());
+      this.healthDirty = this.healthRevision !== revision;
+      if (this.healthDirty) {
+        this.setHealthState("saving", "有新修改");
+        this.healthTimer = window.setTimeout(() => this.saveHealth(), 800);
+      } else {
+        this.fillHealth(record);
+        this.setHealthState("saved", "已同步到节律");
+      }
+    } catch (error) {
+      this.setHealthState("save-failed", "保存失败");
+      this.showMutationError(error);
+    } finally {
+      this.healthSaving = false;
+    }
+  }
+
+  setHealthState(state, value) {
+    this.healthState.dataset.state = state;
+    this.healthState.textContent = value;
   }
 
   async updateTaskStatus(task, status) {

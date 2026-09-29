@@ -142,7 +142,7 @@ def test_m8_core_journey_reaches_backup_and_open_export(
     ).status_code == 200
     assert client.put(
         f"/api/health/{today}",
-        json={"sleep_duration_minutes": 450, "energy_level": 4},
+        json={"sleep_status": "between_6_7_5", "energy_level": 4},
     ).status_code == 200
     assert client.put(
         f"/api/journal/{today}", json={"content": "# v0.1 发布日"}
@@ -170,7 +170,7 @@ def test_m8_core_journey_reaches_backup_and_open_export(
     day = client.get(f"/api/day/{today}").get_json()["data"]
     assert day["tasks"]["scheduled"][0]["title"] == "发布 v0.1"
     assert day["habits"][0]["log"]["status"] is True
-    assert day["health"]["sleep_duration_minutes"] == 450
+    assert day["health"]["sleep_status"] == "between_6_7_5"
     assert day["journal"]["content"] == "# v0.1 发布日"
     assert day["finance"]["income"] == "50.00"
 

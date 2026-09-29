@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import date
 
 from sqlalchemy import Boolean, CheckConstraint, Date, Float, String
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from life_os.extensions import db
 
@@ -35,6 +35,11 @@ class DailyHealth(TimestampMixin, db.Model):
             "exercise_minutes IS NULL OR exercise_minutes >= 0",
             name="ck_health_exercise",
         ),
+        CheckConstraint(
+            "sleep_status IS NULL OR sleep_status IN "
+            "('under_4_5', 'between_4_5_6', 'between_6_7_5', 'over_7_5', 'over_9')",
+            name="ck_health_sleep_status",
+        ),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -54,3 +59,10 @@ class DailyHealth(TimestampMixin, db.Model):
     body_status: Mapped[str | None] = mapped_column(String(500), nullable=True)
     exercise_minutes: Mapped[int | None] = mapped_column(nullable=True)
     note: Mapped[str | None] = mapped_column(String(2000), nullable=True)
+    sleep_status: Mapped[str | None] = mapped_column(String(24), nullable=True)
+    exercise_types = relationship(
+        "ExerciseType",
+        secondary="daily_health_exercise_types",
+        order_by="ExerciseType.sort_order, ExerciseType.name, ExerciseType.id",
+        lazy="selectin",
+    )

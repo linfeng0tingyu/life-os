@@ -11,13 +11,12 @@ from life_os.services.reporting_service import ReportingService
 blueprint = Blueprint("health", __name__)
 HEALTH_FIELDS = {
     "weight_kg",
-    "sleep_start",
-    "sleep_duration_minutes",
-    "sleep_quality",
+    "sleep_status",
     "energy_level",
     "mood_level",
     "body_status",
     "exercise_minutes",
+    "exercise_type_ids",
     "note",
 }
 

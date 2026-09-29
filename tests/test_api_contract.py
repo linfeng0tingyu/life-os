@@ -74,6 +74,27 @@ def test_system_info_has_versions_and_portable_runtime_path(
     assert "LIFE_OS_HOME" not in serialized
 
 
+def test_system_diagnostics_reports_runtime_database_and_recent_logs(
+    app, client: FlaskClient,
+) -> None:
+    response = client.get("/api/system/diagnostics")
+
+    assert response.status_code == 200
+    data = response.get_json()["data"]
+    assert data["status"] == "ok"
+    assert data["schema_version"] == SCHEMA_VERSION
+    assert data["runtime"]["ready"] is True
+    assert data["runtime"]["database_ready"] is True
+    assert data["runtime"]["database_size_bytes"] > 0
+    assert data["logs"]["relative_path"] == "logs/app.log"
+    assert isinstance(data["logs"]["error_count"], int)
+    assert isinstance(data["logs"]["items"], list)
+    assert len(data["logs"]["items"]) <= 20
+    assert str(app.extensions["life_os_runtime"].home) not in response.get_data(
+        as_text=True
+    )
+
+
 def test_conflict_uses_409_contract(client: FlaskClient, monkeypatch) -> None:
     from life_os.routes.habits import HabitService
 

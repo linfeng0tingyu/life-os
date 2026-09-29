@@ -17,7 +17,12 @@ function statusCode(status) {
   return "http_error";
 }
 
+function emitApiStatus(detail) {
+  window.dispatchEvent(new CustomEvent("lifeos:api-status", { detail }));
+}
+
 export async function request(path, { method = "GET", body, signal, timeout = 10000 } = {}) {
+  const startedAt = Date.now();
   const controller = new AbortController();
   let timedOut = false;
   const timeoutId = window.setTimeout(() => {
@@ -29,6 +34,7 @@ export async function request(path, { method = "GET", body, signal, timeout = 10
 
   const headers = { Accept: "application/json" };
   const options = { method, headers, signal: controller.signal };
+  emitApiStatus({ state: "loading", method, path });
   if (body !== undefined) {
     if (body instanceof FormData) {
       options.body = body;
@@ -86,19 +92,48 @@ export async function request(path, { method = "GET", body, signal, timeout = 10
         requestId,
       });
     }
+    emitApiStatus({
+      state: "ok",
+      method,
+      path,
+      elapsed: Date.now() - startedAt,
+      requestId,
+    });
     return payload.data;
   } catch (error) {
-    if (error instanceof ApiError) throw error;
+    if (error instanceof ApiError) {
+      emitApiStatus({
+        state: "error",
+        method,
+        path,
+        elapsed: Date.now() - startedAt,
+        code: error.code,
+        message: error.message,
+        requestId: error.requestId,
+      });
+      throw error;
+    }
+    let normalized;
     if (error?.name === "AbortError") {
-      throw new ApiError(timedOut ? "读取超时，请稍后重试。" : "请求已取消。", {
+      normalized = new ApiError(timedOut ? "读取超时，请稍后重试。" : "请求已取消。", {
         code: timedOut ? "timeout" : "cancelled",
         cause: error,
       });
+    } else {
+      normalized = new ApiError("无法连接本机 Life OS 服务。", {
+        code: "connection_error",
+        cause: error,
+      });
     }
-    throw new ApiError("无法连接本机 Life OS 服务。", {
-      code: "connection_error",
-      cause: error,
+    emitApiStatus({
+      state: normalized.code === "cancelled" ? "cancelled" : "error",
+      method,
+      path,
+      elapsed: Date.now() - startedAt,
+      code: normalized.code,
+      message: normalized.message,
     });
+    throw normalized;
   } finally {
     window.clearTimeout(timeoutId);
     signal?.removeEventListener("abort", relayAbort);

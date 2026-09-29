@@ -6,6 +6,7 @@ from .models import (
     CalendarDay,
     Category,
     DailyHealth,
+    ExerciseType,
     FinanceAccount,
     FinanceTransaction,
     Habit,
@@ -25,6 +26,16 @@ def category_data(category: Category) -> dict[str, Any]:
         "sort_order": category.sort_order,
         "created_at": category.created_at,
         "updated_at": category.updated_at,
+    }
+
+
+def exercise_type_data(item: ExerciseType) -> dict[str, Any]:
+    return {
+        "id": item.id,
+        "name": item.name,
+        "sort_order": item.sort_order,
+        "created_at": item.created_at,
+        "updated_at": item.updated_at,
     }
 
 
@@ -116,6 +127,8 @@ def health_data(record: DailyHealth) -> dict[str, Any]:
         "body_status": record.body_status,
         "exercise_minutes": record.exercise_minutes,
         "note": record.note,
+        "sleep_status": record.sleep_status,
+        "exercise_types": [exercise_type_data(item) for item in record.exercise_types],
         "created_at": record.created_at,
         "updated_at": record.updated_at,
     }

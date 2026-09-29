@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "partials/exercise-type-control.html" import exercise_type_control %}
 
 {% block title %}生活节律 · Life OS{% endblock %}
 
@@ -10,7 +11,7 @@
         <div>
           <p class="eyebrow">观察身体，而不是评判自己</p>
           <h1>生活节律</h1>
-          <p class="date-subtitle">记录睡眠、体重、精力、情绪、运动与身体状态；修改会自动保存。</p>
+          <p class="date-subtitle">记录睡眠情况、体重、精力、情绪、运动与身体状态；修改会自动保存。</p>
         </div>
         <label class="date-switcher"><span>记录日期</span><input type="date" data-record-date></label>
       </header>
@@ -21,31 +22,24 @@
       </div>
 
       <form class="records-grid" data-health-form>
-        <section class="module module-rhythm" aria-labelledby="sleep-title">
-          <div class="module-heading"><div><p class="section-kicker">睡眠</p><h2 id="sleep-title">休息与恢复</h2></div><span class="save-state" data-health-state role="status" aria-live="polite">正在读取</span></div>
-          <div class="field-grid">
-            <label class="field"><span>入睡时间 <small>记录日前一天</small></span><input type="time" name="sleep_start" step="60"></label>
-            <div class="field sleep-duration-fields">
-              <span>睡眠时长</span>
-              <div class="duration-inputs">
-                <label><input type="number" name="sleep_duration_hours" aria-label="睡眠时长小时" min="0" max="24" step="1" placeholder="0"><small>小时</small></label>
-                <label><input type="number" name="sleep_duration_remainder" aria-label="睡眠时长分钟" min="0" max="59" step="1" placeholder="0"><small>分钟</small></label>
-              </div>
-            </div>
-          </div>
-          <div class="sleep-duration-summary" data-sleep-duration-display>尚未记录睡眠时长</div>
-          <p class="field-hint" data-sleep-hint>入睡时间按所选记录日期的前一天保存；睡眠时长直接按小时和分钟填写。</p>
-          <label class="field"><span>睡眠质量</span><select name="sleep_quality"><option value="">未记录</option><option value="1">1 · 很差</option><option value="2">2 · 较差</option><option value="3">3 · 一般</option><option value="4">4 · 良好</option><option value="5">5 · 很好</option></select></label>
-        </section>
-
-        <section class="module" aria-labelledby="body-title">
-          <div class="module-heading"><div><p class="section-kicker">身体</p><h2 id="body-title">健康状态</h2></div></div>
+        <section class="module module-rhythm health-status-module" aria-labelledby="body-title">
+          <div class="module-heading"><div><p class="section-kicker">身体与节律</p><h2 id="body-title">健康状态</h2></div><span class="save-state" data-health-state role="status" aria-live="polite">正在读取</span></div>
+          <fieldset class="segmented-control sleep-status-control">
+            <legend>睡眠情况</legend>
+            <label><input type="radio" name="sleep_status" value="under_4_5">小于4.5小时</label>
+            <label><input type="radio" name="sleep_status" value="between_4_5_6">4.5-6小时</label>
+            <label><input type="radio" name="sleep_status" value="between_6_7_5">6-7.5小时</label>
+            <label><input type="radio" name="sleep_status" value="over_7_5">大于7.5小时</label>
+            <label><input type="radio" name="sleep_status" value="over_9">大于9小时</label>
+            <label><input type="radio" name="sleep_status" value="">未记录</label>
+          </fieldset>
           <div class="field-grid">
             <label class="field"><span>体重（kg）</span><input type="number" name="weight_kg" min="0.01" step="0.01" placeholder="例如：65.5"></label>
             <label class="field"><span>运动（分钟）</span><input type="number" name="exercise_minutes" min="0" max="1440" step="1"></label>
             <label class="field"><span>精力水平</span><select name="energy_level"><option value="">未记录</option><option value="1">1 · 很低</option><option value="2">2 · 较低</option><option value="3">3 · 一般</option><option value="4">4 · 良好</option><option value="5">5 · 充沛</option></select></label>
             <label class="field"><span>情绪水平</span><select name="mood_level"><option value="">未记录</option><option value="1">1 · 很差</option><option value="2">2 · 较差</option><option value="3">3 · 一般</option><option value="4">4 · 良好</option><option value="5">5 · 很好</option></select></label>
           </div>
+          <div class="field"><span>运动种类（可多选）</span>{{ exercise_type_control() }}</div>
           <label class="field"><span>身体健康</span><textarea name="body_status" maxlength="500" rows="3" placeholder="例如：肩颈略紧，其他正常"></textarea></label>
           <label class="field"><span>补充备注</span><textarea name="note" maxlength="2000" rows="4" placeholder="药物、症状或训练感受等"></textarea></label>
         </section>

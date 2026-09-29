@@ -3,6 +3,7 @@ from .category_service import CategoryService
 from .common import ConflictError, DomainError, NotFoundError, ValidationError
 from .day_service import DayService
 from .finance_service import FinanceService
+from .exercise_type_service import ExerciseTypeService
 from .habit_service import HabitService
 from .health_service import HealthService
 from .journal_service import JournalService
@@ -15,6 +16,7 @@ __all__ = [
     "DomainError",
     "DayService",
     "FinanceService",
+    "ExerciseTypeService",
     "HabitService",
     "HealthService",
     "JournalService",

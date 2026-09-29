@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import calendar
-from collections import defaultdict
+from collections import Counter, defaultdict
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from typing import Iterable
@@ -235,16 +235,9 @@ class ReportingService:
 
     @staticmethod
     def _health_summary(records: list[DailyHealth]) -> dict[str, object]:
-        sleep = [
-            record.sleep_duration_minutes
-            for record in records
-            if record.sleep_duration_minutes is not None
-        ]
-        sleep_quality = [
-            record.sleep_quality
-            for record in records
-            if record.sleep_quality is not None
-        ]
+        sleep_status = Counter(
+            record.sleep_status for record in records if record.sleep_status
+        )
         weights = [record for record in records if record.weight_kg is not None]
         exercise = [
             record.exercise_minutes
@@ -266,12 +259,9 @@ class ReportingService:
         last_weight = weights[-1].weight_kg if weights else None
         return {
             "recorded_days": len(records),
-            "sleep": {
-                "recorded_days": len(sleep),
-                "average_minutes": ReportingService._average(sleep),
-                "minimum_minutes": min(sleep) if sleep else None,
-                "maximum_minutes": max(sleep) if sleep else None,
-                "average_quality": ReportingService._average(sleep_quality),
+            "sleep_status": {
+                "recorded_days": sum(sleep_status.values()),
+                "counts": dict(sleep_status),
             },
             "weight": {
                 "recorded_days": len(weights),
@@ -338,8 +328,7 @@ class ReportingService:
                 point.update(
                     {
                         "recorded_days": 0,
-                        "average_sleep_minutes": None,
-                        "average_sleep_quality": None,
+                        "sleep_status_counts": {},
                         "average_weight_kg": None,
                         "last_weight_kg": None,
                         "exercise_minutes": None,
@@ -357,10 +346,12 @@ class ReportingService:
         return {
             "date": day.isoformat(),
             "recorded": record is not None,
-            "sleep_minutes": record.sleep_duration_minutes if record else None,
+            "sleep_status": record.sleep_status if record else None,
             "weight_kg": record.weight_kg if record else None,
             "exercise_minutes": record.exercise_minutes if record else None,
-            "sleep_quality": record.sleep_quality if record else None,
+            "exercise_types": (
+                [item.name for item in record.exercise_types] if record else []
+            ),
             "energy_level": record.energy_level if record else None,
             "mood_level": record.mood_level if record else None,
         }
@@ -371,18 +362,11 @@ class ReportingService:
         month: int,
         records: list[DailyHealth],
     ) -> dict[str, object]:
-        sleep = [
-            record.sleep_duration_minutes
-            for record in records
-            if record.sleep_duration_minutes is not None
-        ]
+        sleep_status = Counter(
+            record.sleep_status for record in records if record.sleep_status
+        )
         weights = [
             record.weight_kg for record in records if record.weight_kg is not None
-        ]
-        sleep_quality = [
-            record.sleep_quality
-            for record in records
-            if record.sleep_quality is not None
         ]
         exercise = [
             record.exercise_minutes
@@ -402,8 +386,7 @@ class ReportingService:
         return {
             "month": f"{year}-{month:02d}",
             "recorded_days": len(records),
-            "average_sleep_minutes": ReportingService._average(sleep),
-            "average_sleep_quality": ReportingService._average(sleep_quality),
+            "sleep_status_counts": dict(sleep_status),
             "average_weight_kg": ReportingService._average(weights),
             "last_weight_kg": weights[-1] if weights else None,
             "exercise_minutes": sum(exercise),

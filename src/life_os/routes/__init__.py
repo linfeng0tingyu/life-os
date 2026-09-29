@@ -2,6 +2,7 @@
 from .calendar import blueprint as calendar_blueprint
 from .categories import blueprint as categories_blueprint
 from .day import blueprint as day_blueprint
+from .exercise_types import blueprint as exercise_types_blueprint
 from .finance import blueprint as finance_blueprint
 from .habits import blueprint as habits_blueprint
 from .health import blueprint as health_blueprint
@@ -15,6 +16,7 @@ BLUEPRINTS = (
     day_blueprint,
     calendar_blueprint,
     categories_blueprint,
+    exercise_types_blueprint,
     finance_blueprint,
     habits_blueprint,
     tasks_blueprint,

@@ -93,6 +93,191 @@
   font-size: 0.75rem;
 }
 
+.system-status {
+  position: relative;
+  margin-top: var(--space-3);
+}
+
+.system-status-toggle {
+  display: grid;
+  width: 100%;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 3rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: color-mix(in srgb, var(--surface) 82%, transparent);
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+}
+
+.system-status-toggle:hover {
+  border-color: var(--primary);
+  background: var(--primary-light);
+}
+
+.system-status-dot {
+  width: 0.62rem;
+  height: 0.62rem;
+  border-radius: 50%;
+  background: var(--gold);
+  box-shadow: 0 0 0 0.22rem color-mix(in srgb, var(--gold) 18%, transparent);
+}
+
+.system-status[data-state="ok"] .system-status-dot {
+  background: var(--jade);
+  box-shadow: 0 0 0 0.22rem color-mix(in srgb, var(--jade) 18%, transparent);
+}
+
+.system-status[data-state="warning"] .system-status-dot,
+.system-status[data-state="error"] .system-status-dot {
+  background: var(--vermillion);
+  box-shadow: 0 0 0 0.22rem color-mix(in srgb, var(--vermillion) 18%, transparent);
+}
+
+.system-status-copy,
+.system-status-copy strong,
+.system-status-copy small {
+  display: block;
+  min-width: 0;
+}
+
+.system-status-copy strong {
+  overflow: hidden;
+  font-size: 0.78rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.system-status-copy small {
+  overflow: hidden;
+  margin-top: 0.08rem;
+  color: var(--text-muted);
+  font-size: 0.66rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.system-status-chevron {
+  width: 1rem;
+  height: 1rem;
+  transition: transform var(--transition-fast);
+}
+
+.system-status-toggle[aria-expanded="true"] .system-status-chevron {
+  transform: rotate(180deg);
+}
+
+.system-status-panel {
+  width: 100%;
+  max-height: min(52vh, 28rem);
+  margin-top: var(--space-2);
+  overflow: auto;
+  padding: var(--space-4);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  box-shadow: var(--shadow-strong);
+}
+
+.system-status-heading,
+.system-status-log-heading,
+.system-status-facts > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.system-status-heading {
+  margin-bottom: var(--space-3);
+}
+
+.system-status-heading h2,
+.system-status-heading p {
+  margin: 0;
+}
+
+.system-status-heading h2 {
+  font-size: 1rem;
+}
+
+.system-status-facts {
+  display: grid;
+  gap: 0.38rem;
+  margin: 0 0 var(--space-4);
+  padding: var(--space-3);
+  border-radius: var(--radius-control);
+  background: var(--surface-soft);
+  font-size: 0.72rem;
+}
+
+.system-status-facts dt {
+  color: var(--text-muted);
+}
+
+.system-status-facts dd {
+  margin: 0;
+  color: var(--text-secondary);
+  font-weight: 700;
+  text-align: right;
+}
+
+.system-status-log-heading {
+  margin-bottom: var(--space-2);
+  font-size: 0.72rem;
+}
+
+.system-status-log-heading span,
+.system-status-path {
+  color: var(--text-muted);
+  font-size: 0.66rem;
+}
+
+.system-status-log {
+  display: grid;
+  gap: 0.38rem;
+  max-height: 12rem;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.system-status-log li {
+  display: grid;
+  grid-template-columns: 3.4rem minmax(0, 1fr);
+  gap: var(--space-2);
+  padding: 0.42rem 0.5rem;
+  border-left: 3px solid var(--border-strong);
+  border-radius: 0 var(--radius-small) var(--radius-small) 0;
+  background: var(--surface-soft);
+  color: var(--text-secondary);
+  font-size: 0.68rem;
+  line-height: 1.4;
+}
+
+.system-status-log li[data-level="WARNING"] { border-left-color: var(--gold); }
+.system-status-log li[data-level="ERROR"],
+.system-status-log li[data-level="CRITICAL"] { border-left-color: var(--vermillion); }
+.system-status-log li[data-level="CLIENT"] { border-left-color: var(--cyan); }
+
+.system-status-log time {
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.system-status-log span {
+  overflow-wrap: anywhere;
+}
+
+.system-status-path {
+  margin: var(--space-3) 0 0;
+}
+
 .theme-control {
   display: grid;
   gap: var(--space-2);
@@ -225,6 +410,14 @@
 
   .sidebar-foot {
     display: none;
+  }
+
+  .system-status {
+    margin-top: var(--space-3);
+  }
+
+  .system-status-panel {
+    max-height: min(60vh, 30rem);
   }
 
   .theme-control {

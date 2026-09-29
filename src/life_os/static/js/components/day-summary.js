@@ -1,5 +1,12 @@
 import { element, emptyMessage, replace } from "./dom.js";
-import { formatDuration } from "./reporting.js";
+
+const SLEEP_STATUS_LABELS = {
+  under_4_5: "小于4.5小时",
+  between_4_5_6: "4.5-6小时",
+  between_6_7_5: "6-7.5小时",
+  over_7_5: "大于7.5小时",
+  over_9: "大于9小时",
+};
 
 function metric(value, label) {
   return element("div", { className: "metric" }, [
@@ -94,13 +101,14 @@ function renderTasks(day, container, onStatusChange) {
 function renderRhythm(day, container) {
   const health = day.health;
   const values = health ? [
-    [formatDuration(health.sleep_duration_minutes), "睡眠时长"],
+    [SLEEP_STATUS_LABELS[health.sleep_status] || "未记录", "睡眠情况"],
     [health.weight_kg != null ? `${health.weight_kg} kg` : "未记录", "体重"],
     [health.exercise_minutes != null ? `${health.exercise_minutes} 分钟` : "未记录", "运动"],
+    [health.exercise_types?.map((item) => item.name).join("、") || "未记录", "运动种类"],
     [health.body_status || "未记录", "身体健康"],
   ] : [
-    ["未记录", "睡眠时长"], ["未记录", "体重"],
-    ["未记录", "运动"], ["未记录", "身体健康"],
+    ["未记录", "睡眠情况"], ["未记录", "体重"],
+    ["未记录", "运动"], ["未记录", "运动种类"], ["未记录", "身体健康"],
   ];
   replace(container, ...values.map(([value, label]) => element("div", { className: "rhythm-item" }, [
     element("strong", { text: value }),
@@ -192,20 +200,20 @@ export class DaySummary {
   }
 
   loading() {
-    this.nodes.state.textContent = "加载中";
-    this.nodes.panel.dataset.state = "loading";
-    this.nodes.overview.setAttribute("aria-busy", "true");
+    if (this.nodes.state) this.nodes.state.textContent = "加载中";
+    if (this.nodes.panel) this.nodes.panel.dataset.state = "loading";
+    if (this.nodes.overview) this.nodes.overview.setAttribute("aria-busy", "true");
     for (const key of ["tasks", "rhythm", "habits", "journal", "finance"]) {
-      replace(this.nodes[key], emptyMessage("正在读取…"));
+      if (this.nodes[key]) replace(this.nodes[key], emptyMessage("正在读取…"));
     }
   }
 
   ready(day) {
-    this.nodes.state.textContent = "已载入";
-    this.nodes.panel.dataset.state = "ready";
-    renderOverview(day, this.nodes);
+    if (this.nodes.state) this.nodes.state.textContent = "已载入";
+    if (this.nodes.panel) this.nodes.panel.dataset.state = "ready";
+    if (this.nodes.overview) renderOverview(day, this.nodes);
     renderTasks(day, this.nodes.tasks, this.onTaskStatusChange);
-    renderRhythm(day, this.nodes.rhythm);
+    if (this.nodes.rhythm) renderRhythm(day, this.nodes.rhythm);
     renderHabits(day, this.nodes.habits, this.onHabitStatusChange, this.canEditDate);
     renderJournal(day, this.nodes.journal);
     renderFinance(day, this.nodes.finance);
@@ -219,12 +227,14 @@ export class DaySummary {
   }
 
   error() {
-    this.nodes.state.textContent = "读取失败";
-    this.nodes.panel.dataset.state = "error";
-    this.nodes.overview.setAttribute("aria-busy", "false");
-    replace(this.nodes.overview, emptyMessage("数据暂时不可用，请使用页面上方的重试按钮。"));
+    if (this.nodes.state) this.nodes.state.textContent = "读取失败";
+    if (this.nodes.panel) this.nodes.panel.dataset.state = "error";
+    if (this.nodes.overview) {
+      this.nodes.overview.setAttribute("aria-busy", "false");
+      replace(this.nodes.overview, emptyMessage("数据暂时不可用，请使用页面上方的重试按钮。"));
+    }
     for (const key of ["tasks", "rhythm", "habits", "journal", "finance"]) {
-      replace(this.nodes[key], emptyMessage("暂时无法显示。"));
+      if (this.nodes[key]) replace(this.nodes[key], emptyMessage("暂时无法显示。"));
     }
   }
 }

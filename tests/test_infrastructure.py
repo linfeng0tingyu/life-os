@@ -43,7 +43,8 @@ def test_api_404_uses_json_contract(tmp_path: Path) -> None:
 
 def test_frontend_shell_supports_versioned_local_assets(tmp_path: Path) -> None:
     app = create_app(runtime_home=tmp_path / "runtime", testing=True)
-    response = app.test_client().get("/")
+    client = app.test_client()
+    response = client.get("/")
     html = response.get_data(as_text=True)
 
     assert response.status_code == 200
@@ -57,16 +58,46 @@ def test_frontend_shell_supports_versioned_local_assets(tmp_path: Path) -> None:
     assert "/static/css/pages/calendar.css?v=0.1.0" in html
     assert "/static/css/themes.css?v=0.1.0" in html
     assert "/static/js/theme.js?v=0.1.0" in html
+    assert "/static/js/system-status.js?v=0.1.0" in html
     assert 'type="module" src="/static/js/app.js?v=0.1.0"' in html
     assert 'data-page="today"' in html
+    assert 'data-today-health-form' in html
+    assert 'name="sleep_status"' in html
+    assert 'name="energy_level"' in html
+    assert 'name="mood_level"' in html
+    assert 'data-exercise-type-dropdown' in html
+    assert 'data-exercise-type-summary' in html
+    assert 'name="weight_kg"' not in html
+    assert 'name="exercise_minutes"' not in html
+    assert 'name="body_status"' not in html
+    assert 'name="note"' not in html
+    assert 'data-action="show-exercise-type-creator"' not in html
+    assert 'data-action="show-exercise-type-manager"' not in html
+    assert 'data-day-overview' not in html
+    assert '一天的轮廓' not in html
     assert 'href="/calendar"' in html
     assert "data-calendar-grid" not in html
     assert "data-day-marker-form" not in html
     assert '<svg class="icon"' in html
     assert 'data-theme-select' in html
+    assert 'data-system-status' in html
+    assert 'data-system-status-panel' in html
+    assert "后台信息" in html
     assert 'images/life-os-logo.png?v=0.1.0' in html
     assert "http://" not in html
     assert "https://" not in html
+
+    today_script = client.get("/static/js/pages/today.js").get_data(as_text=True)
+    assert "exercise_type_ids: this.exerciseTypes.getValue()" in today_script
+    assert "weight_kg:" not in today_script
+    assert "exercise_minutes:" not in today_script
+    assert "body_status:" not in today_script
+    assert "fields.note" not in today_script
+
+    layout = client.get("/static/css/layout.css").get_data(as_text=True)
+    status_panel_rule = layout.split(".system-status-panel {", 1)[1].split("}", 1)[0]
+    assert "width: 100%;" in status_panel_rule
+    assert "position: fixed" not in status_panel_rule
 
 
 def test_calendar_page_owns_history_and_day_markers(tmp_path: Path) -> None:
@@ -198,13 +229,14 @@ def test_m6_pages_expose_health_journal_and_finance_closed_loops(
 
     assert 'data-page="health"' in health_html
     assert 'data-health-form' in health_html
-    assert 'name="sleep_start"' in health_html
-    assert 'type="time" name="sleep_start"' in health_html
+    assert 'name="sleep_start"' not in health_html
     assert 'name="sleep_end"' not in health_html
     assert 'data-manual-sleep' not in health_html
-    assert 'name="sleep_duration_hours"' in health_html
-    assert 'name="sleep_duration_remainder"' in health_html
-    assert '记录日前一天' in health_html
+    assert 'name="sleep_duration_hours"' not in health_html
+    assert 'name="sleep_duration_remainder"' not in health_html
+    assert 'name="sleep_status"' in health_html
+    assert 'data-exercise-type-control' in health_html
+    assert 'data-exercise-type-manager' in health_html
     assert 'data-health-report' in health_html
     assert 'href="/health" aria-current="page"' in health_html
     assert 'data-page="journal"' in journal_html
@@ -250,9 +282,9 @@ def test_m6_frontend_uses_debounced_saves_and_explicit_finance_submit(
     summary_script = client.get("/static/js/components/day-summary.js").get_data(as_text=True)
 
     assert "window.setTimeout(() => this.save(), 800)" in health_script
-    assert "sleep_duration_minutes" in health_script
-    assert "sleep_duration_hours" in health_script
-    assert "previousDaySleepTimestamp" in health_script
+    assert "sleep_status" in health_script
+    assert "exercise_type_ids" in health_script
+    assert "ExerciseTypePicker" in health_script
     assert "sleep_end" not in health_script
     assert "manualSleep" not in health_script
     assert "/api/health/statistics" in health_script
@@ -468,6 +500,7 @@ def test_future_date_plan_is_visible_in_day_aggregation(tmp_path: Path) -> None:
         "css/themes.css",
         "images/life-os-logo.png",
         "js/app.js",
+        "js/system-status.js",
         "js/theme.js",
         "js/api/client.js",
         "js/components/dom.js",

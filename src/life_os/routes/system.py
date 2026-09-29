@@ -1,16 +1,51 @@
 from __future__ import annotations
 
+from collections import deque
 from datetime import datetime
+import re
 
 from flask import Blueprint, current_app, jsonify, render_template
+from sqlalchemy import text
 
 from life_os.api import json_object, success_response
+from life_os.extensions import db
 from life_os.services.common import ValidationError
 from life_os.services.data_protection_service import DataProtectionService
 from life_os.settings import SettingsError, update_backup_retention
 
 
 blueprint = Blueprint("system", __name__)
+LOG_LINE_PATTERN = re.compile(
+    r"^(?P<timestamp>\S+)\s+(?P<level>\S+)\s+(?P<logger>\S+)\s+(?P<message>.*)$"
+)
+
+
+def _recent_log_entries(limit: int = 20) -> list[dict[str, str]]:
+    paths = current_app.extensions["life_os_runtime"]
+    if not paths.log_file.is_file():
+        return []
+    with paths.log_file.open("r", encoding="utf-8", errors="replace") as handle:
+        lines = deque(handle, maxlen=limit)
+    entries = []
+    for raw_line in lines:
+        line = raw_line.rstrip("\r\n")
+        match = LOG_LINE_PATTERN.match(line)
+        if match:
+            entry = match.groupdict()
+            entry["message"] = entry["message"].replace(
+                str(paths.home), "<LIFE_OS_HOME>"
+            )
+            entries.append(entry)
+        elif line:
+            entries.append(
+                {
+                    "timestamp": "",
+                    "level": "INFO",
+                    "logger": "life_os",
+                    "message": line.replace(str(paths.home), "<LIFE_OS_HOME>"),
+                }
+            )
+    return entries
 
 
 @blueprint.get("/")
@@ -132,6 +167,43 @@ def info():
                 ),
             },
             "restore": DataProtectionService.restore_status(paths),
+        }
+    )
+
+
+@blueprint.get("/api/system/diagnostics")
+def diagnostics():
+    from life_os import __version__
+
+    paths = current_app.extensions["life_os_runtime"]
+    database_ok = db.session.execute(text("SELECT 1")).scalar_one() == 1
+    log_entries = _recent_log_entries()
+    return success_response(
+        {
+            "status": "ok" if database_ok and paths.home.is_dir() else "error",
+            "version": __version__,
+            "schema_version": current_app.extensions["life_os_schema_version"],
+            "checked_at": datetime.now().astimezone().isoformat(timespec="seconds"),
+            "runtime": {
+                "ready": paths.home.is_dir(),
+                "database_ready": database_ok,
+                "database_size_bytes": (
+                    paths.database_file.stat().st_size
+                    if paths.database_file.is_file()
+                    else 0
+                ),
+            },
+            "backup": current_app.extensions.get(
+                "life_os_startup_backup", {"status": "unknown"}
+            ),
+            "logs": {
+                "relative_path": "logs/app.log",
+                "error_count": sum(
+                    entry["level"] in {"ERROR", "CRITICAL"}
+                    for entry in log_entries
+                ),
+                "items": log_entries,
+            },
         }
     )
 

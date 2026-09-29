@@ -1,4 +1,5 @@
 <section class="dashboard-main day-dashboard {{ dashboard_class|default('') }}" aria-label="{{ dashboard_label|default('当日生活概览') }}">
+  {% if not hide_day_status|default(false) %}
   <section class="module module-status" aria-labelledby="status-title" data-day-panel>
     <div class="module-heading">
       <div><p class="section-kicker">日期状态</p><h2 id="status-title">一天的轮廓</h2></div>
@@ -9,6 +10,7 @@
       <div class="metric-row"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>
     </div>
   </section>
+  {% endif %}
 
   <section class="module module-focus" id="tasks-panel" aria-labelledby="tasks-title">
     <div class="module-heading">
@@ -21,9 +23,22 @@
   <section class="module module-rhythm" aria-labelledby="rhythm-title">
     <div class="module-heading">
       <div><p class="section-kicker">身体与节律</p><h2 id="rhythm-title">生活节律</h2></div>
-      <a class="module-note module-link" data-health-link href="{{ url_for('system.health_page') }}">管理生活节律</a>
+      <a class="module-note module-link" data-health-link href="{{ url_for('system.health_page') }}">查看完整节律</a>
     </div>
+    {% if inline_health_editor|default(false) %}
+    {% from "partials/exercise-type-control.html" import exercise_type_control %}
+    <form class="today-health-form" data-today-health-form>
+      <div class="field-grid today-health-primary">
+        <label class="field"><span>睡眠情况</span><select name="sleep_status"><option value="">未记录</option><option value="under_4_5">小于4.5小时</option><option value="between_4_5_6">4.5-6小时</option><option value="between_6_7_5">6-7.5小时</option><option value="over_7_5">大于7.5小时</option><option value="over_9">大于9小时</option></select></label>
+        <div class="field"><span>运动种类</span>{{ exercise_type_control(true, false) }}</div>
+        <label class="field"><span>精力水平</span><select name="energy_level"><option value="">未记录</option><option value="1">1 · 很低</option><option value="2">2 · 较低</option><option value="3">3 · 一般</option><option value="4">4 · 良好</option><option value="5">5 · 充沛</option></select></label>
+        <label class="field"><span>情绪水平</span><select name="mood_level"><option value="">未记录</option><option value="1">1 · 很差</option><option value="2">2 · 较差</option><option value="3">3 · 一般</option><option value="4">4 · 良好</option><option value="5">5 · 很好</option></select></label>
+      </div>
+      <span class="save-state today-health-save-state" data-today-health-state role="status" aria-live="polite">正在读取</span>
+    </form>
+    {% else %}
     <div class="rhythm-grid" data-rhythm-summary></div>
+    {% endif %}
   </section>
 
   <section class="module module-habits" id="habits-panel" aria-labelledby="habits-title">
