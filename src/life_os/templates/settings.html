@@ -8,7 +8,10 @@
     <main class="main-content settings-content" id="main-content">
       <header class="topbar page-head">
         <div><p class="eyebrow">让重要数据始终有退路</p><h1>设置与数据</h1><p class="date-subtitle">管理备份、开放格式导出、恢复计划与便携运行目录。</p></div>
-        <a class="button button-secondary" href="{{ url_for('system.habits_page') }}">管理习惯</a>
+        <div class="topbar-actions">
+          <a class="button button-secondary" href="{{ url_for('system.habits_page') }}">管理习惯</a>
+          {% include "partials/window-controls.html" %}
+        </div>
       </header>
 
       <div class="notice is-hidden" role="alert" data-global-error>

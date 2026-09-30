@@ -13,10 +13,13 @@
           <h1>日历</h1>
           <p class="date-subtitle" data-calendar-subtitle>选择任意日期：回顾过去、查看今天，或为未来安排计划。</p>
         </div>
-        <a class="button button-secondary" href="{{ url_for('system.index') }}">
-          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m4 11 8-7 8 7"></path><path d="M6 10v10h12V10M10 20v-6h4v6"></path></svg>
-          回到今日
-        </a>
+        <div class="topbar-actions">
+          <a class="button button-secondary" href="{{ url_for('system.index') }}">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m4 11 8-7 8 7"></path><path d="M6 10v10h12V10M10 20v-6h4v6"></path></svg>
+            回到今日
+          </a>
+          {% include "partials/window-controls.html" %}
+        </div>
       </header>
 
       <div class="notice is-hidden" role="alert" data-global-error>

@@ -116,6 +116,10 @@ def test_finance_transactions_summary_and_day_aggregation(client: FlaskClient) -
     archived = client.delete(f"/api/finance/transactions/{expense['id']}")
     assert archived.status_code == 200
     assert archived.get_json()["data"]["archived_at"] is not None
+    restored = client.post(f"/api/finance/transactions/{expense['id']}/restore")
+    assert restored.status_code == 200
+    assert restored.get_json()["data"]["archived_at"] is None
+    assert client.post("/api/finance/transactions/999/restore").status_code == 404
 
 
 def test_balance_adjustment_creates_auditable_non_cashflow_transaction(
@@ -264,7 +268,139 @@ def test_finance_api_rejects_invalid_transactions_and_ranges(
         == 400
     )
     assert client.get("/api/finance/summary?date_from=").status_code == 400
+    assert client.get("/api/finance/reports").status_code == 400
+    assert client.get(
+        "/api/finance/reports?date_from=2026-09-19&date_to=2026-09-18"
+    ).status_code == 400
     assert client.put("/api/finance/transactions/999", json={"amount": "1.00"}).status_code == 404
+
+
+def test_finance_reports_api_serializes_date_category_and_asset_totals(
+    client: FlaskClient,
+) -> None:
+    bank = create_account(client, "报表银行卡", opening_balance="100.00")
+    assert client.post(
+        "/api/finance/transactions",
+        json={
+            "date": "2026-09-18",
+            "type": "income",
+            "amount": "50.00",
+            "to_account_id": bank["id"],
+            "category": "工资",
+        },
+    ).status_code == 201
+    assert client.post(
+        "/api/finance/transactions",
+        json={
+            "date": "2026-09-19",
+            "type": "expense",
+            "amount": "12.50",
+            "from_account_id": bank["id"],
+        },
+    ).status_code == 201
+
+    response = client.get(
+        "/api/finance/reports?date_from=2026-09-18&date_to=2026-09-20"
+    )
+    assert response.status_code == 200
+    report = response.get_json()["data"]
+    assert report["date_from"] == "2026-09-18"
+    assert report["date_to"] == "2026-09-20"
+    assert report["income"] == "50.00"
+    assert report["expense"] == "12.50"
+    assert report["net_cashflow"] == "37.50"
+    assert report["total_assets"] == "137.50"
+    assert report["net_worth"] == "137.50"
+    assert report["by_date"][0]["total_assets"] == "150.00"
+    assert report["by_date"][1]["total_assets"] == "137.50"
+    assert report["by_category"] == [
+        {
+            "category": "工资",
+            "income": "50.00",
+            "expense": "0.00",
+            "net_cashflow": "50.00",
+            "transaction_count": 1,
+        },
+        {
+            "category": "未分类",
+            "income": "0.00",
+            "expense": "12.50",
+            "net_cashflow": "-12.50",
+            "transaction_count": 1,
+        },
+    ]
+    assert report["category_series"] == [
+        {
+            "category": "工资",
+            "points": [
+                {
+                    "date": "2026-09-18", "income": "50.00",
+                    "expense": "0.00", "net_cashflow": "50.00",
+                },
+                {
+                    "date": "2026-09-19", "income": "0.00",
+                    "expense": "0.00", "net_cashflow": "0.00",
+                },
+                {
+                    "date": "2026-09-20", "income": "0.00",
+                    "expense": "0.00", "net_cashflow": "0.00",
+                },
+            ],
+        },
+        {
+            "category": "未分类",
+            "points": [
+                {
+                    "date": "2026-09-18", "income": "0.00",
+                    "expense": "0.00", "net_cashflow": "0.00",
+                },
+                {
+                    "date": "2026-09-19", "income": "0.00",
+                    "expense": "12.50", "net_cashflow": "-12.50",
+                },
+                {
+                    "date": "2026-09-20", "income": "0.00",
+                    "expense": "0.00", "net_cashflow": "0.00",
+                },
+            ],
+        },
+    ]
+
+
+def test_finance_transactions_can_search_category_and_include_archived(
+    client: FlaskClient,
+) -> None:
+    account = create_account(client, "搜索账户", opening_balance="100.00")
+    lunch = client.post(
+        "/api/finance/transactions",
+        json={
+            "date": "2026-09-23",
+            "type": "expense",
+            "amount": "10.00",
+            "from_account_id": account["id"],
+            "category": "午餐餐饮",
+        },
+    ).get_json()["data"]
+    client.post(
+        "/api/finance/transactions",
+        json={
+            "date": "2026-09-24",
+            "type": "expense",
+            "amount": "20.00",
+            "from_account_id": account["id"],
+            "category": "交通",
+        },
+    )
+    assert client.delete(f"/api/finance/transactions/{lunch['id']}").status_code == 200
+
+    assert client.get(
+        "/api/finance/transactions?category=午餐"
+    ).get_json()["data"] == []
+    matches = client.get(
+        "/api/finance/transactions?category=午餐&include_archived=true"
+    ).get_json()["data"]
+    assert [item["id"] for item in matches] == [lunch["id"]]
+    assert matches[0]["date"] == "2026-09-23"
 
 
 def test_credit_card_billing_cycle_and_repayment_roll_forward(

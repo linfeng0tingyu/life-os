@@ -166,6 +166,7 @@ class FinanceService:
         value_date: date | str | None = None,
         transaction_type: str | None = None,
         account_id: int | None = None,
+        category: str | None = None,
         include_archived: bool = False,
     ) -> list[FinanceTransaction]:
         statement = select(FinanceTransaction)
@@ -196,6 +197,14 @@ class FinanceService:
                     FinanceTransaction.to_account_id == normalized_account_id,
                 )
             )
+        if category is not None:
+            normalized_category = optional_text(category, "category", 100)
+            if normalized_category is not None:
+                statement = statement.where(
+                    func.lower(FinanceTransaction.category).contains(
+                        normalized_category.lower(), autoescape=True
+                    )
+                )
         return list(
             db.session.scalars(
                 statement.order_by(FinanceTransaction.date.desc(), FinanceTransaction.id)
@@ -302,6 +311,17 @@ class FinanceService:
             raise NotFoundError("财务流水不存在。")
         if transaction.archived_at is None:
             transaction.archived_at = now_iso()
+            db.session.flush()
+        return transaction
+
+    @staticmethod
+    @transactional
+    def restore_transaction(transaction_id: int) -> FinanceTransaction:
+        transaction = db.session.get(FinanceTransaction, transaction_id)
+        if transaction is None:
+            raise NotFoundError("财务流水不存在。")
+        if transaction.archived_at is not None:
+            transaction.archived_at = None
             db.session.flush()
         return transaction
 
@@ -439,13 +459,8 @@ class FinanceService:
         if end is not None:
             period_query = period_query.where(FinanceTransaction.date <= end)
         income, expense = db.session.execute(period_query).one()
-        assets = sum(
-            balances[account.id] for account in accounts if account.kind == "asset"
-        )
-        liabilities = sum(
-            max(-balances[account.id], 0)
-            for account in accounts
-            if account.kind == "liability"
+        assets, liabilities, net_worth = FinanceService._balance_totals(
+            accounts, balances
         )
         return {
             "date_from": start,
@@ -455,8 +470,185 @@ class FinanceService:
             "net_cashflow_minor": income - expense,
             "total_assets_minor": assets,
             "total_liabilities_minor": liabilities,
-            "net_worth_minor": sum(balances.values()),
+            "net_worth_minor": net_worth,
             "accounts": [(account, balances[account.id]) for account in accounts],
+        }
+
+    @staticmethod
+    def report(*, date_from: date | str, date_to: date | str) -> dict:
+        start = parse_life_date(date_from, "date_from")
+        end = parse_life_date(date_to, "date_to")
+        if start > end:
+            raise ValidationError("date_from 不能晚于 date_to。")
+
+        accounts = FinanceService.list_accounts(include_inactive=True)
+        balances = {account.id: account.opening_balance_minor for account in accounts}
+
+        previous_outgoing = db.session.execute(
+            select(
+                FinanceTransaction.from_account_id,
+                func.sum(FinanceTransaction.amount_minor),
+            )
+            .where(
+                FinanceTransaction.archived_at.is_(None),
+                FinanceTransaction.date < start,
+                FinanceTransaction.from_account_id.is_not(None),
+            )
+            .group_by(FinanceTransaction.from_account_id)
+        )
+        previous_incoming = db.session.execute(
+            select(
+                FinanceTransaction.to_account_id,
+                func.sum(FinanceTransaction.amount_minor),
+            )
+            .where(
+                FinanceTransaction.archived_at.is_(None),
+                FinanceTransaction.date < start,
+                FinanceTransaction.to_account_id.is_not(None),
+            )
+            .group_by(FinanceTransaction.to_account_id)
+        )
+        for account_id, amount in previous_outgoing:
+            balances[account_id] -= amount
+        for account_id, amount in previous_incoming:
+            balances[account_id] += amount
+
+        rows = db.session.execute(
+            select(
+                FinanceTransaction.date,
+                FinanceTransaction.transaction_type,
+                FinanceTransaction.amount_minor,
+                FinanceTransaction.is_adjustment,
+                FinanceTransaction.category,
+                FinanceTransaction.from_account_id,
+                FinanceTransaction.to_account_id,
+            )
+            .where(
+                FinanceTransaction.archived_at.is_(None),
+                FinanceTransaction.date >= start,
+                FinanceTransaction.date <= end,
+            )
+            .order_by(FinanceTransaction.date, FinanceTransaction.id)
+        )
+
+        transactions_by_date: dict[date, list] = {}
+        for row in rows:
+            transactions_by_date.setdefault(row.date, []).append(row)
+
+        category_totals: dict[str, dict[str, int]] = {}
+        category_daily: dict[str, dict[date, dict[str, int]]] = {}
+        daily_points: list[dict] = []
+        total_income = 0
+        total_expense = 0
+        current = start
+        while current <= end:
+            daily_income = 0
+            daily_expense = 0
+            for row in transactions_by_date.get(current, []):
+                if row.from_account_id is not None:
+                    balances[row.from_account_id] -= row.amount_minor
+                if row.to_account_id is not None:
+                    balances[row.to_account_id] += row.amount_minor
+
+                if row.is_adjustment or row.transaction_type == "transfer":
+                    continue
+                category_name = row.category or "未分类"
+                category = category_totals.setdefault(
+                    category_name,
+                    {"income_minor": 0, "expense_minor": 0, "transaction_count": 0},
+                )
+                daily_category = category_daily.setdefault(category_name, {}).setdefault(
+                    current,
+                    {"income_minor": 0, "expense_minor": 0},
+                )
+                category["transaction_count"] += 1
+                if row.transaction_type == "income":
+                    daily_income += row.amount_minor
+                    category["income_minor"] += row.amount_minor
+                    daily_category["income_minor"] += row.amount_minor
+                elif row.transaction_type == "expense":
+                    daily_expense += row.amount_minor
+                    category["expense_minor"] += row.amount_minor
+                    daily_category["expense_minor"] += row.amount_minor
+
+            total_income += daily_income
+            total_expense += daily_expense
+            total_assets, total_liabilities, net_worth = (
+                FinanceService._balance_totals(accounts, balances)
+            )
+            daily_points.append(
+                {
+                    "date": current,
+                    "income_minor": daily_income,
+                    "expense_minor": daily_expense,
+                    "net_cashflow_minor": daily_income - daily_expense,
+                    "total_assets_minor": total_assets,
+                    "total_liabilities_minor": total_liabilities,
+                    "net_worth_minor": net_worth,
+                }
+            )
+            current += timedelta(days=1)
+
+        categories = [
+            {
+                "category": category,
+                **totals,
+                "net_cashflow_minor": (
+                    totals["income_minor"] - totals["expense_minor"]
+                ),
+            }
+            for category, totals in category_totals.items()
+        ]
+        categories.sort(
+            key=lambda item: (
+                -(item["income_minor"] + item["expense_minor"]),
+                item["category"],
+            )
+        )
+        category_series = []
+        for category in categories:
+            category_name = category["category"]
+            values_by_date = category_daily[category_name]
+            category_series.append(
+                {
+                    "category": category_name,
+                    "points": [
+                        {
+                            "date": point["date"],
+                            "income_minor": values_by_date.get(
+                                point["date"], {}
+                            ).get("income_minor", 0),
+                            "expense_minor": values_by_date.get(
+                                point["date"], {}
+                            ).get("expense_minor", 0),
+                            "net_cashflow_minor": (
+                                values_by_date.get(point["date"], {}).get(
+                                    "income_minor", 0
+                                )
+                                - values_by_date.get(point["date"], {}).get(
+                                    "expense_minor", 0
+                                )
+                            ),
+                        }
+                        for point in daily_points
+                    ],
+                }
+            )
+        ending_assets, ending_liabilities, ending_net_worth = (
+            FinanceService._balance_totals(accounts, balances)
+        )
+        return {
+            "date_from": start,
+            "date_to": end,
+            "income_minor": total_income,
+            "expense_minor": total_expense,
+            "net_cashflow_minor": total_income - total_expense,
+            "total_assets_minor": ending_assets,
+            "total_liabilities_minor": ending_liabilities,
+            "net_worth_minor": ending_net_worth,
+            "by_date": daily_points,
+            "by_category": categories,
+            "category_series": category_series,
         }
 
     @staticmethod
@@ -557,6 +749,20 @@ class FinanceService:
             )
         )
         return account.opening_balance_minor - int(outgoing or 0) + int(incoming or 0)
+
+    @staticmethod
+    def _balance_totals(
+        accounts: list[FinanceAccount], balances: dict[int, int]
+    ) -> tuple[int, int, int]:
+        assets = sum(
+            balances[account.id] for account in accounts if account.kind == "asset"
+        )
+        liabilities = sum(
+            max(-balances[account.id], 0)
+            for account in accounts
+            if account.kind == "liability"
+        )
+        return assets, liabilities, sum(balances.values())
 
     @staticmethod
     def _get_account(account_id: int, *, require_active: bool = False) -> FinanceAccount:

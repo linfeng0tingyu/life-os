@@ -1,15 +1,11 @@
 {% macro exercise_type_control(compact=false, manageable=true) -%}
   <div class="exercise-type-control{% if compact %} is-compact{% endif %}" data-exercise-type-control>
-    {% if compact %}
     <details class="exercise-type-dropdown" data-exercise-type-dropdown>
       <summary data-exercise-type-summary>正在读取运动种类…</summary>
       <div class="exercise-type-dropdown-menu">
         <div class="exercise-type-options" data-exercise-type-options aria-label="运动种类多选"></div>
       </div>
     </details>
-    {% else %}
-    <div class="exercise-type-options" data-exercise-type-options aria-label="运动种类多选"></div>
-    {% endif %}
     {% if manageable %}
     <div class="category-control-meta">
       <span role="status" aria-live="polite" data-exercise-type-state>正在读取运动种类…</span>

@@ -149,10 +149,20 @@ def test_categories_delete_only_when_no_records_reference_them(
 
     conflict = client.delete(f"/api/categories/{used['id']}")
     assert conflict.status_code == 409
-    assert conflict.get_json()["error"]["details"] == {
-        "scope": "task",
-        "usage_count": 1,
-    }
+    details = conflict.get_json()["error"]["details"]
+    assert details["scope"] == "task"
+    assert details["usage_count"] == 1
+    assert details["references_truncated"] is False
+    assert details["references"] == [
+        {
+            "kind": "task",
+            "id": task["id"],
+            "label": "保留历史",
+            "date": None,
+            "status": "todo",
+            "archived": True,
+        }
+    ]
     assert client.delete("/api/categories/999999").status_code == 404
 
     used_habit = client.post(
@@ -175,7 +185,7 @@ def test_categories_delete_only_when_no_records_reference_them(
             "opening_balance": "100.00",
         },
     ).get_json()["data"]
-    assert client.post(
+    finance_transaction = client.post(
         "/api/finance/transactions",
         json={
             "date": "2026-09-24",
@@ -184,8 +194,26 @@ def test_categories_delete_only_when_no_records_reference_them(
             "from_account_id": account["id"],
             "category": "餐饮历史",
         },
-    ).status_code == 201
-    assert client.delete(f"/api/categories/{used_finance['id']}").status_code == 409
+    )
+    assert finance_transaction.status_code == 201
+    finance_transaction_id = finance_transaction.get_json()["data"]["id"]
+    assert client.delete(
+        f"/api/finance/transactions/{finance_transaction_id}"
+    ).status_code == 200
+    finance_conflict = client.delete(f"/api/categories/{used_finance['id']}")
+    assert finance_conflict.status_code == 409
+    finance_reference = finance_conflict.get_json()["error"]["details"][
+        "references"
+    ][0]
+    assert finance_reference == {
+        "kind": "finance_transaction",
+        "id": finance_transaction_id,
+        "label": "支出",
+        "date": "2026-09-24",
+        "status": "expense",
+        "archived": True,
+        "amount": "10.00",
+    }
 
     assert [
         item["name"]

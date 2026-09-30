@@ -23,6 +23,7 @@ export class CategorySelect {
     this.manager = root.querySelector("[data-category-manager]");
     this.managerSearch = root.querySelector("[data-category-manager-search]");
     this.managerList = root.querySelector("[data-category-manager-list]");
+    this.references = root.querySelector("[data-category-references]");
     this.categories = [];
     this.busy = false;
     this.loadRevision = 0;
@@ -86,6 +87,7 @@ export class CategorySelect {
       const categories = await api.get(`/api/categories?scope=${this.scope}`);
       if (revision !== this.loadRevision) return;
       this.categories = categories;
+      this.clearReferences();
       this.render(selected ?? this.select.value);
       this.setCountState();
     } catch (error) {
@@ -180,6 +182,7 @@ export class CategorySelect {
     this.closePicker();
     this.hideCreator();
     this.managerSearch.value = "";
+    this.clearReferences();
     this.renderManager();
     this.manager.classList.remove("is-hidden");
     this.managerSearch.focus();
@@ -280,17 +283,70 @@ export class CategorySelect {
     this.setState("正在删除分类…");
     try {
       await api.delete(`/api/categories/${category.id}`);
+      this.clearReferences();
       this.categories = this.categories.filter((item) => item.id !== category.id);
       const selected = this.select.value === category.name ? "" : this.select.value;
       this.render(selected);
       this.setState("分类已删除");
     } catch (error) {
       this.setState("分类仍在使用或删除失败");
+      if (error?.status === 409 && Array.isArray(error?.details?.references)) {
+        this.renderReferences(category, error.details);
+      }
       this.onError(error);
     } finally {
       this.busy = false;
       this.renderManager();
     }
+  }
+
+  clearReferences() {
+    if (!this.references) return;
+    this.references.replaceChildren();
+    this.references.classList.add("is-hidden");
+  }
+
+  renderReferences(category, details) {
+    if (!this.references) return;
+    const rows = details.references.map((reference) => {
+      let summary = reference.label || `记录 #${reference.id}`;
+      let href = null;
+      let action = "查看引用项";
+      if (reference.kind === "finance_transaction") {
+        const type = { income: "收入", expense: "支出", transfer: "转账" }[reference.status] || "流水";
+        const description = reference.label && reference.label !== type ? ` · ${reference.label}` : "";
+        summary = `${reference.date} · ${type} ¥${reference.amount}${description}${reference.archived ? " · 已归档" : ""}`;
+        const params = new URLSearchParams({
+          date: reference.date,
+          category: category.name,
+          include_archived: "1",
+          focus_transaction: String(reference.id),
+        });
+        href = `/finance?${params}`;
+        action = reference.archived ? "定位并恢复流水" : "定位流水";
+      } else if (reference.kind === "task") {
+        summary = `${reference.label}${reference.date ? ` · ${reference.date}` : ""}${reference.archived ? " · 已归档" : ""}`;
+        href = `/tasks?include_archived=1&focus_task=${reference.id}`;
+        action = "查看任务";
+      } else if (reference.kind === "habit") {
+        summary = `${reference.label} · ${reference.status === "active" ? "使用中" : "已停用"}`;
+        href = `/habits?focus_habit=${reference.id}`;
+        action = "查看习惯";
+      }
+      const children = [element("span", { text: summary })];
+      if (href) children.push(element("a", { className: "text-button category-reference-link", text: action, attrs: { href } }));
+      return element("li", { className: "category-reference-item" }, children);
+    });
+    const title = `“${category.name}”仍被 ${details.usage_count} 项记录使用`;
+    const note = details.references_truncated
+      ? element("p", { text: "这里只显示部分引用项，请处理后再次尝试删除。" })
+      : element("p", { text: "请先修改引用项的分类；已归档流水需要先恢复，再编辑分类。" });
+    replace(this.references,
+      element("strong", { text: title }),
+      note,
+      element("ul", { className: "category-reference-list" }, rows),
+    );
+    this.references.classList.remove("is-hidden");
   }
 
   setCreatorDisabled(disabled) {

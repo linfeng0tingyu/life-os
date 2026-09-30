@@ -7,6 +7,7 @@ from life_os.serializers import (
     finance_account_data,
     finance_balance_adjustment_data,
     finance_credit_cycle_data,
+    finance_report_data,
     finance_summary_data,
     finance_transaction_data,
 )
@@ -87,6 +88,7 @@ def get_transactions():
         value_date=request.args.get("date"),
         transaction_type=request.args.get("type"),
         account_id=normalized_account_id,
+        category=request.args.get("category"),
         include_archived=query_bool("include_archived"),
     )
     return success_response(
@@ -125,6 +127,12 @@ def delete_transaction(transaction_id: int):
     return success_response(finance_transaction_data(transaction))
 
 
+@blueprint.post("/api/finance/transactions/<int:transaction_id>/restore")
+def post_transaction_restore(transaction_id: int):
+    transaction = FinanceService.restore_transaction(transaction_id)
+    return success_response(finance_transaction_data(transaction))
+
+
 @blueprint.get("/api/finance/summary")
 def get_summary():
     summary = FinanceService.summary(
@@ -132,6 +140,15 @@ def get_summary():
         date_to=request.args.get("date_to"),
     )
     return success_response(finance_summary_data(summary))
+
+
+@blueprint.get("/api/finance/reports")
+def get_reports():
+    report = FinanceService.report(
+        date_from=request.args.get("date_from"),
+        date_to=request.args.get("date_to"),
+    )
+    return success_response(finance_report_data(report))
 
 
 @blueprint.get("/api/finance/credit-cards/<int:account_id>/cycle")

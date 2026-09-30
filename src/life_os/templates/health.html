@@ -13,7 +13,10 @@
           <h1>生活节律</h1>
           <p class="date-subtitle">记录睡眠情况、体重、精力、情绪、运动与身体状态；修改会自动保存。</p>
         </div>
-        <label class="date-switcher"><span>记录日期</span><input type="date" data-record-date></label>
+        <div class="topbar-actions">
+          <label class="date-switcher"><span>记录日期</span><input type="date" data-record-date></label>
+          {% include "partials/window-controls.html" %}
+        </div>
       </header>
 
       <div class="notice is-hidden" role="alert" data-global-error>

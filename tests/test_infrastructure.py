@@ -59,9 +59,14 @@ def test_frontend_shell_supports_versioned_local_assets(tmp_path: Path) -> None:
     assert "/static/css/themes.css?v=0.1.0" in html
     assert "/static/js/theme.js?v=0.1.0" in html
     assert "/static/js/system-status.js?v=0.1.0" in html
+    assert "/static/js/window-controls.js?v=0.1.0" in html
     assert 'type="module" src="/static/js/app.js?v=0.1.0"' in html
     assert 'data-page="today"' in html
     assert 'data-today-health-form' in html
+    assert 'data-today-health-state' not in html
+    assert 'data-today-health-save-state' in html
+    assert '已同步当天节律' not in html
+    assert 'id="tasks-title">当日重要事项</h2>' in html
     assert 'name="sleep_status"' in html
     assert 'name="energy_level"' in html
     assert 'name="mood_level"' in html
@@ -75,6 +80,15 @@ def test_frontend_shell_supports_versioned_local_assets(tmp_path: Path) -> None:
     assert 'data-action="show-exercise-type-manager"' not in html
     assert 'data-day-overview' not in html
     assert '一天的轮廓' not in html
+    module_order = [
+        html.index('class="module module-focus"'),
+        html.index('class="module module-rhythm"'),
+        html.index('class="module module-habits"'),
+        html.index('class="module module-finance"'),
+        html.index('class="module module-notes"'),
+    ]
+    assert module_order == sorted(module_order)
+    assert "paired-modules" not in html
     assert 'href="/calendar"' in html
     assert "data-calendar-grid" not in html
     assert "data-day-marker-form" not in html
@@ -83,12 +97,18 @@ def test_frontend_shell_supports_versioned_local_assets(tmp_path: Path) -> None:
     assert 'data-system-status' in html
     assert 'data-system-status-panel' in html
     assert "后台信息" in html
+    assert 'data-window-controls' in html
+    assert 'data-action="toggle-window-on-top"' in html
     assert 'images/life-os-logo.png?v=0.1.0' in html
     assert "http://" not in html
     assert "https://" not in html
 
     today_script = client.get("/static/js/pages/today.js").get_data(as_text=True)
     assert "exercise_type_ids: this.exerciseTypes.getValue()" in today_script
+    assert "hideClosedTasks: true" in today_script
+    assert "include_all_tasks" not in today_script
+    assert "setHealthState(state, text)" in today_script
+    assert 'this.setHealthState("saved", "已保存")' in today_script
     assert "weight_kg:" not in today_script
     assert "exercise_minutes:" not in today_script
     assert "body_status:" not in today_script
@@ -98,6 +118,27 @@ def test_frontend_shell_supports_versioned_local_assets(tmp_path: Path) -> None:
     status_panel_rule = layout.split(".system-status-panel {", 1)[1].split("}", 1)[0]
     assert "width: 100%;" in status_panel_rule
     assert "position: fixed" not in status_panel_rule
+    assert ".today-dashboard > .module-notes" in layout
+    assert "grid-column: 1 / -1;" in layout
+
+
+def test_desktop_window_control_is_available_on_every_primary_page(
+    tmp_path: Path,
+) -> None:
+    app = create_app(runtime_home=tmp_path / "runtime", testing=True)
+    client = app.test_client()
+
+    for path in ("/", "/calendar", "/tasks", "/habits", "/health", "/journal", "/finance", "/settings"):
+        html = client.get(path).get_data(as_text=True)
+        assert html.count("data-window-controls") == 1
+        assert html.count('data-action="toggle-window-on-top"') == 1
+
+    script = client.get("/static/js/window-controls.js").get_data(as_text=True)
+    assert "window.pywebview && window.pywebview.api" in script
+    assert "api.set_window_on_top(!enabled)" in script
+    assert "result.success !== true" in script
+    assert 'root.classList.remove("is-hidden")' in script
+    assert 'window.dispatchEvent(new CustomEvent("lifeos:frontend-error"' in script
 
 
 def test_calendar_page_owns_history_and_day_markers(tmp_path: Path) -> None:
@@ -197,6 +238,7 @@ def test_m5_frontend_guards_repeated_actions_and_uses_existing_apis(
     assert "value: log.value" in habits_script
     assert "onTaskStatusChange" in summary_script
     assert "onHabitStatusChange" in summary_script
+    assert 'if (hideClosedTasks && ["done", "cancelled"].includes(task.status)) continue;' in summary_script
     assert 'api.post("/api/categories"' in category_script
     assert 'api.put("/api/categories/order"' in category_script
     assert "api.delete(`/api/categories/${category.id}`)" in category_script
@@ -236,6 +278,8 @@ def test_m6_pages_expose_health_journal_and_finance_closed_loops(
     assert 'name="sleep_duration_remainder"' not in health_html
     assert 'name="sleep_status"' in health_html
     assert 'data-exercise-type-control' in health_html
+    assert 'data-exercise-type-dropdown' in health_html
+    assert 'data-exercise-type-summary' in health_html
     assert 'data-exercise-type-manager' in health_html
     assert 'data-health-report' in health_html
     assert 'href="/health" aria-current="page"' in health_html
@@ -263,10 +307,31 @@ def test_m6_pages_expose_health_journal_and_finance_closed_loops(
     assert 'data-action="save-and-new-transaction"' in finance_html
     assert 'data-finance-category-control' in finance_html
     assert 'data-action="show-category-manager"' in finance_html
+    assert 'data-category-references' in finance_html
     assert 'name="category" data-category-select' in finance_html
     assert 'name="note"' not in finance_html
     assert 'data-show-inactive' not in finance_html
     assert 'data-finance-totals' in finance_html
+    assert 'data-finance-report-summary' in finance_html
+    assert 'data-finance-report-by-date' in finance_html
+    assert 'data-finance-report-by-category' in finance_html
+    assert 'data-finance-report-state' in finance_html
+    assert 'data-finance-asset-chart' in finance_html
+    assert 'data-finance-asset-metric-controls' in finance_html
+    assert 'data-finance-asset-x-from' in finance_html
+    assert 'data-finance-asset-x-to' in finance_html
+    assert 'data-action="apply-asset-x-range"' in finance_html
+    assert 'data-finance-category-chart' in finance_html
+    assert 'data-finance-category-series-controls' in finance_html
+    assert 'data-finance-category-x-from' in finance_html
+    assert 'data-finance-category-x-to' in finance_html
+    assert 'data-action="apply-category-x-range"' in finance_html
+    assert 'data-transaction-category-filter' in finance_html
+    assert 'data-transaction-all-dates' in finance_html
+    assert 'data-transaction-include-archived' in finance_html
+    assert '日期、分类与资产' in finance_html
+    assert finance_html.index('class="finance-columns"') < finance_html.index('class="module finance-report"')
+    assert finance_html.index('id="finance-date-report-title"') < finance_html.index('id="finance-category-report-title"')
     assert 'href="/finance" aria-current="page"' in finance_html
     assert "/static/css/pages/records.css?v=0.1.0" in finance_html
 
@@ -279,12 +344,17 @@ def test_m6_frontend_uses_debounced_saves_and_explicit_finance_submit(
     health_script = client.get("/static/js/pages/health.js").get_data(as_text=True)
     journal_script = client.get("/static/js/pages/journal.js").get_data(as_text=True)
     finance_script = client.get("/static/js/pages/finance.js").get_data(as_text=True)
+    finance_html = client.get("/finance?date=2026-09-18").get_data(as_text=True)
+    records_styles = client.get("/static/css/pages/records.css").get_data(as_text=True)
     summary_script = client.get("/static/js/components/day-summary.js").get_data(as_text=True)
 
     assert "window.setTimeout(() => this.save(), 800)" in health_script
     assert "sleep_status" in health_script
     assert "exercise_type_ids" in health_script
     assert "ExerciseTypePicker" in health_script
+    assert "运动种类分布" in health_script
+    assert "exercise_type_counts" in health_script
+    assert '"身体状态"' in health_script
     assert "sleep_end" not in health_script
     assert "manualSleep" not in health_script
     assert "/api/health/statistics" in health_script
@@ -306,10 +376,27 @@ def test_m6_frontend_uses_debounced_saves_and_explicit_finance_submit(
     assert 'scope: "finance"' in finance_script
     assert "fields.note" not in finance_script
     assert 'api.delete(`/api/finance/transactions/${transaction.id}`)' in finance_script
+    assert 'api.post(`/api/finance/transactions/${transaction.id}/restore`' in finance_script
+    assert "renderLineChart(this.assetChart" in finance_script
+    assert "renderBarChart(" in finance_script
+    assert "`分类${measureLabels[measure]}走势直方图`" in finance_script
+    assert "focus_transaction" in finance_script
     assert 'loadCreditCardCycles()' in finance_script
     assert '信用卡还款' in finance_script
     assert 'fields.kind.value = "liability"' in finance_script
     assert '账户已停用；历史账期保留为只读。' in finance_script
+    assert 'api.get(`/api/finance/reports?${params}`)' in finance_script
+    assert 'this.renderReport(report)' in finance_script
+    assert 'this.loadChartReport("asset")' in finance_script
+    assert 'this.loadChartReport("category")' in finance_script
+    assert "this.assetReport.by_date" in finance_script
+    assert "this.categoryReport.by_date" in finance_script
+    assert 'const revisionKey = isAsset ? "assetChartRevision" : "categoryChartRevision";' in finance_script
+    assert "if (revision !== this[revisionKey]) return;" in finance_script
+    assert '"总资产"' in finance_script
+    assert '"流水笔数"' in finance_script
+    assert 'aria-label="流水走势直方图"' in finance_html
+    assert ".finance-chart-bar" in records_styles
     assert '[this.nodes.healthLink, "/health"]' in summary_script
     assert '[this.nodes.journalLink, "/journal"]' in summary_script
     assert '[this.nodes.financeLink, "/finance"]' in summary_script
@@ -415,6 +502,8 @@ def test_heritage_palettes_and_finance_semantic_colors_are_explicit(
     assert ".finance-totals .finance-asset" in records
     assert ".finance-transaction.transaction-expense" in records
     assert "linear-gradient" not in records
+    assert ".finance-report-grid {\n  display: grid;\n  grid-template-columns: minmax(0, 1fr);" in records
+    assert ".finance-chart-range" in records
     assert "finance-account-${account.kind}" in finance_script
     assert "transaction-${displayType}" in finance_script
     assert 'adjustment: "余额调整"' in finance_script
@@ -433,6 +522,12 @@ def test_primary_page_modules_adapt_to_available_width(tmp_path: Path) -> None:
     settings = client.get("/static/css/pages/settings.css").get_data(as_text=True)
 
     assert "padding: clamp(var(--space-4), 1.6vw, var(--space-6));" in components
+    assert "height: clamp(20rem, 42vh, 27rem);" in client.get(
+        "/static/css/pages/today.css"
+    ).get_data(as_text=True)
+    assert "scrollbar-gutter: stable;" in client.get(
+        "/static/css/pages/today.css"
+    ).get_data(as_text=True)
     assert "repeat(auto-fit, minmax(min(28rem, 100%), 1fr))" in records
     assert ".records-grid {\n  align-items: stretch;\n}" in records
     assert ".records-grid > .module {\n  height: 100%;\n}" in records
@@ -502,6 +597,7 @@ def test_future_date_plan_is_visible_in_day_aggregation(tmp_path: Path) -> None:
         "js/app.js",
         "js/system-status.js",
         "js/theme.js",
+        "js/window-controls.js",
         "js/api/client.js",
         "js/components/dom.js",
         "js/components/category-select.js",

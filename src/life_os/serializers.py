@@ -248,3 +248,58 @@ def finance_summary_data(summary: dict[str, Any]) -> dict[str, Any]:
             for account, balance in summary["accounts"]
         ],
     }
+
+
+def finance_report_data(report: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "currency": "CNY",
+        "date_from": report["date_from"].isoformat(),
+        "date_to": report["date_to"].isoformat(),
+        "income": minor_to_money(report["income_minor"]),
+        "expense": minor_to_money(report["expense_minor"]),
+        "net_cashflow": minor_to_money(report["net_cashflow_minor"]),
+        "total_assets": minor_to_money(report["total_assets_minor"]),
+        "total_liabilities": minor_to_money(report["total_liabilities_minor"]),
+        "net_worth": minor_to_money(report["net_worth_minor"]),
+        "by_date": [
+            {
+                "date": point["date"].isoformat(),
+                "income": minor_to_money(point["income_minor"]),
+                "expense": minor_to_money(point["expense_minor"]),
+                "net_cashflow": minor_to_money(point["net_cashflow_minor"]),
+                "total_assets": minor_to_money(point["total_assets_minor"]),
+                "total_liabilities": minor_to_money(
+                    point["total_liabilities_minor"]
+                ),
+                "net_worth": minor_to_money(point["net_worth_minor"]),
+            }
+            for point in report["by_date"]
+        ],
+        "by_category": [
+            {
+                "category": point["category"],
+                "income": minor_to_money(point["income_minor"]),
+                "expense": minor_to_money(point["expense_minor"]),
+                "net_cashflow": minor_to_money(point["net_cashflow_minor"]),
+                "transaction_count": point["transaction_count"],
+            }
+            for point in report["by_category"]
+        ],
+        "category_series": [
+            {
+                "category": series["category"],
+                "points": [
+                    {
+                        "date": point["date"].isoformat(),
+                        "income": minor_to_money(point["income_minor"]),
+                        "expense": minor_to_money(point["expense_minor"]),
+                        "net_cashflow": minor_to_money(
+                            point["net_cashflow_minor"]
+                        ),
+                    }
+                    for point in series["points"]
+                ],
+            }
+            for series in report["category_series"]
+        ],
+    }

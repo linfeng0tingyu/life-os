@@ -12,6 +12,7 @@
         <div class="topbar-actions">
           <button class="button button-secondary" type="button" data-action="new-account">新建账户</button>
           <button class="button button-primary" type="button" data-action="new-transaction">记一笔</button>
+          {% include "partials/window-controls.html" %}
         </div>
       </header>
 
@@ -48,6 +49,11 @@
           <div class="finance-filter">
             <label class="field"><span>查看日期</span><input type="date" data-transaction-date></label>
             <label class="field"><span>类型</span><select data-transaction-type-filter><option value="">全部</option><option value="income">收入</option><option value="expense">支出</option><option value="transfer">转账</option><option value="adjustment">余额调整</option></select></label>
+            <label class="field"><span>搜索分类</span><input type="search" data-transaction-category-filter placeholder="输入分类名称"></label>
+            <div class="finance-filter-toggles" aria-label="流水筛选范围">
+              <label><input type="checkbox" data-transaction-all-dates> 全部日期</label>
+              <label><input type="checkbox" data-transaction-include-archived> 包含已归档</label>
+            </div>
           </div>
           <div data-transaction-list aria-busy="true"><p class="empty-state">正在读取流水…</p></div>
         </section>
@@ -57,6 +63,46 @@
           <div data-account-list aria-busy="true"><p class="empty-state">正在读取账户…</p></div>
         </section>
       </div>
+
+      <section class="module finance-report" aria-labelledby="finance-report-title">
+        <div class="module-heading">
+          <div><p class="section-kicker">日期、分类与资产</p><h2 id="finance-report-title">期间财务报表</h2></div>
+          <span class="state-label" data-finance-report-state role="status" aria-live="polite">生成中</span>
+        </div>
+        <p class="finance-report-note">报表统一放在财务页面底部。上方统计日期控制汇总与精确数据；两张走势图可分别设置横轴的起止日期。转账不计入收入和支出，账户金额调整不计入收支，但会反映在资产、负债与净资产中。</p>
+        <div class="finance-totals finance-report-summary" data-finance-report-summary aria-busy="true"></div>
+        <div class="finance-report-grid">
+          <article class="finance-report-panel" aria-labelledby="finance-date-report-title">
+            <div class="finance-chart-heading">
+              <div><h3 id="finance-date-report-title">资产走势</h3><p>以日期为横轴，可选择总资产、总负债或净资产作为纵轴指标。</p></div>
+              <span class="state-label" data-finance-asset-range-state role="status" aria-live="polite">生成中</span>
+            </div>
+            <div class="finance-chart-range" aria-label="资产走势横轴范围">
+              <label class="field"><span>横轴起点</span><input type="date" data-finance-asset-x-from required></label>
+              <label class="field"><span>横轴终点</span><input type="date" data-finance-asset-x-to required></label>
+              <button class="button button-secondary" type="button" data-action="apply-asset-x-range">更新资产走势</button>
+            </div>
+            <div class="finance-chart-controls" data-finance-asset-metric-controls></div>
+            <div class="finance-line-chart" data-finance-asset-chart role="img" aria-label="资产走势折线图"></div>
+            <div data-finance-report-by-date aria-busy="true"><p class="empty-state">正在生成日期报表……</p></div>
+          </article>
+          <article class="finance-report-panel" aria-labelledby="finance-category-report-title">
+            <div class="finance-chart-heading">
+              <div><h3 id="finance-category-report-title">流水走势</h3><p>选择收入、支出或净现金流，并选择要比较的流水分类。</p></div>
+              <span class="state-label" data-finance-category-range-state role="status" aria-live="polite">生成中</span>
+            </div>
+            <div class="finance-chart-range" aria-label="流水走势横轴范围">
+              <label class="field"><span>横轴起点</span><input type="date" data-finance-category-x-from required></label>
+              <label class="field"><span>横轴终点</span><input type="date" data-finance-category-x-to required></label>
+              <button class="button button-secondary" type="button" data-action="apply-category-x-range">更新流水走势</button>
+            </div>
+            <label class="field finance-chart-measure"><span>纵轴指标</span><select data-finance-category-measure><option value="expense">支出</option><option value="income">收入</option><option value="net_cashflow">净现金流</option></select></label>
+            <div class="finance-chart-controls finance-category-series-controls" data-finance-category-series-controls></div>
+            <div class="finance-line-chart finance-bar-chart" data-finance-category-chart role="img" aria-label="流水走势直方图"></div>
+            <div data-finance-report-by-category aria-busy="true"><p class="empty-state">正在生成分类报表……</p></div>
+          </article>
+        </div>
+      </section>
 
       <dialog class="editor-dialog" data-account-dialog aria-labelledby="account-form-title">
         <section class="module dialog-panel">

@@ -6,6 +6,7 @@ from flask.testing import FlaskClient
 from sqlalchemy import text
 
 from life_os.extensions import db
+from life_os.services.exercise_type_service import ExerciseTypeService
 from life_os.services.habit_service import HabitService
 from life_os.services.health_service import HealthService
 from life_os.services.reporting_service import ReportingService, resolve_report_period
@@ -54,19 +55,28 @@ def test_habit_statistics_include_rate_streak_and_future_nulls(app_context) -> N
 
 
 def test_health_statistics_keep_missing_values_and_aggregate_recorded_values(app_context) -> None:
+    strength = ExerciseTypeService.create("力量训练")
+    walking = ExerciseTypeService.create("步行")
     HealthService.upsert(
         "2026-09-21",
         sleep_status="between_6_7_5",
         weight_kg=65.5,
         exercise_minutes=30,
+        exercise_type_ids=[strength.id],
         energy_level=3,
     )
-    HealthService.upsert("2026-09-22", exercise_minutes=0, body_status="肩颈紧")
+    HealthService.upsert(
+        "2026-09-22",
+        exercise_minutes=0,
+        exercise_type_ids=[walking.id],
+        body_status="肩颈紧",
+    )
     HealthService.upsert(
         "2026-09-23",
         sleep_status="over_7_5",
         weight_kg=65,
         exercise_minutes=60,
+        exercise_type_ids=[strength.id, walking.id],
         energy_level=5,
     )
 
@@ -80,9 +90,15 @@ def test_health_statistics_keep_missing_values_and_aggregate_recorded_values(app
         "over_7_5": 1,
     }
     assert report["summary"]["exercise"]["total_minutes"] == 90
+    assert report["summary"]["exercise_types"] == {
+        "recorded_days": 3,
+        "counts": {"力量训练": 2, "步行": 2},
+    }
     assert report["summary"]["weight"]["change_kg"] == -0.5
     assert report["summary"]["energy"]["average"] == 4
     assert report["series"][1]["sleep_status"] is None
+    assert report["series"][1]["exercise_types"] == ["步行"]
+    assert report["series"][1]["body_status"] == "肩颈紧"
     assert report["series"][3]["recorded"] is False
     assert report["series"][3]["sleep_status"] is None
 

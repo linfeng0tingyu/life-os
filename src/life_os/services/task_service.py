@@ -47,6 +47,10 @@ class TaskService:
                     Task.scheduled_date == target,
                     Task.due_date == target,
                     and_(
+                        Task.scheduled_date < target,
+                        Task.due_date > target,
+                    ),
+                    and_(
                         Task.due_date < target,
                         Task.status.not_in({"done", "cancelled"}),
                     ),

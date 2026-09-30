@@ -68,16 +68,18 @@ function quickAction(label, handler, { pressed } = {}) {
   return button;
 }
 
-function renderTasks(day, container, onStatusChange) {
+function renderTasks(day, container, onStatusChange, hideClosedTasks) {
   const groups = [
     ["逾期", day.tasks.overdue],
     ["当日到期", day.tasks.due],
+    ["进行中", day.tasks.ongoing || []],
     ["当日计划", day.tasks.scheduled],
   ];
   const seen = new Set();
   const rows = [];
   for (const [label, tasks] of groups) {
     for (const task of tasks) {
+      if (hideClosedTasks && ["done", "cancelled"].includes(task.status)) continue;
       if (seen.has(task.id)) continue;
       seen.add(task.id);
       const statusLabel = task.status === "done" ? "已完成" : task.status === "cancelled" ? "已取消" : label;
@@ -95,7 +97,7 @@ function renderTasks(day, container, onStatusChange) {
       ]));
     }
   }
-  replace(container, rows.length ? element("ul", { className: "item-list" }, rows) : emptyMessage("这一天没有需要关注的任务。"));
+  replace(container, rows.length ? element("ul", { className: "item-list" }, rows) : emptyMessage("今天没有需要关注的任务。"));
 }
 
 function renderRhythm(day, container) {
@@ -180,10 +182,16 @@ function renderFinance(day, container) {
 }
 
 export class DaySummary {
-  constructor(root, { onTaskStatusChange = null, onHabitStatusChange = null, canEditDate = () => true } = {}) {
+  constructor(root, {
+    onTaskStatusChange = null,
+    onHabitStatusChange = null,
+    canEditDate = () => true,
+    hideClosedTasks = false,
+  } = {}) {
     this.onTaskStatusChange = onTaskStatusChange;
     this.onHabitStatusChange = onHabitStatusChange;
     this.canEditDate = canEditDate;
+    this.hideClosedTasks = hideClosedTasks;
     this.nodes = {
       panel: root.querySelector("[data-day-panel]"),
       state: root.querySelector("[data-day-state]"),
@@ -212,7 +220,7 @@ export class DaySummary {
     if (this.nodes.state) this.nodes.state.textContent = "已载入";
     if (this.nodes.panel) this.nodes.panel.dataset.state = "ready";
     if (this.nodes.overview) renderOverview(day, this.nodes);
-    renderTasks(day, this.nodes.tasks, this.onTaskStatusChange);
+    renderTasks(day, this.nodes.tasks, this.onTaskStatusChange, this.hideClosedTasks);
     if (this.nodes.rhythm) renderRhythm(day, this.nodes.rhythm);
     renderHabits(day, this.nodes.habits, this.onHabitStatusChange, this.canEditDate);
     renderJournal(day, this.nodes.journal);

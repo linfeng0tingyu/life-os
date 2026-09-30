@@ -238,6 +238,9 @@ class ReportingService:
         sleep_status = Counter(
             record.sleep_status for record in records if record.sleep_status
         )
+        exercise_types = Counter(
+            item.name for record in records for item in record.exercise_types
+        )
         weights = [record for record in records if record.weight_kg is not None]
         exercise = [
             record.exercise_minutes
@@ -285,6 +288,10 @@ class ReportingService:
                 "average_minutes": ReportingService._average(exercise),
                 "active_days": sum(value > 0 for value in exercise),
             },
+            "exercise_types": {
+                "recorded_days": sum(bool(record.exercise_types) for record in records),
+                "counts": dict(exercise_types),
+            },
             "energy": {
                 "recorded_days": len(energy),
                 "average": ReportingService._average(energy),
@@ -329,11 +336,13 @@ class ReportingService:
                     {
                         "recorded_days": 0,
                         "sleep_status_counts": {},
+                        "exercise_type_counts": {},
                         "average_weight_kg": None,
                         "last_weight_kg": None,
                         "exercise_minutes": None,
                         "average_energy": None,
                         "average_mood": None,
+                        "body_status_days": 0,
                     }
                 )
             points.append(point)
@@ -354,6 +363,7 @@ class ReportingService:
             ),
             "energy_level": record.energy_level if record else None,
             "mood_level": record.mood_level if record else None,
+            "body_status": record.body_status if record else None,
         }
 
     @staticmethod
@@ -383,15 +393,20 @@ class ReportingService:
             for record in records
             if record.mood_level is not None
         ]
+        exercise_types = Counter(
+            item.name for record in records for item in record.exercise_types
+        )
         return {
             "month": f"{year}-{month:02d}",
             "recorded_days": len(records),
             "sleep_status_counts": dict(sleep_status),
+            "exercise_type_counts": dict(exercise_types),
             "average_weight_kg": ReportingService._average(weights),
             "last_weight_kg": weights[-1] if weights else None,
             "exercise_minutes": sum(exercise),
             "average_energy": ReportingService._average(energy),
             "average_mood": ReportingService._average(mood),
+            "body_status_days": sum(bool(record.body_status) for record in records),
         }
 
     @staticmethod

@@ -23,6 +23,178 @@ function button(label, handler, className = "button button-quiet") {
   return node;
 }
 
+function reportTable(headers, rows) {
+  return element("div", { className: "report-table-wrap finance-report-table-wrap" }, [
+    element("table", { className: "report-table" }, [
+      element("thead", {}, [
+        element("tr", {}, headers.map((header) => element("th", { text: header, attrs: { scope: "col" } }))),
+      ]),
+      element("tbody", {}, rows.map((row) => element("tr", {}, row.map((value) => element("td", { text: value }))))),
+    ]),
+  ]);
+}
+
+function reportDetails(summary, table) {
+  return element("details", { className: "finance-report-details" }, [
+    element("summary", { text: summary }),
+    table,
+  ]);
+}
+
+function svgElement(tag, attributes = {}) {
+  const node = document.createElementNS("http://www.w3.org/2000/svg", tag);
+  for (const [name, value] of Object.entries(attributes)) node.setAttribute(name, String(value));
+  return node;
+}
+
+function compactMoney(value) {
+  const formatted = new Intl.NumberFormat("zh-CN", {
+    style: "currency",
+    currency: "CNY",
+    currencyDisplay: "narrowSymbol",
+    notation: "compact",
+    maximumFractionDigits: 1,
+  }).format(Number(value || 0));
+  return formatted;
+}
+
+function renderLineChart(container, dates, series, label, emptyText = "请选择至少一个纵轴指标。") {
+  if (!dates.length || !series.length) {
+    replace(container, emptyMessage(emptyText));
+    return;
+  }
+  const width = 760;
+  const height = 300;
+  const margin = { top: 24, right: 18, bottom: 46, left: 66 };
+  const plotWidth = width - margin.left - margin.right;
+  const plotHeight = height - margin.top - margin.bottom;
+  const values = series.flatMap((item) => item.values.map(Number));
+  let minimum = Math.min(0, ...values);
+  let maximum = Math.max(0, ...values);
+  if (minimum === maximum) maximum = minimum + 1;
+  const padding = (maximum - minimum) * 0.08;
+  minimum -= padding;
+  maximum += padding;
+  const x = (index) => margin.left + (dates.length === 1 ? plotWidth / 2 : index * plotWidth / (dates.length - 1));
+  const y = (value) => margin.top + (maximum - Number(value)) * plotHeight / (maximum - minimum);
+  const svg = svgElement("svg", {
+    class: "finance-chart-svg",
+    viewBox: `0 0 ${width} ${height}`,
+    role: "img",
+    "aria-label": label,
+    preserveAspectRatio: "xMidYMid meet",
+  });
+  const title = svgElement("title");
+  title.textContent = label;
+  svg.append(title);
+  for (let index = 0; index <= 4; index += 1) {
+    const value = maximum - (maximum - minimum) * index / 4;
+    const lineY = margin.top + plotHeight * index / 4;
+    svg.append(svgElement("line", { class: "finance-chart-grid", x1: margin.left, y1: lineY, x2: width - margin.right, y2: lineY }));
+    const tick = svgElement("text", { class: "finance-chart-axis-label", x: margin.left - 10, y: lineY + 4, "text-anchor": "end" });
+    tick.textContent = compactMoney(value);
+    svg.append(tick);
+  }
+  const labelIndexes = [...new Set([0, 1, 2, 3, 4].map((step) => Math.round((dates.length - 1) * step / 4)))];
+  for (const index of labelIndexes) {
+    const tick = svgElement("text", { class: "finance-chart-axis-label", x: x(index), y: height - 18, "text-anchor": "middle" });
+    tick.textContent = dates[index].slice(5);
+    svg.append(tick);
+  }
+  series.forEach((item, seriesIndex) => {
+    const points = item.values.map((value, index) => `${x(index)},${y(value)}`).join(" ");
+    svg.append(svgElement("polyline", { class: `finance-chart-line series-${seriesIndex % 8}`, points }));
+    if (dates.length <= 62) {
+      item.values.forEach((value, index) => {
+        const point = svgElement("circle", { class: `finance-chart-point series-${seriesIndex % 8}`, cx: x(index), cy: y(value), r: 3.2, tabindex: 0 });
+        const pointTitle = svgElement("title");
+        pointTitle.textContent = `${dates[index]} · ${item.label}：${money(value)}`;
+        point.append(pointTitle);
+        svg.append(point);
+      });
+    }
+  });
+  const legend = element("div", { className: "finance-chart-legend" }, series.map((item, index) => element("span", {}, [
+    element("i", { className: `finance-chart-swatch series-${index % 8}`, attrs: { "aria-hidden": "true" } }),
+    document.createTextNode(item.label),
+  ])));
+  replace(container, svg, legend);
+}
+
+function renderBarChart(container, dates, series, label, emptyText = "请选择至少一个纵轴指标。") {
+  if (!dates.length || !series.length) {
+    replace(container, emptyMessage(emptyText));
+    return;
+  }
+  const width = 760;
+  const height = 300;
+  const margin = { top: 24, right: 18, bottom: 46, left: 66 };
+  const plotWidth = width - margin.left - margin.right;
+  const plotHeight = height - margin.top - margin.bottom;
+  const values = series.flatMap((item) => item.values.map(Number));
+  let minimum = Math.min(0, ...values);
+  let maximum = Math.max(0, ...values);
+  if (minimum === maximum) maximum = minimum + 1;
+  const padding = (maximum - minimum) * 0.08;
+  minimum -= padding;
+  maximum += padding;
+  const y = (value) => margin.top + (maximum - Number(value)) * plotHeight / (maximum - minimum);
+  const zeroY = y(0);
+  const groupWidth = plotWidth / dates.length;
+  const availableWidth = groupWidth * 0.82;
+  const barWidth = Math.max(1, Math.min(20, availableWidth / series.length));
+  const groupBarsWidth = barWidth * series.length;
+  const groupStart = (index) => margin.left + index * groupWidth + (groupWidth - groupBarsWidth) / 2;
+  const groupCenter = (index) => margin.left + (index + 0.5) * groupWidth;
+  const svg = svgElement("svg", {
+    class: "finance-chart-svg",
+    viewBox: `0 0 ${width} ${height}`,
+    role: "img",
+    "aria-label": label,
+    preserveAspectRatio: "xMidYMid meet",
+  });
+  const title = svgElement("title");
+  title.textContent = label;
+  svg.append(title);
+  for (let index = 0; index <= 4; index += 1) {
+    const value = maximum - (maximum - minimum) * index / 4;
+    const lineY = margin.top + plotHeight * index / 4;
+    svg.append(svgElement("line", { class: "finance-chart-grid", x1: margin.left, y1: lineY, x2: width - margin.right, y2: lineY }));
+    const tick = svgElement("text", { class: "finance-chart-axis-label", x: margin.left - 10, y: lineY + 4, "text-anchor": "end" });
+    tick.textContent = compactMoney(value);
+    svg.append(tick);
+  }
+  svg.append(svgElement("line", { class: "finance-chart-zero", x1: margin.left, y1: zeroY, x2: width - margin.right, y2: zeroY }));
+  const labelIndexes = [...new Set([0, 1, 2, 3, 4].map((step) => Math.round((dates.length - 1) * step / 4)))];
+  for (const index of labelIndexes) {
+    const tick = svgElement("text", { class: "finance-chart-axis-label", x: groupCenter(index), y: height - 18, "text-anchor": "middle" });
+    tick.textContent = dates[index].slice(5);
+    svg.append(tick);
+  }
+  series.forEach((item, seriesIndex) => {
+    item.values.forEach((value, index) => {
+      const valueY = y(value);
+      const bar = svgElement("rect", {
+        class: `finance-chart-bar series-${seriesIndex % 8}`,
+        x: groupStart(index) + seriesIndex * barWidth,
+        y: Math.min(valueY, zeroY),
+        width: barWidth,
+        height: Math.max(1, Math.abs(zeroY - valueY)),
+        tabindex: 0,
+      });
+      const barTitle = svgElement("title");
+      barTitle.textContent = `${dates[index]} · ${item.label}：${money(value)}`;
+      bar.append(barTitle);
+      svg.append(bar);
+    });
+  });
+  const legend = element("div", { className: "finance-chart-legend" }, series.map((item, index) => element("span", {}, [
+    element("i", { className: `finance-chart-swatch series-${index % 8}`, attrs: { "aria-hidden": "true" } }),
+    document.createTextNode(item.label),
+  ])));
+  replace(container, svg, legend);
+}
+
 export class FinancePage {
   constructor(root) {
     this.root = root;
@@ -36,8 +208,26 @@ export class FinancePage {
     this.transactionState = root.querySelector("[data-transaction-state]");
     this.dateFilter = root.querySelector("[data-transaction-date]");
     this.typeFilter = root.querySelector("[data-transaction-type-filter]");
+    this.categoryFilter = root.querySelector("[data-transaction-category-filter]");
+    this.allDatesFilter = root.querySelector("[data-transaction-all-dates]");
+    this.includeArchivedFilter = root.querySelector("[data-transaction-include-archived]");
     this.summaryFrom = root.querySelector("[data-summary-from]");
     this.summaryTo = root.querySelector("[data-summary-to]");
+    this.reportState = root.querySelector("[data-finance-report-state]");
+    this.reportSummary = root.querySelector("[data-finance-report-summary]");
+    this.reportByDate = root.querySelector("[data-finance-report-by-date]");
+    this.reportByCategory = root.querySelector("[data-finance-report-by-category]");
+    this.assetMetricControls = root.querySelector("[data-finance-asset-metric-controls]");
+    this.assetChart = root.querySelector("[data-finance-asset-chart]");
+    this.assetRangeFrom = root.querySelector("[data-finance-asset-x-from]");
+    this.assetRangeTo = root.querySelector("[data-finance-asset-x-to]");
+    this.assetRangeState = root.querySelector("[data-finance-asset-range-state]");
+    this.categoryMeasure = root.querySelector("[data-finance-category-measure]");
+    this.categorySeriesControls = root.querySelector("[data-finance-category-series-controls]");
+    this.categoryChart = root.querySelector("[data-finance-category-chart]");
+    this.categoryRangeFrom = root.querySelector("[data-finance-category-x-from]");
+    this.categoryRangeTo = root.querySelector("[data-finance-category-x-to]");
+    this.categoryRangeState = root.querySelector("[data-finance-category-range-state]");
     this.error = root.querySelector("[data-global-error]");
     this.errorMessage = root.querySelector("[data-global-error-message]");
     this.accountDialog = root.querySelector("[data-account-dialog]");
@@ -53,7 +243,12 @@ export class FinancePage {
     this.transactionForm = root.querySelector("[data-transaction-form]");
     this.transactionFormTitle = root.querySelector("[data-transaction-form-title]");
     this.saveAndNewTransaction = root.querySelector('[data-action="save-and-new-transaction"]');
-    this.date = normalizeDate(new URLSearchParams(window.location.search).get("date"));
+    const search = new URLSearchParams(window.location.search);
+    this.date = normalizeDate(search.get("date"));
+    this.initialCategoryFilter = search.get("category") || "";
+    this.initialIncludeArchived = search.get("include_archived") === "1";
+    this.initialAllDates = search.get("all_dates") === "1";
+    this.focusTransactionId = Number(search.get("focus_transaction")) || null;
     this.accounts = [];
     this.transactions = [];
     this.creditCycles = [];
@@ -63,6 +258,13 @@ export class FinancePage {
     this.balanceBusy = false;
     this.adjustingAccount = null;
     this.transactionBusy = false;
+    this.transactionSearchTimer = null;
+    this.assetReport = null;
+    this.categoryReport = null;
+    this.assetChartRevision = 0;
+    this.categoryChartRevision = 0;
+    this.assetMetricSelection = new Set(["total_assets", "net_worth"]);
+    this.categorySeriesSelection = new Set();
     this.categoryControl = new CategorySelect(root.querySelector("[data-finance-category-control]"), {
       scope: "finance",
       onError: (error) => this.showError(error),
@@ -71,13 +273,23 @@ export class FinancePage {
 
   start() {
     this.dateFilter.value = this.date;
+    this.categoryFilter.value = this.initialCategoryFilter;
+    this.includeArchivedFilter.checked = this.initialIncludeArchived;
+    this.allDatesFilter.checked = this.initialAllDates;
+    this.dateFilter.disabled = this.allDatesFilter.checked;
     this.summaryFrom.value = `${this.date.slice(0, 7)}-01`;
     this.summaryTo.value = this.date;
+    this.assetRangeFrom.value = this.summaryFrom.value;
+    this.assetRangeTo.value = this.summaryTo.value;
+    this.categoryRangeFrom.value = this.summaryFrom.value;
+    this.categoryRangeTo.value = this.summaryTo.value;
     this.replaceUrl();
     this.root.querySelector('[data-action="new-account"]').addEventListener("click", () => this.openAccount());
     this.root.querySelector('[data-action="new-transaction"]').addEventListener("click", () => this.openTransaction());
     this.root.querySelector('[data-action="retry-finance"]').addEventListener("click", () => this.loadAll());
     this.root.querySelector('[data-action="apply-period"]').addEventListener("click", () => this.loadSummary());
+    this.root.querySelector('[data-action="apply-asset-x-range"]').addEventListener("click", () => this.loadChartReport("asset"));
+    this.root.querySelector('[data-action="apply-category-x-range"]').addEventListener("click", () => this.loadChartReport("category"));
     this.root.querySelector('[data-action="close-account"]').addEventListener("click", () => this.closeAccount());
     this.root.querySelector('[data-action="cancel-account"]').addEventListener("click", () => this.closeAccount());
     this.root.querySelector('[data-action="close-balance-adjustment"]').addEventListener("click", () => this.closeBalanceAdjustment());
@@ -100,6 +312,26 @@ export class FinancePage {
       Promise.all([this.loadTransactions(), this.loadCreditCardCycles()]);
     });
     this.typeFilter.addEventListener("change", () => this.loadTransactions());
+    this.categoryFilter.addEventListener("input", () => {
+      window.clearTimeout(this.transactionSearchTimer);
+      this.transactionSearchTimer = window.setTimeout(() => {
+        this.focusTransactionId = null;
+        this.replaceUrl();
+        this.loadTransactions();
+      }, 250);
+    });
+    this.allDatesFilter.addEventListener("change", () => {
+      this.dateFilter.disabled = this.allDatesFilter.checked;
+      this.focusTransactionId = null;
+      this.replaceUrl();
+      this.loadTransactions();
+    });
+    this.includeArchivedFilter.addEventListener("change", () => {
+      this.focusTransactionId = null;
+      this.replaceUrl();
+      this.loadTransactions();
+    });
+    this.categoryMeasure.addEventListener("change", () => this.renderCategoryChart());
     this.categoryControl.start();
     this.loadAll();
   }
@@ -220,8 +452,11 @@ export class FinancePage {
   async loadTransactions() {
     this.transactionList.setAttribute("aria-busy", "true");
     this.transactionState.textContent = "加载中";
-    const params = new URLSearchParams({ date: this.date });
+    const params = new URLSearchParams();
+    if (!this.allDatesFilter.checked) params.set("date", this.date);
     if (this.typeFilter.value) params.set("type", this.typeFilter.value);
+    if (this.categoryFilter.value.trim()) params.set("category", this.categoryFilter.value.trim());
+    if (this.includeArchivedFilter.checked) params.set("include_archived", "true");
     try {
       this.transactions = await api.get(`/api/finance/transactions?${params}`);
       this.renderTransactions();
@@ -238,7 +473,7 @@ export class FinancePage {
 
   renderTransactions() {
     if (!this.transactions.length) {
-      replace(this.transactionList, emptyMessage("这一天还没有流水。点击“记一笔”开始记录。"));
+      replace(this.transactionList, emptyMessage("没有找到符合当前日期、类型和分类条件的流水。"));
       return;
     }
     const accountNames = new Map(this.accounts.map((item) => [item.id, item.name]));
@@ -250,22 +485,35 @@ export class FinancePage {
           ? `来自 ${accountNames.get(item.from_account_id) || "账户"}`
           : `${accountNames.get(item.from_account_id) || "账户"} → ${accountNames.get(item.to_account_id) || "账户"}`;
       const amountClass = item.type === "income" ? "money-positive" : item.type === "expense" ? "money-negative" : "";
-      return element("li", { className: `management-item finance-transaction transaction-${displayType}` }, [
+      const archived = Boolean(item.archived_at);
+      const focused = item.id === this.focusTransactionId;
+      return element("li", {
+        className: `management-item finance-transaction transaction-${displayType}${archived ? " is-archived" : ""}${focused ? " is-focused" : ""}`,
+        attrs: { "data-transaction-id": item.id },
+      }, [
         element("div", {}, [
           element("h3", { text: item.description || item.category || TYPE_LABELS[item.type] }),
           element("div", { className: "item-details" }, [
+            element("span", { text: item.date }),
             element("span", { className: `finance-value ${amountClass}`, text: `${item.type === "income" ? "+" : item.type === "expense" ? "−" : ""}${money(item.amount)}` }),
             element("span", { className: `finance-type finance-type-${displayType}`, text: TYPE_LABELS[displayType] }),
             element("span", { text: route }),
             item.category ? element("span", { text: item.category }) : null,
+            archived ? element("span", { className: "tag", text: "已归档" }) : null,
           ].filter(Boolean)),
         ].filter(Boolean)),
         element("div", { className: "item-actions" }, [
-          item.is_adjustment ? null : button("编辑", () => this.openTransaction(item)),
-          button("归档", () => this.archiveTransaction(item)),
+          archived ? button("恢复", () => this.restoreTransaction(item), "button button-secondary") : null,
+          !archived && !item.is_adjustment ? button("编辑", () => this.openTransaction(item)) : null,
+          !archived ? button("归档", () => this.archiveTransaction(item)) : null,
         ].filter(Boolean)),
       ]);
     })));
+    if (this.focusTransactionId) {
+      window.requestAnimationFrame(() => {
+        this.transactionList.querySelector(`[data-transaction-id="${this.focusTransactionId}"]`)?.scrollIntoView({ block: "center" });
+      });
+    }
   }
 
   async loadSummary() {
@@ -278,11 +526,20 @@ export class FinancePage {
       return;
     }
     this.totals.setAttribute("aria-busy", "true");
+    this.reportSummary.setAttribute("aria-busy", "true");
+    const initializeAssetChart = !this.assetReport;
+    const initializeCategoryChart = !this.categoryReport;
+    if (initializeAssetChart) this.reportByDate.setAttribute("aria-busy", "true");
+    if (initializeCategoryChart) this.reportByCategory.setAttribute("aria-busy", "true");
+    this.reportState.textContent = "生成中";
     const params = new URLSearchParams();
     if (from) params.set("date_from", from);
     if (to) params.set("date_to", to);
     try {
-      const summary = await api.get(`/api/finance/summary?${params}`);
+      const [summary, report] = await Promise.all([
+        api.get(`/api/finance/summary?${params}`),
+        api.get(`/api/finance/reports?${params}`),
+      ]);
       const totals = [
         [summary.total_assets, "总资产", "finance-asset"], [summary.total_liabilities, "总负债", "finance-liability"], [summary.net_worth, "净资产", "finance-net"],
         [summary.income, "期间收入", "finance-income"], [summary.expense, "期间支出", "finance-expense"], [summary.net_cashflow, "期间净现金流", "finance-cashflow"],
@@ -299,13 +556,179 @@ export class FinancePage {
           account.active ? button("调整余额", () => this.openBalanceAdjustment(account), "button button-quiet balance-adjustment-button") : null,
         ].filter(Boolean))))
         : emptyMessage("暂无账户余额。"));
+      this.renderReport(report);
+      this.reportState.textContent = `${report.date_from} — ${report.date_to}`;
     } catch (error) {
       replace(this.totals, emptyMessage("统计暂时不可用。"));
+      replace(this.reportSummary, emptyMessage("报表暂时不可用。"));
+      if (initializeAssetChart) replace(this.reportByDate, emptyMessage("无法生成日期报表。"));
+      if (initializeCategoryChart) replace(this.reportByCategory, emptyMessage("无法生成分类报表。"));
+      this.reportState.textContent = "生成失败";
       this.showError(error);
       throw error;
     } finally {
       this.totals.setAttribute("aria-busy", "false");
+      this.reportSummary.setAttribute("aria-busy", "false");
+      if (initializeAssetChart) this.reportByDate.setAttribute("aria-busy", "false");
+      if (initializeCategoryChart) this.reportByCategory.setAttribute("aria-busy", "false");
     }
+  }
+
+  renderReport(report) {
+    const totals = [
+      [report.total_assets, "期末总资产", "finance-asset"],
+      [report.total_liabilities, "期末总负债", "finance-liability"],
+      [report.net_worth, "期末净资产", "finance-net"],
+      [report.income, "期间收入", "finance-income"],
+      [report.expense, "期间支出", "finance-expense"],
+      [report.net_cashflow, "期间净现金流", "finance-cashflow"],
+    ];
+    replace(this.reportSummary, ...totals.map(([value, label, tone]) => element("div", {
+      className: `metric ${tone}`,
+    }, [element("strong", { text: money(value) }), element("span", { text: label })])));
+
+    if (!this.assetReport) this.setAssetReport(report);
+    if (!this.categoryReport) this.setCategoryReport(report);
+  }
+
+  setAssetReport(report) {
+    this.assetReport = report;
+
+    const assetMetrics = [
+      { key: "total_assets", label: "总资产" },
+      { key: "total_liabilities", label: "总负债" },
+      { key: "net_worth", label: "净资产" },
+    ];
+    replace(this.assetMetricControls, ...assetMetrics.map((metric) => {
+      const input = element("input", { attrs: { type: "checkbox", value: metric.key } });
+      input.checked = this.assetMetricSelection.has(metric.key);
+      input.addEventListener("change", () => {
+        if (input.checked) this.assetMetricSelection.add(metric.key);
+        else this.assetMetricSelection.delete(metric.key);
+        this.renderAssetChart();
+      });
+      return element("label", { className: "finance-chart-choice" }, [input, document.createTextNode(metric.label)]);
+    }));
+    this.renderAssetChart();
+
+    const dateRows = report.by_date.map((point) => [
+      point.date,
+      money(point.income),
+      money(point.expense),
+      money(point.net_cashflow),
+      money(point.total_assets),
+      money(point.total_liabilities),
+      money(point.net_worth),
+    ]);
+    replace(this.reportByDate, dateRows.length
+      ? reportDetails("查看逐日精确数据", reportTable(["日期", "收入", "支出", "净现金流", "总资产", "总负债", "净资产"], dateRows))
+      : emptyMessage("所选横轴范围内没有可输出的数据。"));
+    this.assetRangeState.textContent = `${report.date_from} — ${report.date_to}`;
+  }
+
+  setCategoryReport(report) {
+    this.categoryReport = report;
+
+    const availableCategories = new Set(report.category_series.map((series) => series.category));
+    this.categorySeriesSelection = new Set(
+      [...this.categorySeriesSelection].filter((category) => availableCategories.has(category)),
+    );
+    if (!this.categorySeriesSelection.size) {
+      report.category_series.slice(0, 3).forEach((series) => this.categorySeriesSelection.add(series.category));
+    }
+    replace(this.categorySeriesControls, ...report.category_series.map((series) => {
+      const input = element("input", { attrs: { type: "checkbox", value: series.category } });
+      input.checked = this.categorySeriesSelection.has(series.category);
+      input.addEventListener("change", () => {
+        if (input.checked) this.categorySeriesSelection.add(series.category);
+        else this.categorySeriesSelection.delete(series.category);
+        this.renderCategoryChart();
+      });
+      return element("label", { className: "finance-chart-choice" }, [input, document.createTextNode(series.category)]);
+    }));
+    this.renderCategoryChart();
+
+    const categoryRows = report.by_category.map((point) => [
+      point.category,
+      String(point.transaction_count),
+      money(point.income),
+      money(point.expense),
+      money(point.net_cashflow),
+    ]);
+    replace(this.reportByCategory, categoryRows.length
+      ? reportDetails("查看分类汇总数据", reportTable(["分类", "流水笔数", "收入", "支出", "净现金流"], categoryRows))
+      : emptyMessage("所选横轴范围内没有收入或支出流水。"));
+    this.categoryRangeState.textContent = `${report.date_from} — ${report.date_to}`;
+  }
+
+  chartRange(fromInput, toInput, label) {
+    if (!fromInput.reportValidity() || !toInput.reportValidity()) return null;
+    if (fromInput.value > toInput.value) {
+      toInput.setCustomValidity(`${label}横轴终点不能早于起点。`);
+      toInput.reportValidity();
+      toInput.setCustomValidity("");
+      return null;
+    }
+    return { from: fromInput.value, to: toInput.value };
+  }
+
+  async loadChartReport(kind) {
+    const isAsset = kind === "asset";
+    const range = this.chartRange(
+      isAsset ? this.assetRangeFrom : this.categoryRangeFrom,
+      isAsset ? this.assetRangeTo : this.categoryRangeTo,
+      isAsset ? "资产走势" : "流水走势",
+    );
+    if (!range) return;
+    const revisionKey = isAsset ? "assetChartRevision" : "categoryChartRevision";
+    const revision = ++this[revisionKey];
+    const state = isAsset ? this.assetRangeState : this.categoryRangeState;
+    const chart = isAsset ? this.assetChart : this.categoryChart;
+    state.textContent = "生成中";
+    chart.setAttribute("aria-busy", "true");
+    const params = new URLSearchParams({ date_from: range.from, date_to: range.to });
+    try {
+      const report = await api.get(`/api/finance/reports?${params}`);
+      if (revision !== this[revisionKey]) return;
+      if (isAsset) this.setAssetReport(report);
+      else this.setCategoryReport(report);
+    } catch (error) {
+      if (revision !== this[revisionKey]) return;
+      state.textContent = "生成失败";
+      this.showError(error);
+    } finally {
+      if (revision === this[revisionKey]) chart.setAttribute("aria-busy", "false");
+    }
+  }
+
+  renderAssetChart() {
+    if (!this.assetReport) return;
+    const labels = { total_assets: "总资产", total_liabilities: "总负债", net_worth: "净资产" };
+    const dates = this.assetReport.by_date.map((point) => point.date);
+    const series = [...this.assetMetricSelection].map((key) => ({
+      label: labels[key],
+      values: this.assetReport.by_date.map((point) => point[key]),
+    }));
+    renderLineChart(this.assetChart, dates, series, "资产走势折线图");
+  }
+
+  renderCategoryChart() {
+    if (!this.categoryReport) return;
+    const measure = this.categoryMeasure.value;
+    const measureLabels = { expense: "支出", income: "收入", net_cashflow: "净现金流" };
+    const selected = this.categoryReport.category_series.filter((series) => this.categorySeriesSelection.has(series.category));
+    const dates = this.categoryReport.by_date.map((point) => point.date);
+    const series = selected.map((item) => ({
+      label: item.category,
+      values: item.points.map((point) => point[measure]),
+    }));
+    renderBarChart(
+      this.categoryChart,
+      dates,
+      series,
+      `分类${measureLabels[measure]}走势直方图`,
+      "请选择至少一个流水分类。",
+    );
   }
 
   openAccount(account = null) {
@@ -586,6 +1009,17 @@ export class FinancePage {
     }
   }
 
+  async restoreTransaction(transaction) {
+    this.hideError();
+    try {
+      await api.post(`/api/finance/transactions/${transaction.id}/restore`, {});
+      await this.loadAll();
+      this.state.textContent = "流水已恢复，可编辑分类";
+    } catch (error) {
+      this.showError(error);
+    }
+  }
+
   setDisabled(form, disabled) {
     for (const control of form.elements) control.disabled = disabled;
   }
@@ -602,6 +1036,15 @@ export class FinancePage {
   replaceUrl() {
     const url = new URL(window.location.href);
     url.searchParams.set("date", this.date);
+    const category = this.categoryFilter?.value.trim();
+    if (category) url.searchParams.set("category", category);
+    else url.searchParams.delete("category");
+    if (this.allDatesFilter?.checked) url.searchParams.set("all_dates", "1");
+    else url.searchParams.delete("all_dates");
+    if (this.includeArchivedFilter?.checked) url.searchParams.set("include_archived", "1");
+    else url.searchParams.delete("include_archived");
+    if (this.focusTransactionId) url.searchParams.set("focus_transaction", String(this.focusTransactionId));
+    else url.searchParams.delete("focus_transaction");
     window.history.replaceState({}, "", url);
   }
 }

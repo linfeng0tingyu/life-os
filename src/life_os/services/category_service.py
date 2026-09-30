@@ -97,9 +97,15 @@ class CategoryService:
             raise NotFoundError("分类不存在。")
         usage_count = CategoryService._usage_count(category)
         if usage_count:
+            references = CategoryService._usage_references(category)
             raise ConflictError(
                 "该分类仍被现有记录使用，不能删除。",
-                details={"usage_count": usage_count, "scope": category.scope},
+                details={
+                    "usage_count": usage_count,
+                    "scope": category.scope,
+                    "references": references,
+                    "references_truncated": usage_count > len(references),
+                },
             )
         db.session.delete(category)
         return category_id
@@ -121,6 +127,76 @@ class CategoryService:
             )
             or 0
         )
+
+    @staticmethod
+    def _usage_references(category: Category, *, limit: int = 20) -> list[dict]:
+        normalized_name = category.name.lower()
+        if category.scope == "task":
+            items = list(
+                db.session.scalars(
+                    select(Task)
+                    .where(func.lower(Task.category) == normalized_name)
+                    .order_by(Task.id.desc())
+                    .limit(limit)
+                )
+            )
+            return [
+                {
+                    "kind": "task",
+                    "id": item.id,
+                    "label": item.title,
+                    "date": (
+                        item.scheduled_date.isoformat()
+                        if item.scheduled_date
+                        else item.due_date.isoformat() if item.due_date else None
+                    ),
+                    "status": item.status,
+                    "archived": item.archived_at is not None,
+                }
+                for item in items
+            ]
+        if category.scope == "habit":
+            items = list(
+                db.session.scalars(
+                    select(Habit)
+                    .where(func.lower(Habit.category) == normalized_name)
+                    .order_by(Habit.id.desc())
+                    .limit(limit)
+                )
+            )
+            return [
+                {
+                    "kind": "habit",
+                    "id": item.id,
+                    "label": item.name,
+                    "date": None,
+                    "status": "active" if item.active else "inactive",
+                    "archived": False,
+                }
+                for item in items
+            ]
+
+        items = list(
+            db.session.scalars(
+                select(FinanceTransaction)
+                .where(func.lower(FinanceTransaction.category) == normalized_name)
+                .order_by(FinanceTransaction.date.desc(), FinanceTransaction.id.desc())
+                .limit(limit)
+            )
+        )
+        type_labels = {"income": "收入", "expense": "支出", "transfer": "转账"}
+        return [
+            {
+                "kind": "finance_transaction",
+                "id": item.id,
+                "label": item.description or type_labels[item.transaction_type],
+                "date": item.date.isoformat(),
+                "status": item.transaction_type,
+                "archived": item.archived_at is not None,
+                "amount": f"{item.amount_minor / 100:.2f}",
+            }
+            for item in items
+        ]
 
     @staticmethod
     def normalize_assignment(scope: str, value: object) -> str | None:

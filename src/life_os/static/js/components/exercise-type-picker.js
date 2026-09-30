@@ -15,6 +15,7 @@ export class ExerciseTypePicker {
     this.onChange = onChange;
     this.onError = onError;
     this.options = root.querySelector("[data-exercise-type-options]");
+    this.dropdown = root.querySelector("[data-exercise-type-dropdown]");
     this.state = root.querySelector("[data-exercise-type-state]");
     this.summary = root.querySelector("[data-exercise-type-summary]");
     this.creator = root.querySelector("[data-exercise-type-creator]");
@@ -28,6 +29,15 @@ export class ExerciseTypePicker {
   }
 
   start() {
+    document.addEventListener("click", (event) => {
+      if (this.dropdown?.open && !this.root.contains(event.target)) this.dropdown.open = false;
+    });
+    this.root.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && this.dropdown?.open) {
+        this.dropdown.open = false;
+        this.summary?.focus();
+      }
+    });
     if (this.creator && this.manager) {
       this.root.querySelector('[data-action="show-exercise-type-creator"]').addEventListener("click", () => this.showCreator());
       this.root.querySelector('[data-action="cancel-exercise-type-creator"]').addEventListener("click", () => this.hideCreator());

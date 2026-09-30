@@ -18,11 +18,12 @@ export class TodayPage {
     this.summary = new DaySummary(root, {
       onTaskStatusChange: (task, status) => this.updateTaskStatus(task, status),
       onHabitStatusChange: (habit, log) => this.updateHabitStatus(habit, log),
+      hideClosedTasks: true,
     });
     this.today = toLocalDateString();
     this.dayRequest = null;
     this.healthForm = root.querySelector("[data-today-health-form]");
-    this.healthState = root.querySelector("[data-today-health-state]");
+    this.healthState = root.querySelector("[data-today-health-save-state]");
     this.healthDirty = false;
     this.healthSaving = false;
     this.healthRevision = 0;
@@ -57,7 +58,10 @@ export class TodayPage {
       const day = await api.get(`/api/day/${this.today}`, { signal: request.signal });
       if (this.dayRequest !== request) return;
       this.summary.ready(day);
-      if (!this.healthDirty) this.fillHealth(day.health);
+      if (!this.healthDirty) {
+        this.fillHealth(day.health);
+        this.setHealthState("ready", "可编辑");
+      }
     } catch (error) {
       if (error instanceof ApiError && error.code === "cancelled") return;
       if (this.dayRequest !== request) return;
@@ -73,13 +77,12 @@ export class TodayPage {
     fields.energy_level.value = record?.energy_level ?? "";
     fields.mood_level.value = record?.mood_level ?? "";
     this.exerciseTypes.setValue((record?.exercise_types || []).map((item) => item.id));
-    this.setHealthState("saved", record ? "已同步当天节律" : "尚无记录");
   }
 
   markHealthDirty() {
     this.healthDirty = true;
     this.healthRevision += 1;
-    this.setHealthState("saving", "等待保存");
+    this.setHealthState("dirty", "待保存");
     window.clearTimeout(this.healthTimer);
     this.healthTimer = window.setTimeout(() => this.saveHealth(), 800);
   }
@@ -99,7 +102,7 @@ export class TodayPage {
     window.clearTimeout(this.healthTimer);
     if (this.healthSaving || !this.healthDirty) return;
     if (!this.healthForm.reportValidity()) {
-      this.setHealthState("save-failed", "请检查输入");
+      this.setHealthState("invalid", "请检查输入");
       return;
     }
     const revision = this.healthRevision;
@@ -109,23 +112,25 @@ export class TodayPage {
       const record = await api.put(`/api/health/${this.today}`, this.healthPayload());
       this.healthDirty = this.healthRevision !== revision;
       if (this.healthDirty) {
-        this.setHealthState("saving", "有新修改");
+        this.setHealthState("dirty", "有新修改");
         this.healthTimer = window.setTimeout(() => this.saveHealth(), 800);
       } else {
         this.fillHealth(record);
-        this.setHealthState("saved", "已同步到节律");
+        this.setHealthState("saved", "已保存");
       }
     } catch (error) {
-      this.setHealthState("save-failed", "保存失败");
+      this.healthDirty = true;
+      this.setHealthState("error", "保存失败");
       this.showMutationError(error);
     } finally {
       this.healthSaving = false;
     }
   }
 
-  setHealthState(state, value) {
+  setHealthState(state, text) {
+    if (!this.healthState) return;
     this.healthState.dataset.state = state;
-    this.healthState.textContent = value;
+    this.healthState.textContent = text;
   }
 
   async updateTaskStatus(task, status) {

@@ -9,16 +9,27 @@ from typing import Any
 import pytest
 
 from life_os import create_app
-from life_os.desktop.host import calculate_window_geometry, run_desktop
+from life_os.desktop import host as desktop_host
+from life_os.desktop.host import DesktopWindowApi, calculate_window_geometry, run_desktop
 from life_os.desktop.server import LocalWsgiServer
 from life_os.instance_lock import InstanceLock
 from life_os.runtime import resolve_runtime_paths
+
+
+class FakeNativeWindow:
+    def __init__(self) -> None:
+        self.InvokeRequired = False
+        self.IsDisposed = False
+        self.Disposing = False
+        self.TopMost = False
 
 
 class FakeWindow:
     def __init__(self) -> None:
         self.size: tuple[int, int] | None = None
         self.position: tuple[int, int] | None = None
+        self.on_top = False
+        self.native = FakeNativeWindow()
 
     def resize(self, width: int, height: int) -> None:
         self.size = (width, height)
@@ -95,7 +106,25 @@ def test_desktop_host_uses_rest_url_and_runtime_local_webview_storage(
     assert fake_webview.window_call is not None
     args, kwargs = fake_webview.window_call
     assert args[:2] == ("Life OS", "http://127.0.0.1:54321")
-    assert "js_api" not in kwargs
+    window_api = kwargs["js_api"]
+    assert isinstance(window_api, DesktopWindowApi)
+    assert window_api.set_window_on_top(True) == {
+        "success": True,
+        "on_top": True,
+        "error": "",
+    }
+    assert fake_webview.window.native.TopMost is True
+    assert window_api.set_window_on_top(False) == {
+        "success": True,
+        "on_top": False,
+        "error": "",
+    }
+    assert fake_webview.window.native.TopMost is False
+    assert window_api.set_window_on_top("true") == {  # type: ignore[arg-type]
+        "success": False,
+        "on_top": False,
+        "error": "invalid_argument",
+    }
     assert fake_webview.start_call == {
         "gui": "edgechromium",
         "debug": False,
@@ -109,6 +138,74 @@ def test_desktop_host_uses_rest_url_and_runtime_local_webview_storage(
     lock = InstanceLock(runtime_home / "temp" / "life-os.lock")
     lock.acquire()
     lock.release()
+
+
+def test_desktop_window_control_dispatches_to_ui_thread_and_contains_failures(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class DispatchingNative(FakeNativeWindow):
+        def __init__(self) -> None:
+            super().__init__()
+            self.InvokeRequired = True
+            self.invocations = 0
+
+        def BeginInvoke(self, callback) -> None:
+            self.invocations += 1
+            callback()
+
+    monkeypatch.setattr(desktop_host, "_windows_action", lambda callback: callback)
+    window = FakeWindow()
+    window.native = DispatchingNative()
+    api = DesktopWindowApi()
+    api._bind(window)
+
+    result = api.set_window_on_top(True)
+
+    assert result == {"success": True, "on_top": True, "error": ""}
+    assert window.native.invocations == 1
+    assert window.native.TopMost is True
+
+    window.native.IsDisposed = True
+    assert api.set_window_on_top(False) == {
+        "success": False,
+        "on_top": True,
+        "error": "window_control_failed",
+    }
+
+
+def test_desktop_window_control_times_out_and_rejects_overlapping_calls(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class NonRespondingNative(FakeNativeWindow):
+        def __init__(self) -> None:
+            super().__init__()
+            self.InvokeRequired = True
+
+        def BeginInvoke(self, _callback) -> None:
+            return None
+
+    monkeypatch.setattr(desktop_host, "_windows_action", lambda callback: callback)
+    monkeypatch.setattr(desktop_host, "WINDOW_CONTROL_TIMEOUT_SECONDS", 0.01)
+    window = FakeWindow()
+    window.native = NonRespondingNative()
+    api = DesktopWindowApi()
+    api._bind(window)
+
+    assert api.set_window_on_top(True) == {
+        "success": False,
+        "on_top": False,
+        "error": "window_control_failed",
+    }
+
+    assert api._lock.acquire(timeout=0.01)
+    try:
+        assert api.set_window_on_top(True) == {
+            "success": False,
+            "on_top": False,
+            "error": "window_control_busy",
+        }
+    finally:
+        api._lock.release()
 
 
 def test_check_only_initializes_and_releases_runtime(tmp_path: Path) -> None:

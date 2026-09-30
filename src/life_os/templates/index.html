@@ -12,10 +12,13 @@
           <h1 data-date-heading>正在读取日期…</h1>
           <p class="date-subtitle" data-date-subtitle></p>
         </div>
-        <a class="button button-secondary" href="{{ url_for('system.calendar_page') }}">
-          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3v3M19 3v3M4 8h16M5 5h14a1 1 0 0 1 1 1v14H4V6a1 1 0 0 1 1-1Z"></path></svg>
-          查看日历
-        </a>
+        <div class="topbar-actions">
+          <a class="button button-secondary" href="{{ url_for('system.calendar_page') }}">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3v3M19 3v3M4 8h16M5 5h14a1 1 0 0 1 1 1v14H4V6a1 1 0 0 1 1-1Z"></path></svg>
+            查看日历
+          </a>
+          {% include "partials/window-controls.html" %}
+        </div>
       </header>
 
       <div class="notice is-hidden" role="alert" data-global-error>

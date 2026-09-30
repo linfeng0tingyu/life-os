@@ -41,6 +41,12 @@ function sleepStatusSummary(counts = {}) {
   return entries.map(([status, count]) => `${SLEEP_STATUS_LABELS[status] || status} ${count}天`).join("；");
 }
 
+function exerciseTypeSummary(counts = {}) {
+  const entries = Object.entries(counts).filter(([, count]) => count > 0);
+  if (!entries.length) return "未记录";
+  return entries.map(([name, count]) => `${name} ${count}天`).join("；");
+}
+
 export class HealthPage {
   constructor(root) {
     this.root = root;
@@ -253,6 +259,7 @@ export class HealthPage {
       ["记录天数", `${summary.recorded_days} 天`],
       ["睡眠情况", `${summary.sleep_status.recorded_days} 天已记录`],
       ["运动总量", formatDuration(summary.exercise.total_minutes)],
+      ["运动种类", `${summary.exercise_types.recorded_days} 天已选择`],
       ["体重变化", displayNumber(summary.weight.change_kg, " kg")],
       ["平均精力", displayNumber(summary.energy.average)],
       ["平均情绪", displayNumber(summary.mood.average)],
@@ -274,16 +281,17 @@ export class HealthPage {
     });
 
     const table = element("table", { className: "report-table" });
-    table.append(element("thead", {}, [element("tr", {}, ["日期", "睡眠情况", "体重", "运动", "运动种类", "精力", "情绪"].map((label) => element("th", { text: label }))) ]));
+    table.append(element("thead", {}, [element("tr", {}, ["日期", "睡眠情况", "体重", "运动", "运动种类", "精力", "情绪", "身体状态"].map((label) => element("th", { text: label }))) ]));
     const tbody = element("tbody");
     series.filter((item) => item.recorded || item.recorded_days).forEach((item) => tbody.append(element("tr", {}, [
       item.date || item.month,
       item.date ? (SLEEP_STATUS_LABELS[item.sleep_status] || "—") : sleepStatusSummary(item.sleep_status_counts),
       displayNumber(item.weight_kg ?? item.last_weight_kg ?? item.average_weight_kg, " kg"),
       formatDuration(item.exercise_minutes),
-      item.exercise_types?.join("、") || "—",
+      item.date ? (item.exercise_types?.join("、") || "—") : exerciseTypeSummary(item.exercise_type_counts),
       displayNumber(item.energy_level ?? item.average_energy),
       displayNumber(item.mood_level ?? item.average_mood),
+      item.date ? (item.body_status || "—") : (item.body_status_days ? `${item.body_status_days} 天有记录` : "—"),
     ].map((value) => element("td", { text: value })))));
     table.append(tbody);
 
@@ -299,6 +307,7 @@ export class HealthPage {
     replace(this.reportBody, element("div", { className: "report-content" }, [
       summaryGrid,
       element("p", { className: "report-note", text: `睡眠情况分布：${sleepStatusSummary(summary.sleep_status.counts)}` }),
+      element("p", { className: "report-note", text: `运动种类分布：${exerciseTypeSummary(summary.exercise_types.counts)}` }),
       element("div", { className: "report-legend" }, [element("span", { className: "legend-accent", text: "运动" })]),
       chart,
       element("div", { className: "report-table-wrap" }, [table]),

@@ -54,6 +54,13 @@ class DayService:
         tasks = TaskService.list_tasks(value_date=target)
         scheduled = [task_data(task) for task in tasks if task.scheduled_date == target]
         due = [task_data(task) for task in tasks if task.due_date == target]
+        ongoing = [
+            task_data(task)
+            for task in tasks
+            if task.scheduled_date is not None
+            and task.due_date is not None
+            and task.scheduled_date < target < task.due_date
+        ]
         overdue = [
             task_data(task)
             for task in tasks
@@ -92,6 +99,7 @@ class DayService:
             "tasks": {
                 "scheduled": scheduled,
                 "due": due,
+                "ongoing": ongoing,
                 "overdue": overdue,
             },
             "health": health_data(health) if health else None,

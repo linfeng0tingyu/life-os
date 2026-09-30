@@ -27,15 +27,110 @@
 
 .today-health-form {
   display: grid;
+  align-content: start;
   gap: var(--space-3);
 }
 
 .today-health-primary {
-  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
 }
 
-.today-health-save-state {
-  justify-self: end;
+.today-health-primary > .field {
+  min-width: 0;
+  margin-top: 0;
+}
+
+.today-health-primary select,
+.today-health-primary .exercise-type-dropdown > summary {
+  min-height: 2.75rem;
+}
+
+.today-health-primary .exercise-type-control.is-compact .exercise-type-dropdown-menu {
+  width: 100%;
+  min-width: 0;
+  max-height: 10rem;
+  padding: var(--space-2);
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.today-health-primary .exercise-type-control.is-compact .exercise-type-options {
+  max-height: none;
+  gap: var(--space-1);
+  overflow: visible;
+  scrollbar-gutter: auto;
+}
+
+.today-health-primary .exercise-type-control.is-compact .exercise-type-option {
+  min-width: 0;
+  min-height: 2.15rem;
+  padding: 0.3rem 0.55rem;
+}
+
+.today-health-primary .exercise-type-option span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.today-dashboard .module-heading {
+  margin-bottom: var(--space-3);
+}
+
+.today-rhythm-heading-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+[data-today-health-save-state][data-state="dirty"],
+[data-today-health-save-state][data-state="invalid"],
+[data-today-health-save-state][data-state="error"] {
+  color: var(--danger, #a44f43);
+}
+
+@media (min-width: 72rem) {
+  .today-dashboard > .module-focus,
+  .today-dashboard > .module-rhythm,
+  .today-dashboard > .module-habits,
+  .today-dashboard > .module-finance {
+    display: flex;
+    height: clamp(20rem, 42vh, 27rem);
+    min-height: 0;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .today-dashboard > .module-focus > [data-task-summary],
+  .today-dashboard > .module-rhythm > .today-health-form,
+  .today-dashboard > .module-habits > [data-habit-summary],
+  .today-dashboard > .module-finance > [data-finance-summary] {
+    min-height: 0;
+    flex: 1 1 auto;
+    padding-right: var(--space-2);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+  }
+
+  .today-dashboard > .module-rhythm {
+    position: relative;
+    z-index: 2;
+  }
+
+  .today-dashboard > .module-rhythm > .today-health-form {
+    padding-right: 0;
+    overflow: visible;
+    scrollbar-gutter: auto;
+  }
+}
+
+@media (max-width: 42rem) {
+  .today-health-primary {
+    grid-template-columns: 1fr;
+  }
 }
 
 .journal-preview {

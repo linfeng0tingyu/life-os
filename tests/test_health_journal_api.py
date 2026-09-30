@@ -48,6 +48,43 @@ def test_health_accepts_sleep_status_and_managed_exercise_types(
     assert client.delete(f"/api/exercise-types/{strength_id}").status_code == 200
 
 
+def test_today_health_fields_partially_update_without_erasing_details(
+    client: FlaskClient,
+) -> None:
+    exercise = client.post(
+        "/api/exercise-types", json={"name": "骑行"}
+    ).get_json()["data"]
+    path = "/api/health/2026-09-18"
+    client.put(
+        path,
+        json={
+            "weight_kg": 66.2,
+            "exercise_minutes": 35,
+            "body_status": "状态稳定",
+        },
+    )
+
+    response = client.put(
+        path,
+        json={
+            "sleep_status": "between_6_7_5",
+            "exercise_type_ids": [exercise["id"]],
+            "energy_level": 4,
+            "mood_level": 5,
+        },
+    )
+
+    assert response.status_code == 200
+    data = response.get_json()["data"]
+    assert data["sleep_status"] == "between_6_7_5"
+    assert data["energy_level"] == 4
+    assert data["mood_level"] == 5
+    assert [item["id"] for item in data["exercise_types"]] == [exercise["id"]]
+    assert data["weight_kg"] == 66.2
+    assert data["exercise_minutes"] == 35
+    assert data["body_status"] == "状态稳定"
+
+
 def test_health_validation(client: FlaskClient) -> None:
     assert client.put("/api/health/2026-09-18", json={}).status_code == 400
     assert (

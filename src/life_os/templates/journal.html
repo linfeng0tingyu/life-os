@@ -8,7 +8,10 @@
     <main class="main-content records-content" id="main-content">
       <header class="topbar page-head">
         <div><p class="eyebrow">给每天留下一段可回看的文字</p><h1>日记</h1><p class="date-subtitle">支持 Markdown 文本；停止输入约 1.2 秒后自动保存。</p></div>
-        <label class="date-switcher"><span>日记日期</span><input type="date" data-record-date></label>
+        <div class="topbar-actions">
+          <label class="date-switcher"><span>日记日期</span><input type="date" data-record-date></label>
+          {% include "partials/window-controls.html" %}
+        </div>
       </header>
       <div class="notice is-hidden" role="alert" data-global-error>
         <div><strong>日记未能保存</strong><p data-global-error-message></p></div>

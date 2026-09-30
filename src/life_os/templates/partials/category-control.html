@@ -23,7 +23,8 @@
       </div>
       <label class="field category-manager-search"><span>搜索分类</span><input type="search" data-category-manager-search placeholder="输入分类名称筛选"></label>
       <div class="category-manager-list" data-category-manager-list></div>
-      <p class="category-manager-note">可上下调整顺序；正在被历史或当前记录使用的分类不能删除。</p>
+      <section class="category-reference-panel is-hidden" data-category-references role="alert" aria-live="polite"></section>
+      <p class="category-manager-note">可上下调整顺序；正在被历史或当前记录使用的分类不能删除。删除失败时会列出具体引用项。</p>
     </section>
   </div>
 {%- endmacro %}
